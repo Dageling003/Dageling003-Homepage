@@ -162,8 +162,8 @@
 
     <div class="footer">
       <p>
-        ©2025 Quenan |
-        <a href="https://github.com/QNquenan/Simple-Homepage">仓库</a>
+        ©2026 Dageling003 |
+        <a href="https://github.com/Dageling003/Dageling003-Homepage">仓库</a>
       </p>
     </div>
   </div>

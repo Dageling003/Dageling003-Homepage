@@ -43,10 +43,6 @@
     {
       "icon": "devicon:git",
       "name": "Git"
-    },
-    {
-      "icon": "devicon:docker-wordmark",
-      "name": "Docker"
     }
   ]
 } 
