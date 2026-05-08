@@ -1,13 +1,13 @@
 {
-  "name": "鹊楠",
+  "name": "Dageling003",
   "age": "06",
-  "zodiac": "天蝎座♏",
-  "avatarUrl": "https://i.p-i.vip/43/20240913-66e403f2331ec.webp",
+  "zodiac": "双子座",
+  "avatarUrl": "/logo.jpg",
   "emjoi": "😋",
   "infoTags": {
     "sex": "男",
-    "school": "惠州城市职业学校",
-    "province": "广东省"
+    "school": "无锡南洋职业技术学院",
+    "province": "江苏省"
   },
-  "professions": ["学生", "前端入门者", "后端初学者"]
+  "professions": ["学生", "前端开发者", "后端初学者","设计小白","网络入门者"]
 }

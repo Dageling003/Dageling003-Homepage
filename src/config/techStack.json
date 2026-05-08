@@ -21,10 +21,6 @@
       "name": "MySql"
     },
     {
-      "icon": "logos:php",
-      "name": "PHP"
-    },
-    {
       "icon": "material-icon-theme:python",
       "name": "Python"
     },
@@ -33,16 +29,24 @@
       "name": "Vue"
     },
     {
-      "icon": "skill-icons:jquery",
-      "name": "Jquery"
-    },
-    {
       "icon": "skill-icons:photoshop",
       "name": "PhotoShop"
     },
     {
-      "icon": "devicon:xd",
-      "name": "XD"
+      "icon": "skill-icons:autocad-light",
+      "name": "AutoCAD"
+    },
+    {
+      "icon": "lsicon:file-cdr-outline",
+      "name": "CorelDraw"
+    },
+    {
+      "icon": "devicon:git",
+      "name": "Git"
+    },
+    {
+      "icon": "devicon:docker-wordmark",
+      "name": "Docker"
     }
   ]
-}
+} 
