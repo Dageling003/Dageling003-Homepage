@@ -1,6 +1,15 @@
 <p align="center">
-  <img src="https://socialify.git.ci/QNquenan/Simple-Homepage/image?custom_description=%E4%B8%80%E4%B8%AA%E5%9F%BA%E4%BA%8EVue%E7%9A%84%E7%AE%80%E7%BA%A6%E9%A3%8E%E4%B8%AA%E4%BA%BA%E4%B8%BB%E9%A1%B5&description=1&font=KoHo&forks=1&issues=1&language=1&name=1&owner=1&pattern=Brick+Wall&pulls=1&stargazers=1&theme=Light" alt="Simple-Homepage" />
+  <img src="https://socialify.git.ci/Dageling003/Dageling003-Homepage/image?custom_description=%E4%B8%80%E4%B8%AA%E5%9F%BA%E4%BA%8EVue%E7%9A%84%E7%AE%80%E7%BA%A6%E9%A3%8E%E4%B8%AA%E4%BA%BA%E4%B8%BB%E9%A1%B5&description=1&font=KoHo&forks=1&issues=1&language=1&name=1&owner=1&pattern=Brick+Wall&pulls=1&stargazers=1&theme=Light" alt="Dageling003-Homepage" />
 </p>
+
+## 项目声明
+
+这是一个基于 [Simple-Homepage](https://github.com/QNquenan/Simple-Homepage) 的二次开发项目，使用 Vue 3 和 Vite 构建。
+
+原项目作者：[鹊楠吖~](https://github.com/QNquenan)
+
+本项目在原有基础上进行了以下修改和扩展：
+
 
 ## 项目介绍
 
@@ -148,4 +157,8 @@ src/
 
 ## 许可证
 
-MIT
+本项目基于 MIT 许可证开源。
+
+原项目许可证见 [LICENSE-MIT-ORIGINAL](LICENSE-MIT-ORIGINAL)。
+
+本项目修改部分的许可证见 [LICENSE](LICENSE)。
