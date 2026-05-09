@@ -11,7 +11,7 @@ body {
     margin: 0;
     min-height: 100vh;
     position: relative;
-    transition: background 0s;
+    transition: background-color 0.3s ease-in-out;
 }
 
 img {
@@ -95,10 +95,19 @@ a {
     cursor: pointer;
     user-select: none;
     transition: .3s ease-in-out;
+    font-size: 1rem;
+    line-height: 1;
+    padding: 1rem;
+    outline: none;
 
     &:hover {
         transform: translateY(-3px);
         box-shadow: 0 5px 10px rgba(0, 0, 0, .2);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--theme-color);
+        outline-offset: 2px;
     }
 }
 

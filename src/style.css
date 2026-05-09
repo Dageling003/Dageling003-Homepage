@@ -1,6 +1,4 @@
-* {
-  transition: all .3s ease-in-out;
-}
+/* 移除全局过渡，改为按需添加 */
 
 :root {
   /* 背景颜色 */
@@ -24,6 +22,8 @@
 [theme='dark'] {
   /* 背景颜色 */
   --background: #222222;
+  /* 主题颜色 */
+  --theme-color: #ffb3b3;
   /* 文字颜色 */
   --text-color: #fff;
   /* 卡片背景颜色 */

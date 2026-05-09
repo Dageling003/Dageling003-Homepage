@@ -2,7 +2,7 @@
   <div class="mainCard">
     <div class="header">
       <div class="avatar" :emjoi="config.emjoi">
-        <img :src="config.avatarUrl" alt="" />
+        <img :src="config.avatarUrl" :alt="config.name + '的头像'" loading="lazy" />
       </div>
 
       <div class="sayHi">
@@ -62,7 +62,7 @@
           <div class="time-progress">
             <h3>时光⌛</h3>
             <div class="progress-item">
-              <p>☀️今天已经过去了 {{ hoursPassed }} / 24 小时</p>
+              <p>☀️今天已经过去了 {{ hoursPassedDisplay }} / 24 小时</p>
               <div class="progress-bar">
                 <div
                   class="progress-fill"
@@ -163,6 +163,7 @@
     <div class="footer">
       <p>
         ©2026 Dageling003 |
+        <span>👀 访问次数：{{ visitCount }}</span> |
         <a href="https://github.com/Dageling003/Dageling003-Homepage">仓库</a>
       </p>
     </div>
@@ -177,12 +178,15 @@ import todo from "../config/todo.json";
 import typewriter from "../config/typewriter.json";
 import { Icon } from "@iconify/vue";
 import LinkBtn from "../components/LinkBtn.vue";
-import { onMounted, ref, computed } from "vue";
+import { onMounted, ref, computed, onUnmounted } from "vue";
 import Typewriter from "../components/Typewriter.vue";
 
 const now = ref(new Date());
+const visitCount = ref(parseInt(localStorage.getItem("visitCount")) || 0);
+let updateInterval = null;
 
-const hoursPassed = computed(() => now.value.getHours());
+const hoursPassedDisplay = computed(() => now.value.getHours());
+const hoursPassed = computed(() => now.value.getHours() + now.value.getMinutes() / 60);
 const hoursProgress = computed(() =>
   ((hoursPassed.value / 24) * 100).toFixed(2)
 );
@@ -200,7 +204,7 @@ const daysInCurrentMonth = computed(() =>
   new Date(now.value.getFullYear(), now.value.getMonth() + 1, 0).getDate()
 );
 const monthProgress = computed(
-  () => (daysInMonthPassed.value / daysInCurrentMonth.value) * 100
+  () => ((daysInMonthPassed.value - 1 + hoursPassed.value / 24) / daysInCurrentMonth.value * 100).toFixed(2)
 );
 
 const daysInYearPassed = computed(() => {
@@ -215,7 +219,7 @@ const daysInCurrentYear = computed(() => {
 });
 
 const yearProgress = computed(
-  () => (daysInYearPassed.value / daysInCurrentYear.value) * 100
+  () => ((daysInYearPassed.value - 1 + hoursPassed.value / 24) / daysInCurrentYear.value * 100).toFixed(2)
 );
 
 function isLeapYear(year) {
@@ -223,9 +227,15 @@ function isLeapYear(year) {
 }
 
 onMounted(() => {
-  setInterval(() => {
+  updateInterval = setInterval(() => {
     now.value = new Date();
-  }, 1000);
+  }, 60000);
+});
+
+onUnmounted(() => {
+  if (updateInterval) {
+    clearInterval(updateInterval);
+  }
 });
 </script>
 
