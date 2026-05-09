@@ -157,8 +157,5 @@ src/
 
 ## 许可证
 
-本项目基于 MIT 许可证开源。
-
-原项目许可证见 [LICENSE-MIT-ORIGINAL](LICENSE-MIT-ORIGINAL)。
-
-本项目修改部分的许可证见 [LICENSE](LICENSE)。
+This project is licensed under the MIT License.  
+See the [LICENSE](LICENSE) file for details.
