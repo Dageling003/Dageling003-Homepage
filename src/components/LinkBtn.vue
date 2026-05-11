@@ -1,22 +1,29 @@
 <template>
-  <a
-    class="linkBtn hover"
-    :href="url ? url : '#'"
-    target="_blank"
-    :style="{ background: color }"
-  >
+  <a class="linkBtn hover" :href="url ? url : '#'" target="_blank" :style="{ background: color }">
     <Icon :icon="icon" width="36" height="36" />
     <span>{{ text }}</span>
   </a>
 </template>
 <script setup>
-import { Icon } from "@iconify/vue";
+import { Icon } from '@iconify/vue';
 
-const props = defineProps({
-  icon: String,
-  text: String,
-  color: String,
-  url: String,
+defineProps({
+  icon: {
+    type: String,
+    default: '',
+  },
+  text: {
+    type: String,
+    default: '',
+  },
+  color: {
+    type: String,
+    default: '#333',
+  },
+  url: {
+    type: String,
+    default: '',
+  },
 });
 </script>
 <style>

@@ -6,7 +6,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, onMounted, onUnmounted } from 'vue';
 
 const props = defineProps({
   text: {
@@ -35,7 +35,7 @@ const props = defineProps({
   },
 });
 
-const displayedText = ref("");
+const displayedText = ref('');
 const showCursor = ref(true);
 const currentIndex = ref(0);
 const currentTextIndex = ref(0);
@@ -45,9 +45,9 @@ let intervalId = null;
 
 const getCurrentText = () => {
   if (Array.isArray(props.text)) {
-    return props.text[currentTextIndex.value] || "";
+    return props.text[currentTextIndex.value] || '';
   }
-  return props.text || "";
+  return props.text || '';
 };
 
 const getTextArrayLength = () => {
@@ -82,8 +82,7 @@ const typeText = () => {
       isDeleting.value = false;
       if (props.loop || currentTextIndex.value < getTextArrayLength() - 1) {
         if (Array.isArray(props.text) && props.text.length > 0) {
-          currentTextIndex.value =
-            (currentTextIndex.value + 1) % props.text.length;
+          currentTextIndex.value = (currentTextIndex.value + 1) % props.text.length;
         }
 
         if (props.loop || currentTextIndex.value < getTextArrayLength()) {

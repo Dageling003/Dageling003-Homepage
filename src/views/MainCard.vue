@@ -36,11 +36,7 @@
           <span class="cardHeader">我的一些鸽子计划📃</span>
           <div class="cardMain">
             <div class="todoList">
-              <div
-                class="todoItem"
-                v-for="(i, index) in todo.todoList"
-                :key="index"
-              >
+              <div v-for="(i, index) in todo.todoList" :key="index" class="todoItem">
                 <Icon
                   :icon="i.checked ? 'lets-icons:check-ring' : 'gg:radio-check'"
                   width="24"
@@ -64,46 +60,28 @@
             <div class="progress-item">
               <p>☀️今天已经过去了 {{ hoursPassedDisplay }} / 24 小时</p>
               <div class="progress-bar">
-                <div
-                  class="progress-fill"
-                  :style="{ width: hoursProgress + '%' }"
-                ></div>
+                <div class="progress-fill" :style="{ width: hoursProgress + '%' }"></div>
               </div>
             </div>
 
             <div class="progress-item">
               <p>📆本周已经过去了 {{ daysInWeekPassed }} / 7 天</p>
               <div class="progress-bar">
-                <div
-                  class="progress-fill"
-                  :style="{ width: weekProgress + '%' }"
-                ></div>
+                <div class="progress-fill" :style="{ width: weekProgress + '%' }"></div>
               </div>
             </div>
 
             <div class="progress-item">
-              <p>
-                🌙本月已经过去了 {{ daysInMonthPassed }} /
-                {{ daysInCurrentMonth }} 天
-              </p>
+              <p>🌙本月已经过去了 {{ daysInMonthPassed }} / {{ daysInCurrentMonth }} 天</p>
               <div class="progress-bar">
-                <div
-                  class="progress-fill"
-                  :style="{ width: monthProgress + '%' }"
-                ></div>
+                <div class="progress-fill" :style="{ width: monthProgress + '%' }"></div>
               </div>
             </div>
 
             <div class="progress-item">
-              <p>
-                ⭐今年已经过去了 {{ daysInYearPassed }} /
-                {{ daysInCurrentYear }} 天
-              </p>
+              <p>⭐今年已经过去了 {{ daysInYearPassed }} / {{ daysInCurrentYear }} 天</p>
               <div class="progress-bar">
-                <div
-                  class="progress-fill"
-                  :style="{ width: yearProgress + '%' }"
-                ></div>
+                <div class="progress-fill" :style="{ width: yearProgress + '%' }"></div>
               </div>
             </div>
           </div>
@@ -171,40 +149,39 @@
 </template>
 
 <script setup>
-import config from "../config/config.json";
-import linkBtns from "../config/linkBtn.json";
-import techStack from "../config/techStack.json";
-import todo from "../config/todo.json";
-import typewriter from "../config/typewriter.json";
-import { Icon } from "@iconify/vue";
-import LinkBtn from "../components/LinkBtn.vue";
-import { onMounted, ref, computed, onUnmounted } from "vue";
-import Typewriter from "../components/Typewriter.vue";
+import config from '../config/config.json';
+import linkBtns from '../config/linkBtn.json';
+import techStack from '../config/techStack.json';
+import todo from '../config/todo.json';
+import typewriter from '../config/typewriter.json';
+import { Icon } from '@iconify/vue';
+import LinkBtn from '../components/LinkBtn.vue';
+import { onMounted, ref, computed, onUnmounted } from 'vue';
+import Typewriter from '../components/Typewriter.vue';
 
 const now = ref(new Date());
-const visitCount = ref(parseInt(localStorage.getItem("visitCount")) || 0);
+const visitCount = ref(parseInt(localStorage.getItem('visitCount')) || 0);
 let updateInterval = null;
 
 const hoursPassedDisplay = computed(() => now.value.getHours());
 const hoursPassed = computed(() => now.value.getHours() + now.value.getMinutes() / 60);
-const hoursProgress = computed(() =>
-  ((hoursPassed.value / 24) * 100).toFixed(2)
-);
+const hoursProgress = computed(() => ((hoursPassed.value / 24) * 100).toFixed(2));
 
 const daysInWeekPassed = computed(() => {
   const day = now.value.getDay();
   return day === 0 ? 7 : day;
 });
-const weekProgress = computed(() =>
-  ((daysInWeekPassed.value / 7) * 100).toFixed(2)
-);
+const weekProgress = computed(() => ((daysInWeekPassed.value / 7) * 100).toFixed(2));
 
 const daysInMonthPassed = computed(() => now.value.getDate());
 const daysInCurrentMonth = computed(() =>
   new Date(now.value.getFullYear(), now.value.getMonth() + 1, 0).getDate()
 );
-const monthProgress = computed(
-  () => ((daysInMonthPassed.value - 1 + hoursPassed.value / 24) / daysInCurrentMonth.value * 100).toFixed(2)
+const monthProgress = computed(() =>
+  (
+    ((daysInMonthPassed.value - 1 + hoursPassed.value / 24) / daysInCurrentMonth.value) *
+    100
+  ).toFixed(2)
 );
 
 const daysInYearPassed = computed(() => {
@@ -218,8 +195,10 @@ const daysInCurrentYear = computed(() => {
   return isLeap ? 366 : 365;
 });
 
-const yearProgress = computed(
-  () => ((daysInYearPassed.value - 1 + hoursPassed.value / 24) / daysInCurrentYear.value * 100).toFixed(2)
+const yearProgress = computed(() =>
+  (((daysInYearPassed.value - 1 + hoursPassed.value / 24) / daysInCurrentYear.value) * 100).toFixed(
+    2
+  )
 );
 
 function isLeapYear(year) {
