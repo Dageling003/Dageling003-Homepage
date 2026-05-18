@@ -1,5 +1,13 @@
 <template>
-  <a class="linkBtn hover" :href="url ? url : '#'" target="_blank" :style="{ background: color }">
+  <a
+    class="linkBtn hover"
+    :href="url ? url : '#'"
+    target="_blank"
+    :style="{ background: color }"
+    tabindex="0"
+    @keydown.enter="handleKeydown"
+    @keydown.space="handleKeydown"
+  >
     <Icon :icon="icon" width="36" height="36" />
     <span>{{ text }}</span>
   </a>
@@ -7,7 +15,7 @@
 <script setup>
 import { Icon } from '@iconify/vue';
 
-defineProps({
+const props = defineProps({
   icon: {
     type: String,
     default: '',
@@ -25,6 +33,15 @@ defineProps({
     default: '',
   },
 });
+
+const handleKeydown = (e) => {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    if (props.url) {
+      window.open(props.url, '_blank');
+    }
+  }
+};
 </script>
 <style>
 .linkBtn {
@@ -40,12 +57,19 @@ defineProps({
   user-select: none;
   white-space: nowrap;
   color: #fff;
+  outline: none;
 
   & span {
     margin-left: 0.5rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(255, 179, 179, 0.3);
   }
 }
 </style>

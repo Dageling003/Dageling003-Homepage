@@ -16,9 +16,20 @@
   width: 100%;
   height: 100%;
   background: var(--loading-background);
-  position: absolute;
+  position: fixed;
   z-index: 100;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    opacity 0.3s ease,
+    visibility 0.3s ease;
+}
+
+.loadBox.fade-out {
+  opacity: 0;
+  visibility: hidden;
 }
 
 #loader {

@@ -7,8 +7,8 @@
   </main>
   <button
     class="reThemeBtn"
-    :aria-label="theme == 'light' ? '切换到深色模式' : '切换到浅色模式'"
-    aria-pressed="false"
+    :aria-label="theme === 'light' ? '切换到深色模式' : '切换到浅色模式'"
+    :aria-pressed="theme === 'dark'"
     type="button"
     @click="changeTheme"
   >
