@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Icon caches
+icons/
+icons-svg/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

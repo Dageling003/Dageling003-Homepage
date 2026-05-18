@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "icons:update": "node scripts/download-and-convert-icons.js"
   },
   "dependencies": {
     "@iconify/vue": "^5.0.0",

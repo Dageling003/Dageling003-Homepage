@@ -4,11 +4,33 @@ import { resolve } from 'path';
 import { VitePWA } from 'vite-plugin-pwa';
 import Icons from 'unplugin-icons/vite';
 import { ViteImageOptimizer } from 'vite-plugin-image-optimizer';
+import { FileSystemIconLoader } from 'unplugin-icons/loaders';
 
 export default defineConfig({
   plugins: [
     vue(),
-    Icons({ compiler: 'vue3', autoInstall: true }),
+    Icons({
+      compiler: 'vue3',
+      autoInstall: true,
+      customCollections: {
+        'lets-icons': FileSystemIconLoader('./icons-svg/lets-icons'),
+        gg: FileSystemIconLoader('./icons-svg/gg'),
+        carbon: FileSystemIconLoader('./icons-svg/carbon'),
+        ph: FileSystemIconLoader('./icons-svg/ph'),
+        mdi: FileSystemIconLoader('./icons-svg/mdi'),
+        mingcute: FileSystemIconLoader('./icons-svg/mingcute'),
+        'line-md': FileSystemIconLoader('./icons-svg/line-md'),
+        tabler: FileSystemIconLoader('./icons-svg/tabler'),
+        'vscode-icons': FileSystemIconLoader('./icons-svg/vscode-icons'),
+        'material-icon-theme': FileSystemIconLoader('./icons-svg/material-icon-theme'),
+        logos: FileSystemIconLoader('./icons-svg/logos'),
+        'skill-icons': FileSystemIconLoader('./icons-svg/skill-icons'),
+        catppuccin: FileSystemIconLoader('./icons-svg/catppuccin'),
+        devicon: FileSystemIconLoader('./icons-svg/devicon'),
+        lsicon: FileSystemIconLoader('./icons-svg/lsicon'),
+        'fa7-solid': FileSystemIconLoader('./icons-svg/fa7-solid'),
+      },
+    }),
     ViteImageOptimizer({
       logStats: true,
       ansiColors: true,
