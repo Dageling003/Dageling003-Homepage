@@ -1,14 +1,17 @@
 # 图标本地缓存说明
 
 ## 问题原因
+
 项目使用 `@iconify/vue` 和 `unplugin-icons` 从 CDN 加载图标，当网络连接不稳定或无法访问 iconify API 时会出现 `ERR_NAME_NOT_RESOLVED` 错误。
 
 ## 解决方案
+
 已将所需图标下载到本地缓存，避免依赖网络请求。
 
 ## 使用方法
 
 ### 1. 更新图标缓存
+
 如果需要添加新图标或更新现有图标，运行:
 
 ```bash
@@ -16,6 +19,7 @@ npm run icons:update
 ```
 
 ### 2. 添加新图标
+
 编辑 `scripts/download-and-convert-icons.js` 文件，在 `iconCollections` 对象中添加新的图标集合和图标名称:
 
 ```javascript
@@ -29,6 +33,7 @@ const iconCollections = {
 然后运行 `npm run icons:update`。
 
 ### 3. 在代码中使用
+
 在 Vue 组件中直接使用 Icon 组件:
 
 ```vue

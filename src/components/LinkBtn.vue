@@ -43,7 +43,7 @@ const handleKeydown = (e) => {
   }
 };
 </script>
-<style>
+<style scoped>
 .linkBtn {
   display: flex;
   align-items: center;

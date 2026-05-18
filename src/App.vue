@@ -17,14 +17,15 @@
 </template>
 
 <script setup>
-import { defineAsyncComponent, onMounted, ref, onUnmounted } from 'vue';
+import { defineAsyncComponent, ref, onMounted, onUnmounted } from 'vue';
+import { useLoading } from './composables';
 
 const MainCard = defineAsyncComponent(() => import('./views/MainCard.vue'));
 const Loading = defineAsyncComponent(() => import('./components/Loading.vue'));
 
+const { showLoading } = useLoading();
+
 let theme = ref(localStorage.getItem('theme') || 'light');
-let showLoading = ref(true);
-document.body.style.overflow = 'hidden';
 
 const incrementVisitCount = () => {
   const visits = localStorage.getItem('visitCount');
@@ -40,15 +41,8 @@ const handleKeydown = (e) => {
 
 onMounted(() => {
   document.body.setAttribute('theme', theme.value);
-  showLoading.value = false;
-  setTimeout(() => {
-    document.body.style.overflow = '';
-  }, 300);
-
   incrementVisitCount();
-
   window.addEventListener('keydown', handleKeydown);
-
   document.documentElement.style.scrollBehavior = 'smooth';
 });
 

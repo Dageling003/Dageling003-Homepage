@@ -1,11 +1,14 @@
 # 图标网络错误问题已解决 ✅
 
 ## 问题描述
+
 之前出现 48 条 `ERR_NAME_NOT_RESOLVED` 和 `ERR_NETWORK_CHANGED` 错误，原因是:
+
 - 项目使用 `@iconify/vue` 从 iconify 的 CDN API 加载图标
 - 网络连接不稳定或无法访问 `api.iconify.design`、`api.simplesvg.com`、`api.unisvg.com` 等端点
 
 ## 解决方案
+
 已将图标数据缓存到本地，不再依赖网络请求。
 
 ### 已完成的工作:
@@ -18,11 +21,13 @@
 ### 文件变更:
 
 **新增文件:**
+
 - `scripts/download-and-convert-icons.js` - 图标下载和转换脚本
 - `icons/` - JSON 格式图标缓存目录
 - `icons-svg/` - SVG 格式图标文件目录
 
 **修改文件:**
+
 - `vite.config.js` - 配置使用本地图标集合
 - `package.json` - 添加 `icons:update` 脚本
 - `.gitignore` - 忽略图标缓存目录
@@ -45,6 +50,7 @@ const iconCollections = {
 ```
 
 然后运行:
+
 ```bash
 npm run icons:update
 ```
