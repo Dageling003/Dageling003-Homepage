@@ -119,6 +119,59 @@ src/
 ["文本1", "文本2", "文本3"]
 ```
 
+## 图标使用
+
+项目使用 [Iconify](https://iconify.design/) 图标库，并通过本地缓存确保离线可用。
+
+### 图标缓存机制
+
+为避免网络不稳定导致的图标加载失败，项目已将所需图标下载到本地缓存。图标数据存储在以下目录：
+
+```
+├── icons/              # JSON 格式的图标数据（缓存）
+│   └── *.json
+├── icons-svg/          # SVG 格式的图标文件（实际使用）
+│   └── collection-name/
+│       └── *.svg
+└── scripts/
+    └── download-and-convert-icons.js  # 图标下载脚本
+```
+
+> ⚠️ 注意：`icons/` 和 `icons-svg/` 目录已添加到 `.gitignore`，不会提交到 Git。如需在团队中共享图标缓存，可手动提交这些目录。
+
+### 添加新图标
+
+如需添加新的图标，按以下步骤操作：
+
+1. 编辑 `scripts/download-and-convert-icons.js`，在 `iconCollections` 中添加新的图标集合和名称：
+
+```javascript
+const iconCollections = {
+  // 现有图标...
+  '新集合名': ['图标1', '图标2'], // 添加新图标
+};
+```
+
+2. 运行更新脚本：
+
+```bash
+npm run icons:update
+```
+
+### 在代码中使用
+
+在 Vue 组件中使用图标：
+
+```vue
+<template>
+  <Icon icon="集合名:图标名" width="24" height="24" />
+</template>
+
+<script setup>
+import { Icon } from '@iconify/vue';
+</script>
+```
+
 ## 安装与使用
 
 1. 克隆项目到本地：
