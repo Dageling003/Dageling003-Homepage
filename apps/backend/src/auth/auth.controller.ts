@@ -1,0 +1,38 @@
+import { Controller, Post, Get, Put, Body, UseGuards, Request } from '@nestjs/common'
+import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger'
+import { AuthService } from './auth.service'
+import { LoginDto } from './dto/login.dto'
+import { ChangePasswordDto } from './dto/change-password.dto'
+import { JwtAuthGuard } from './jwt-auth.guard'
+
+interface AuthenticatedRequest {
+  user: { sub: number; username: string; role: string }
+}
+
+@ApiTags('Auth')
+@Controller('auth')
+export class AuthController {
+  constructor(private authService: AuthService) {}
+
+  @Post('login')
+  @ApiOperation({ summary: '管理员登录' })
+  async login(@Body() dto: LoginDto) {
+    return this.authService.login(dto)
+  }
+
+  @Get('profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '获取当前用户信息' })
+  async getProfile(@Request() req: AuthenticatedRequest) {
+    return this.authService.getProfile(req.user.sub)
+  }
+
+  @Put('change-password')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '修改密码（需登录）' })
+  async changePassword(@Request() req: AuthenticatedRequest, @Body() dto: ChangePasswordDto) {
+    return this.authService.changePassword(req.user.sub, dto)
+  }
+}

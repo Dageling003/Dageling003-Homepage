@@ -1,0 +1,91 @@
+<script setup lang="ts">
+import { ref, onMounted, onUnmounted } from 'vue'
+
+const props = withDefaults(defineProps<{
+  words?: string[]
+  typeSpeed?: number
+  deleteSpeed?: number
+  pauseDuration?: number
+  cursorChar?: string
+}>(), {
+  words: () => ['Hello, World!'],
+  typeSpeed: 80,
+  deleteSpeed: 40,
+  pauseDuration: 2000,
+  cursorChar: '|',
+})
+
+const displayText = ref('')
+const isBlink = ref(false)
+
+let currentWordIndex = 0
+let charIndex = 0
+let isDeleting = false
+let timer: ReturnType<typeof setTimeout> | null = null
+let cursorTimer: ReturnType<typeof setInterval> | null = null
+
+function tick() {
+  const currentWord = props.words[currentWordIndex]
+  if (!currentWord) return
+
+  if (isDeleting) {
+    charIndex--
+    displayText.value = currentWord.substring(0, charIndex)
+  } else {
+    charIndex++
+    displayText.value = currentWord.substring(0, charIndex)
+  }
+
+  let delay = isDeleting ? props.deleteSpeed : props.typeSpeed
+
+  if (!isDeleting && charIndex === currentWord.length) {
+    delay = props.pauseDuration
+    isDeleting = true
+  } else if (isDeleting && charIndex === 0) {
+    isDeleting = false
+    currentWordIndex = (currentWordIndex + 1) % props.words.length
+    delay = 500
+  }
+
+  timer = setTimeout(tick, delay)
+}
+
+onMounted(() => {
+  tick()
+  cursorTimer = setInterval(() => {
+    isBlink.value = !isBlink.value
+  }, 530)
+})
+
+onUnmounted(() => {
+  if (timer) clearTimeout(timer)
+  if (cursorTimer) clearInterval(cursorTimer)
+})
+</script>
+
+<template>
+  <span class="typewriter">
+    {{ displayText }}<span class="cursor" :class="{ blink: isBlink }">{{ cursorChar }}</span>
+  </span>
+</template>
+
+<style scoped>
+.typewriter {
+  font-family: monospace;
+  white-space: pre-wrap;
+  overflow: hidden;
+  text-align: center;
+  font-size: 18px;
+}
+
+.cursor {
+  font-weight: bolder;
+  margin-left: 2px;
+  opacity: 1;
+  transition: opacity 0.1s;
+}
+
+.cursor.blink {
+  opacity: 0;
+}
+</style>

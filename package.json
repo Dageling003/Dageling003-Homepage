@@ -1,0 +1,19 @@
+﻿{
+  "name": "Dageling003-Homepage",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --parallel -r run dev",
+    "dev:frontend": "pnpm --filter Dageling003-Homepage-frontend dev",
+    "dev:admin": "pnpm --filter Dageling003-Homepage-admin dev",
+    "dev:backend": "pnpm --filter Dageling003-Homepage-backend start:dev",
+    "build": "pnpm -r run build",
+    "lint": "pnpm -r run lint",
+    "format": "prettier --write \"**/*.{ts,vue,json,md}\""
+  },
+  "engines": {
+    "node": ">=20.19.0",
+    "pnpm": ">=11.0.0"
+  }
+}
