@@ -6,7 +6,7 @@ import { message } from 'ant-design-vue'
 import {
   PlusOutlined, CloseOutlined, SaveOutlined,
   IdcardOutlined, LinkOutlined, CodeOutlined, CheckSquareOutlined,
-  MessageOutlined, SettingOutlined, LoadingOutlined, CloudUploadOutlined,
+  SettingOutlined, CloudUploadOutlined,
 } from '@ant-design/icons-vue'
 import { FIELD_DEFS } from './configFields'
 
@@ -56,10 +56,6 @@ const todoItems = ref<TodoItem[]>([])
 const typewriterItems = ref<string[]>([])
 const linkItems = ref<LinkItem[]>([])
 const techItems = ref<TechItem[]>([])
-
-// New config key input
-const newKey = ref('')
-const newValue = ref('')
 
 // ==================== Avatar upload ====================
 const avatarUploading = ref(false)
@@ -3138,10 +3134,6 @@ async function fetchData() {
   } finally {
     loading.value = false
   }
-}
-
-function getConfigValue(key: string): string {
-  return configMap.value[key]?.configValue || ''
 }
 
 function parseToForm(map: Record<string, ConfigItem>) {

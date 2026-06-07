@@ -175,7 +175,7 @@ onMounted(fetchData)
         row-key="id"
         size="small"
       >
-        <template #bodyCell="{ column, value, record }">
+        <template #bodyCell="{ column, value }">
           <template v-if="column.key === 'action'">
             <a-tag :color="actionColors[value] || 'default'">
               {{ actionLabels[value] || value }}

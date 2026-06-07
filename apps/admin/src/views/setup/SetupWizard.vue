@@ -2,11 +2,11 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
-  getConfigsApi, updateConfigApi, createConfigApi, getGroupedConfigsApi,
+  getConfigsApi, updateConfigApi, createConfigApi,
 } from '@/api'
 import { message } from 'ant-design-vue'
 import {
-  RightOutlined, LeftOutlined, CheckOutlined, SmileOutlined, CalendarOutlined,
+  RightOutlined, LeftOutlined, CheckOutlined, SmileOutlined,
 } from '@ant-design/icons-vue'
 
 const router = useRouter()
