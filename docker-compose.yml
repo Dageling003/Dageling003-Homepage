@@ -1,7 +1,4 @@
-version: "3.8"
-
 services:
-  # ====== MariaDB ======
   mariadb:
     image: mariadb:11.4
     container_name: homepage-db
@@ -19,34 +16,33 @@ services:
       timeout: 5s
       retries: 5
 
-  # ====== All-in-one App (API + Frontend + Admin) ======
   app:
     build:
       context: .
       dockerfile: Dockerfile.app
+    image: dageling003_homepage:latest
     container_name: homepage-app
     restart: unless-stopped
     depends_on:
       mariadb:
-        condition: service_healthy
+        condition: service_started   # ✅ 关键修改
     environment:
-      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required — generate one: openssl rand -base64 32}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       DB_HOST: mariadb
       DB_PORT: 3306
       DB_USERNAME: ${DB_USERNAME:-homepage}
       DB_PASSWORD: ${DB_PASSWORD:-homepage_pass}
       DB_DATABASE: ${DB_DATABASE:-homepage}
-      DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:?DEFAULT_ADMIN_PASSWORD is required — use at least 12 chars}
+      DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:?DEFAULT_ADMIN_PASSWORD is required}
     ports:
-      - "8000:8000"   # API
-      - "3000:3000"   # Frontend
-      - "3001:3001"   # Admin
+      - "8000:8000"
+      - "3000:3000"
+      - "3001:3001"
     volumes:
       - app_uploads:/app/backend/public/uploads
 
-  # ====== Caddy (reverse proxy) ======
   caddy:
-    image: caddy:alpine
+    image: caddy:2
     container_name: homepage-caddy
     restart: unless-stopped
     ports:
