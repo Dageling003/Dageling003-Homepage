@@ -216,7 +216,8 @@ DB_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
 DB_USERNAME=${DB_USERNAME}
 DB_PASSWORD=${DB_PASSWORD}
 DB_DATABASE=${DB_DATABASE}
-DB_SYNCHRONIZE=false
+# 首次部署时自动创建数据库表，部署完成后建议改为 false
+DB_SYNCHRONIZE=true
 EOF
 
     ok ".env.docker 已生成"
