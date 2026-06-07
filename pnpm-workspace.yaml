@@ -9,3 +9,5 @@ allowBuilds:
   vue-demi: true
   'core-js': true
   sharp: true
+  '@scarf/scarf': true
+  better-sqlite3: true
