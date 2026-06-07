@@ -9,11 +9,11 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Install dependencies (root workspace + all apps)
-COPY pnpm-lock.yaml pnpm-workspace.yaml package.json .npmrc .pnpm-builds ./
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json .npmrc ./
 COPY apps/backend/package.json apps/backend/
 COPY apps/frontend/package.json apps/frontend/
 COPY apps/admin/package.json apps/admin/
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --ignore-scripts=false
 
 # Copy source code and build all three apps
 COPY apps/ apps/
