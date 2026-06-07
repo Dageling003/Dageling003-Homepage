@@ -100,8 +100,8 @@ function closeClickOutside() {
 <style scoped>
 .at-wrap {
   position: relative;
-  background: #fff;
-  border-bottom: 1px solid #f0f0f0;
+  background: var(--admin-bg-card, #fff);
+  border-bottom: 1px solid var(--admin-border, #f0f0f0);
   user-select: none;
 }
 
@@ -122,8 +122,8 @@ function closeClickOutside() {
   gap: 0.4rem;
   padding: 0.5rem 0.8rem;
   font-size: 0.82rem;
-  color: #595959;
-  border-right: 1px solid #f0f0f0;
+  color: var(--admin-text-secondary, #595959);
+  border-right: 1px solid var(--admin-border, #f0f0f0);
   cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
@@ -131,13 +131,13 @@ function closeClickOutside() {
 }
 
 .at-tab:hover {
-  background: #fafafa;
+  background: var(--admin-hover, #fafafa);
   color: #1677ff;
 }
 
 .at-tab.active {
   color: #1677ff;
-  background: #fff;
+  background: var(--admin-bg-card, #fff);
 }
 
 .at-tab.active::after {

@@ -1,12 +1,12 @@
 ﻿// PM2 Ecosystem 配置文件
-// 使用：pm2 start ecosystem.config.js
-// 停止：pm2 stop Dageling003-Homepage-api
-// 日志：pm2 logs Dageling003-Homepage-api
+// 使用：pm2 start ecosystem.config.cjs
+// 停止：pm2 stop homepage-api
+// 日志：pm2 logs homepage-api
 
 module.exports = {
   apps: [
     {
-      name: 'Dageling003-Homepage-api',
+      name: 'homepage-api',
       script: 'dist/main.js',
       cwd: './apps/backend',
       instances: 1,

@@ -1,5 +1,5 @@
 ﻿<script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Icon } from '@iconify/vue'
 import { getAllConfigs } from '@/api'
 import TypewriterText from '@/components/TypewriterText.vue'
@@ -67,10 +67,16 @@ const logoRef = ref<InstanceType<typeof AnimatedLogo> | null>(null)
 
 // ==================== User Data (with defaults) ====================
 const name = ref('鹊楠')
-const zodiac = ref('摩羯座')
 const avatarUrl = ref('https://api.dicebear.com/7.x/thumbs/svg?seed=cat')
 const infoSex = ref('♂')
-const infoProvince = ref('江苏')
+const infoSexDisplay = ref('symbol')
+const infoBirth = ref('')
+const infoAgeDisplay = ref('all')
+const infoProvince = ref('江苏省')
+// Display toggles (1 = show, 0 = hide)
+const infoShowName = ref('1')
+const infoShowZodiac = ref('1')
+const infoShowBirth = ref('1')
 const infoSchool = ref('南通大学')
 const professions = ref(['前端切图仔', '摄影爱好者', '猫猫教'])
 const links = ref<Array<{ text: string; color: string; url: string }>>([
@@ -95,11 +101,79 @@ const typewriterWords = ref([
   'May you happy every day ✨',
 ])
 
+// Auto-calculate age & zodiac from birth date
+function calcAgeFromBirth(birthStr: string): number | null {
+  if (!birthStr) return null
+  const birth = new Date(birthStr)
+  if (isNaN(birth.getTime())) return null
+  const today = new Date()
+  let age = today.getFullYear() - birth.getFullYear()
+  const m = today.getMonth() - birth.getMonth()
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--
+  return age
+}
+
+function calcZodiac(birthStr: string): string | null {
+  if (!birthStr) return null
+  const parts = birthStr.split('-')
+  if (parts.length < 2) return null
+  const month = parseInt(parts[1])
+  const day = parseInt(parts[2])
+  if (isNaN(month) || isNaN(day)) return null
+  const ZODIAC = [
+    { name: '摩羯座', start: [1, 1],  end: [1, 19] },
+    { name: '水瓶座', start: [1, 20], end: [2, 18] },
+    { name: '双鱼座', start: [2, 19], end: [3, 20] },
+    { name: '白羊座', start: [3, 21], end: [4, 19] },
+    { name: '金牛座', start: [4, 20], end: [5, 20] },
+    { name: '双子座', start: [5, 21], end: [6, 21] },
+    { name: '巨蟹座', start: [6, 22], end: [7, 22] },
+    { name: '狮子座', start: [7, 23], end: [8, 22] },
+    { name: '处女座', start: [8, 23], end: [9, 22] },
+    { name: '天秤座', start: [9, 23], end: [10, 23] },
+    { name: '天蝎座', start: [10, 24], end: [11, 22] },
+    { name: '射手座', start: [11, 23], end: [12, 21] },
+    { name: '摩羯座', start: [12, 22], end: [12, 31] },
+  ]
+  for (const z of ZODIAC) {
+    const [sm, sd] = z.start, [em, ed] = z.end
+    if ((month === sm && day >= sd) || (month === em && day <= ed)) return z.name
+  }
+  return null
+}
+
+const displayAge = computed(() => {
+  const fromBirth = calcAgeFromBirth(infoBirth.value)
+  if (fromBirth !== null && fromBirth >= 0) return fromBirth
+  return 0  // 负数或无效 → 不显示
+})
+
+const displayZodiac = computed(() => {
+  return calcZodiac(infoBirth.value) || ''
+})
+
+// Gender display text
+function genderLabel(): string {
+  const isMale = infoSex.value === '♂'
+  const symbol = isMale ? '♂' : '♀'
+  const text = isMale ? '男' : '女'
+  switch (infoSexDisplay.value) {
+    case 'text': return text
+    case 'both': return `${symbol} ${text}`
+    default: return symbol
+  }
+}
+
 // ==================== Config Handlers ====================
 const configHandlers: Record<string, (val: string) => void> = {
   name: (v) => { name.value = v },
-  zodiac: (v) => { zodiac.value = v },
   infoSex: (v) => { infoSex.value = v },
+  infoSexDisplay: (v) => { infoSexDisplay.value = v || 'symbol' },
+  infoBirth: (v) => { infoBirth.value = v },
+  infoAgeDisplay: (v) => { infoAgeDisplay.value = v || 'all' },
+  infoShowName: (v) => { infoShowName.value = v || '1' },
+  infoShowZodiac: (v) => { infoShowZodiac.value = v || '1' },
+  infoShowBirth: (v) => { infoShowBirth.value = v || '1' },
   infoProvince: (v) => { infoProvince.value = v },
   infoSchool: (v) => { infoSchool.value = v },
   avatarUrl: (v) => { avatarUrl.value = v },
@@ -152,7 +226,9 @@ onMounted(async () => {
         <div class="sayHi">
           <h1>Hi, I'm <span class="hl-name" :data-text="name">{{ name }}</span></h1>
           <div class="infoTags">
-            <span class="tag"><span :class="infoSex === '♂' ? 'boy' : 'girl'">{{ infoSex }}</span></span>
+            <span class="tag"><span :class="infoSex === '♂' ? 'boy' : 'girl'">{{ genderLabel() }}</span></span>
+            <span class="tag" v-if="(infoAgeDisplay === 'all' || infoAgeDisplay === 'tag') && displayAge > 0">{{ displayAge }}岁</span>
+            <span class="tag" v-if="infoShowBirth === '1' && infoBirth">{{ infoBirth.replace(/-/g, '/') }}</span>
             <span class="tag">{{ infoProvince }}</span>
             <span class="tag">{{ infoSchool }}</span>
           </div>
@@ -161,11 +237,37 @@ onMounted(async () => {
 
       <!-- ====== CONTENT ====== -->
       <div class="content">
-        <!-- LEFT -->
-        <div class="leftBox">
+        <!-- Full-width Intro Card -->
+        <div class="card hover intro-card">
+          <p class="intro-line">你好鸭，很高兴认识你👋</p>
+          <p class="intro-line">
+            <template v-if="infoShowName === '1'">我叫 <b>{{ name }}</b></template>
+            <template v-if="infoShowZodiac === '1' && displayZodiac">（ {{ displayZodiac }} ）</template>
+            <template v-if="(infoAgeDisplay === 'all' || infoAgeDisplay === 'intro') && displayAge > 0">，{{ displayAge }}岁</template>
+          </p>
+          <p class="intro-line">
+            是一名
+            <template v-for="(p, i) in professions" :key="i">
+              <b>{{ p }}</b><span v-if="i < professions.length - 1">、</span>
+            </template>
+          </p>
+        </div>
+
+        <!-- 3-Column Grid -->
+        <div class="card-grid">
+          <!-- Tech Stack -->
+          <div class="card hover">
+            <div class="cardHeader">🛠️ 技术栈</div>
+            <div class="techStack">
+              <div v-for="(t, i) in techs" :key="i" class="techItem" :data-name="t.name">
+                <Icon :icon="techIcon(t.name)" class="techIconSvg" />
+              </div>
+            </div>
+          </div>
+
           <!-- Todo -->
           <div class="card hover">
-            <div class="cardHeader">我的一些鸽子计划📃</div>
+            <div class="cardHeader">📃 鸽子计划</div>
             <div class="todoList">
               <div v-for="(item, i) in todos" :key="i" class="todoItem">
                 <span class="todo-check">{{ item.done ? '✅' : '⭕' }}</span>
@@ -180,31 +282,8 @@ onMounted(async () => {
           </div>
         </div>
 
-        <!-- RIGHT -->
-        <div class="rightBox">
-          <!-- Intro + Tech -->
-          <div class="card hover">
-            <div class="intro-wrap">
-              <p class="intro-line">你好鸭，很高兴认识你👋</p>
-              <p class="intro-line">
-                我叫 <b>{{ name }}</b>（ {{ zodiac }} ）
-              </p>
-              <p class="intro-line">
-                是一名
-                <template v-for="(p, i) in professions" :key="i">
-                  <b>{{ p }}</b><span v-if="i < professions.length - 1">、</span>
-                </template>
-              </p>
-              <h3 class="cardHeader" style="margin-top:1rem">我的一些技术栈🫡</h3>
-              <div class="techStack">
-                <div v-for="(t, i) in techs" :key="i" class="techItem" :data-name="t.name">
-                  <Icon :icon="techIcon(t.name)" class="techIconSvg" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Typewriter -->
+        <!-- Bottom bar: Typewriter + QuickLinks -->
+        <div class="bottom-bar">
           <div class="card hover typew-card">
             <TypewriterText
               :words="typewriterWords"
@@ -213,8 +292,6 @@ onMounted(async () => {
               cursor-char="|"
             />
           </div>
-
-          <!-- Social Links -->
           <div class="card hover soc-card">
             <QuickLinks :links="links" layout="row" size="lg" />
           </div>
@@ -223,13 +300,25 @@ onMounted(async () => {
 
       <!-- Footer -->
       <div class="footer">
-        <p>© 2026 Dageling003-Homepage</p>
+        <p>© 2026 homepage</p>
       </div>
     </div>
   </main>
 </template>
 
 <style scoped>
+/* ====== Entrance Animation ====== */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.main.loaded .header { animation: fadeUp 0.5s ease both; }
+.main.loaded .intro-card { animation: fadeUp 0.5s ease 0.1s both; }
+.main.loaded .card-grid { animation: fadeUp 0.5s ease 0.2s both; }
+.main.loaded .bottom-bar { animation: fadeUp 0.5s ease 0.3s both; }
+.main.loaded .footer { animation: fadeUp 0.5s ease 0.4s both; }
+
 /* ====== Layout ====== */
 main {
   width: 90%;
@@ -340,26 +429,58 @@ main {
 .infoTags .tag .boy { color: #33a9dc; }
 .infoTags .tag .girl { color: #ff5e7e; }
 
-/* ====== Content Flex ====== */
+/* ====== Content ====== */
 .mainCard .content {
   display: flex;
+  flex-direction: column;
   gap: 1rem;
   margin-top: 2rem;
+}
+
+/* ====== Intro Card (full-width) ====== */
+.intro-card {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem 0.8rem;
+  padding: 1rem 1.3rem;
+}
+
+/* ====== 3-Column Grid ====== */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.card-grid > .card {
+  min-height: 200px;
+}
+
+/* ====== Bottom Bar (Typewriter + QuickLinks side by side) ====== */
+.bottom-bar {
+  display: flex;
+  gap: 1rem;
   align-items: stretch;
 }
 
-.mainCard .content .leftBox {
-  width: 28%;
+.bottom-bar .typew-card {
+  flex: 0 0 42%;
   display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  justify-content: center;
+  align-items: center;
+  padding: 0.7rem 1rem;
 }
 
-.mainCard .content .rightBox {
-  width: 70%;
+.bottom-bar .soc-card {
+  flex: 1;
   display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  padding: 0.7rem 1.2rem;
+  flex-wrap: nowrap;
 }
 
 /* ====== Cards ====== */
@@ -372,10 +493,6 @@ main {
   flex-direction: column;
 }
 
-.mainCard .content .rightBox .card {
-  flex: 1;
-}
-
 .mainCard .card .cardHeader {
   font-size: 1rem;
   font-weight: 700;
@@ -385,7 +502,8 @@ main {
 .mainCard .hover { transition: all 0.3s ease-in-out; }
 .mainCard .hover:hover {
   transform: translateY(-5px);
-  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  border-color: var(--theme-color);
 }
 
 /* ====== Todo ====== */
@@ -433,27 +551,23 @@ main {
 
 /* ====== Intro Lines ====== */
 .intro-line {
-  margin: 0.3rem 0;
-  font-size: 0.93rem;
+  margin: 0;
+  font-size: 0.95rem;
   line-height: 1.6;
-}
-
-.intro-wrap {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  white-space: nowrap;
 }
 
 /* Bold highlight in intro */
-.mainCard .rightBox b {
+.intro-card b,
+.mainCard .card-grid b {
   position: relative;
   display: inline-block;
   margin: 0 0.15rem;
   z-index: 1;
 }
 
-.mainCard .rightBox b::before {
+.intro-card b::before,
+.mainCard .card-grid b::before {
   content: '';
   position: absolute;
   bottom: 0;
@@ -467,7 +581,8 @@ main {
   transition: height 0.3s;
 }
 
-.mainCard .rightBox b:hover::before { height: 70%; }
+.intro-card b:hover::before,
+.mainCard .card-grid b:hover::before { height: 70%; }
 
 /* ====== Tech Stack ====== */
 .techStack {
@@ -502,8 +617,6 @@ main {
   filter: drop-shadow(0 1px 2px rgba(0,0,0,0.06));
 }
 
-.techDot { font-size: 1.3rem; }
-
 .techItem::before {
   content: attr(data-name);
   position: absolute;
@@ -526,30 +639,11 @@ main {
   transform: translateX(-50%) translateY(0);
 }
 
-.techDot { font-size: 1.3rem; }
-
 /* ====== Typewriter ====== */
-.mainCard .typew-card {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 0.7rem 1rem;
-}
-
 .typew-card :deep(.typewriter) {
   font-family: monospace;
   font-size: 15px;
   text-align: center;
-}
-
-/* ====== Social Buttons (via QuickLinks) ====== */
-.mainCard .soc-card {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  padding: 0.7rem 1.2rem;
-  flex-wrap: nowrap;
 }
 
 /* ====== Footer ====== */
@@ -582,8 +676,14 @@ main {
   }
 
   .mainCard .content { gap: 0.8rem; }
-  .mainCard .content .leftBox { width: 30%; }
-  .mainCard .content .rightBox { width: 68%; }
+
+  .card-grid {
+    gap: 0.8rem;
+  }
+
+  .bottom-bar {
+    gap: 0.8rem;
+  }
 }
 
 /* Mobile */
@@ -628,24 +728,27 @@ main {
     padding: 0.2rem 0.4rem;
   }
 
-  /* Content stacks vertically */
-  .mainCard .content {
+  /* Intro: allow wrapping */
+  .intro-line {
+    white-space: normal;
+    font-size: 0.88rem;
+  }
+
+  /* Card grid → single column */
+  .card-grid {
+    grid-template-columns: 1fr;
+    gap: 0.7rem;
+  }
+
+  /* Bottom bar → stack vertically */
+  .bottom-bar {
     flex-direction: column;
     gap: 0.7rem;
   }
 
-  /* Flatten boxes so all cards are direct flex children */
-  .mainCard .content .leftBox,
-  .mainCard .content .rightBox {
-    display: contents;
+  .bottom-bar .typew-card {
+    flex: none;
   }
-
-  /* Reorder cards: Intro → Todo → TimeGreeting → Typewriter → QuickLinks */
-  .mainCard .content .rightBox > .card:first-child { order: 1; } /* Intro */
-  .mainCard .content .leftBox > .card:first-child  { order: 2; } /* Todo */
-  .mainCard .content .leftBox > .card:last-child   { order: 3; } /* TimeGreeting */
-  .mainCard .content .rightBox > .typew-card       { order: 4; } /* Typewriter */
-  .mainCard .content .rightBox > .soc-card         { order: 5; } /* QuickLinks */
 
   .mainCard .card {
     flex: none;
@@ -669,6 +772,7 @@ main {
   .mainCard .hover:hover {
     transform: none;
     box-shadow: none;
+    border-color: var(--card-border-color);
   }
 }
 

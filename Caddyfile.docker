@@ -1,0 +1,27 @@
+# homepage — Caddy configuration for Docker all-in-one deployment
+#
+# ==== BEFORE DEPLOYING ====
+# Replace ALL occurrences of {host} below with your server's IP or domain.
+# Examples:
+#   {host} → 192.168.1.100
+#   {host} → myhomepage.example.com
+#   {host} → homepage.local
+# For local testing only, you can use 127.0.0.1 (won't work from other machines).
+
+{host}:80 {
+
+    # ====== Frontend homepage ======
+    handle_path / {
+        reverse_proxy app:3000
+    }
+
+    # ====== API proxy ======
+    handle_path /api/* {
+        reverse_proxy app:8000
+    }
+}
+
+# ====== Admin backend ======
+admin.{host}:80 {
+    reverse_proxy app:3001
+}

@@ -10,3 +10,4 @@ allowBuilds:
   '@scarf/scarf': false
   'better-sqlite3': false
   'core-js': true
+  sharp: true

@@ -43,7 +43,7 @@ const items = computed(() => {
   align-items: center;
   gap: 0.3rem;
   font-size: 0.85rem;
-  color: #8c8c8c;
+  color: var(--admin-text-secondary, #8c8c8c);
 }
 
 .ab-home {
@@ -52,11 +52,11 @@ const items = computed(() => {
 }
 
 .ab-sep {
-  color: #d9d9d9;
+  color: var(--admin-border, #d9d9d9);
 }
 
 .ab-link {
-  color: #8c8c8c;
+  color: var(--admin-text-secondary, #8c8c8c);
   text-decoration: none;
   transition: color 0.2s;
 }
@@ -66,7 +66,7 @@ const items = computed(() => {
 }
 
 .ab-current {
-  color: #262626;
+  color: var(--admin-text, #262626);
   font-weight: 500;
 }
 </style>

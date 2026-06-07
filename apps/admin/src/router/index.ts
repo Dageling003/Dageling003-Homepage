@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { checkInitializedApi } from '@/api'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 
 const routes: RouteRecordRaw[] = [
@@ -58,6 +59,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '打字机', category: 'todos', configKey: 'typewriterWords', parent: 'config' },
       },
       {
+        path: 'setup',
+        name: 'setup',
+        component: () => import('@/views/setup/SetupWizard.vue'),
+        meta: { title: '初始设置', noSidebar: true },
+      },
+      {
         path: 'account',
         name: 'account',
         component: () => import('@/views/account/AccountView.vue'),
@@ -90,13 +97,31 @@ const router = createRouter({
   routes,
 })
 
-router.beforeEach((to, _from, next) => {
+router.beforeEach(async (to, _from, next) => {
   const authStore = useAuthStore()
+
+  // Requires auth but not logged in → redirect to login
   if (to.meta.requiresAuth !== false && !authStore.isAuthenticated) {
     next({ name: 'login', query: { redirect: to.fullPath } })
-  } else {
-    next()
+    return
   }
+
+  // Skip initialization check for these routes
+  const skipRoutes = ['login', 'setup', '403', '404']
+  if (authStore.isAuthenticated && !skipRoutes.includes(to.name as string)) {
+    try {
+      const res = await checkInitializedApi()
+      const initialized = (res.data as any)?.data?.initialized
+      if (!initialized) {
+        next({ name: 'setup' })
+        return
+      }
+    } catch {
+      // API unavailable — allow through
+    }
+  }
+
+  next()
 })
 
 export default router

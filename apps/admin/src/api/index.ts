@@ -58,6 +58,10 @@ export function getProfileApi() {
 }
 
 // Config API
+export function checkInitializedApi() {
+  return request.get('/config/initialized')
+}
+
 export function getConfigsApi() {
   return request.get('/config')
 }
@@ -91,9 +95,18 @@ export function changePasswordApi(oldPassword: string, newPassword: string) {
   return request.put('/auth/change-password', { oldPassword, newPassword })
 }
 
+// Profile
+export function updateProfileApi(data: { avatarUrl?: string }) {
+  return request.put('/auth/profile', data)
+}
+
 // Audit API
-export function getAuditLogsApi(page = 1, limit = 20) {
-  return request.get('/audit', { params: { page, limit } })
+export function getAuditLogsApi(
+  page = 1,
+  limit = 20,
+  filters?: { action?: string; operator?: string; startDate?: string; endDate?: string },
+) {
+  return request.get('/audit', { params: { page, limit, ...filters } })
 }
 
 export interface LoginResponse {

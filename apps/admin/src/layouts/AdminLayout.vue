@@ -3,7 +3,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useTabStore } from '@/stores/tabs'
 import { useAdminThemeStore } from '@/stores/theme'
 import { useRouter, useRoute } from 'vue-router'
-import { ref, h, watch } from 'vue'
+import { ref, computed, h, watch } from 'vue'
 import {
   DashboardOutlined,
   SettingOutlined,
@@ -31,6 +31,8 @@ const router = useRouter()
 const route = useRoute()
 
 const collapsed = ref(false)
+const avatarStyle = { backgroundColor: '#1677ff' }
+const noSidebar = computed(() => route.meta?.noSidebar === true)
 
 // Route title map for tabs
 const ROUTE_TITLES: Record<string, string> = {
@@ -106,7 +108,8 @@ function handleLogout() {
 
 <template>
   <a-layout class="al-root" :class="{ 'al-dark': themeStore.isDark }">
-    <!-- ====== SIDEBAR ====== -->
+    <!-- ====== SIDEBAR (hidden for setup) ====== -->
+    <template v-if="!noSidebar">
     <a-layout-sider
       v-model:collapsed="collapsed"
       collapsible
@@ -117,7 +120,7 @@ function handleLogout() {
     >
       <div class="al-logo">
         <span class="al-logo-icon">🧩</span>
-        <span v-show="!collapsed" class="al-logo-text">Dageling003-Homepage 管理</span>
+        <span v-show="!collapsed" class="al-logo-text">homepage 管理</span>
       </div>
 
       <a-menu
@@ -137,9 +140,12 @@ function handleLogout() {
         </div>
       </template>
     </a-layout-sider>
+    </template>
 
     <!-- ====== MAIN AREA ====== -->
     <a-layout>
+      <!-- ====== HEADER (hidden for setup) ====== -->
+      <template v-if="!noSidebar">
       <!-- ====== HEADER ====== -->
       <a-layout-header class="al-header">
         <div class="al-header-left">
@@ -156,8 +162,13 @@ function handleLogout() {
 
           <a-dropdown :trigger="['click']">
             <div class="al-user">
-              <a-avatar size="small" style="background-color: #1677ff">
-                {{ authStore.username?.charAt(0)?.toUpperCase() }}
+              <a-avatar size="small" :style="avatarStyle">
+                <template v-if="authStore.avatarUrl">
+                  <img :src="authStore.avatarUrl" alt="avatar" />
+                </template>
+                <template v-else>
+                  {{ authStore.username?.charAt(0)?.toUpperCase() }}
+                </template>
               </a-avatar>
               <span class="al-username">{{ authStore.username }}</span>
             </div>
@@ -179,8 +190,10 @@ function handleLogout() {
       <!-- ====== TABS ====== -->
       <AppTab />
 
-      <!-- ====== CONTENT ====== -->
-      <a-layout-content class="al-content">
+      </template>
+
+      <!-- ====== CONTENT (always visible) ====== -->
+      <a-layout-content class="al-content" :class="{ 'al-content-full': noSidebar }">
         <router-view v-slot="{ Component }">
           <transition name="page-fade" mode="out-in">
             <component :is="Component" />
@@ -190,8 +203,8 @@ function handleLogout() {
 
       <!-- ====== FOOTER ====== -->
       <a-layout-footer class="al-footer">
-        <span>© 2026 Dageling003-Homepage</span>
-        <span class="al-footer-ver">v0.2.1</span>
+        <span>© 2026 homepage</span>
+        <span class="al-footer-ver">v0.6.1</span>
       </a-layout-footer>
     </a-layout>
 
@@ -296,6 +309,13 @@ function handleLogout() {
   margin: 16px;
   min-height: 0;
   overflow-y: auto;
+}
+
+.al-content-full {
+  margin: 0;
+  height: 100vh;
+  overflow-y: auto;
+  background: #f0f2f5;
 }
 
 /* ========== PAGE TRANSITION ========== */

@@ -6,12 +6,15 @@ import type { LoginResponse } from '@/api'
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem('token') || '')
   const username = ref('')
+  const avatarUrl = ref('')
   const isAuthenticated = computed(() => !!token.value)
 
   function checkAuth() {
     if (token.value) {
       getProfileApi().then((res) => {
-        username.value = res.data.data?.username || ''
+        const data = res.data.data
+        username.value = data?.username || ''
+        avatarUrl.value = data?.avatarUrl || ''
       }).catch(() => {
         token.value = ''
         localStorage.removeItem('token')
@@ -31,8 +34,9 @@ export const useAuthStore = defineStore('auth', () => {
   function logout() {
     token.value = ''
     username.value = ''
+    avatarUrl.value = ''
     localStorage.removeItem('token')
   }
 
-  return { token, username, isAuthenticated, checkAuth, login, logout }
+  return { token, username, avatarUrl, isAuthenticated, checkAuth, login, logout }
 })

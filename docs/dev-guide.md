@@ -1,199 +1,269 @@
 # 开发指南
 
-> 如何启动、开发和维护 Dageling003-Homepage 项目
+> 如何启动、开发和维护 homepage 项目
+>
+> 最后更新：2026/06/07 v0.6.1
 
 ---
 
 ## 🚀 快速启动
 
-### 1. 安装依赖（首次）
+### 前置环境
 
-````bash
+| 工具 | 版本 | 检查命令 |
+|------|------|---------|
+| Node.js | >=20.19.0 | `node -v` |
+| pnpm | >=11.0.0 | `pnpm -v` |
+| MariaDB | >=10.5 | `mysql -V` |
+
+### 1. 安装依赖
+
+```bash
+git clone <repo-url>
+cd homepage
 pnpm install
-`````
+```
 
-### 2. 启动项目
+### 2. 创建数据库
 
-````bash
-# ===== 方式一：一键启动全部（推荐） =====
-# 先启动后端
-pnpm dev:backend
+```sql
+CREATE DATABASE `homepage` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
 
-# 另开一个终端，启动前端+后台
-pnpm dev:frontend
-pnpm dev:admin
+### 3. 配置环境变量
 
-# ===== 方式二：分别启动 =====
-pnpm dev:frontend   # 前台主页 → http://localhost:3000
-pnpm dev:admin      # 管理后台 → http://localhost:3001
-pnpm dev:backend    # 后端 API  → http://localhost:8000
-`````
+```bash
+cd apps/backend
+cp .env.example .env
+# 修改 JWT_SECRET、DB_* 等
+```
 
-> ⚠️ **注意**：后端必须先启动！前/后台都通过 Vite 代理把 `/api` 请求转发到 `localhost:8000`，后端没跑则无法登录、无法加载数据。
+> ⚠️ **务必**修改 `JWT_SECRET` 为强随机字符串（`openssl rand -base64 32`），否则有安全风险。
 
-### 3. 访问
+### 4. 启动开发服务
 
-| 服务 | 本地 | 局域网（手机/iPad） |
-|------|------|---------------------|
-| 前台主页 | `http://localhost:3000` | `http://192.168.31.86:3000` |
-| 管理后台 | `http://localhost:3001` | `http://192.168.31.86:3001` |
-| API 文档 | `http://localhost:8000/api/docs` | `http://192.168.31.86:8000/api/docs` |
+```bash
+# 根目录一键启动全部（推荐）
+pnpm dev
 
-> ⚠️ 手机/iPad 需要和电脑在**同一个 Wi-Fi** 下。
+# 或分别启动
+pnpm dev:backend    # http://localhost:8000
+pnpm dev:frontend   # http://localhost:3000
+pnpm dev:admin      # http://localhost:3001
+```
+
+> ⚠️ **必须先启动后端**，前/后台依赖 `/api` 反向代理到 `localhost:8000`。
+
+### 5. 访问
+
+| 入口 | 地址 |
+|------|------|
+| 前台主页 | http://localhost:3000 |
+| 管理后台 | http://localhost:3001 |
+| API 文档 | http://localhost:8000/api/docs |
 
 ---
 
-## 🔑 默认管理员账号
+## 🔑 默认管理员
 
-后端首次启动时，如果 users 表为空会**自动创建**：
+后端首次启动时自动创建（需设置环境变量 `DEFAULT_ADMIN_PASSWORD`）：
 
 | 用户名 | 密码 |
 |--------|------|
-| `admin` | `admin123` |
+| `admin` | 由 `DEFAULT_ADMIN_PASSWORD` 指定 |
 
-登录后可在管理后台 → 账号设置 → 修改密码。
+> 登录后请立即修改密码。
 
 ---
 
 ## 🗄️ 数据库说明
 
-- **类型**：MariaDB（通过 `mariadb` 驱动连接）
-- **配置**：在 `apps/backend/.env` 中设置数据库连接信息
-- **同步**：`synchronize: true`，修改 Entity 后重启服务自动更新表结构
-- **初始化**：确保数据库已创建（```CREATE DATABASE `Dageling003-Homepage`;```），首次启动会自动建表 + 创建默认 admin 账户
-- **重置**：删表后重启即可自动重建（或 ```DROP DATABASE `Dageling003-Homepage`;``` 然后 ```CREATE DATABASE `Dageling003-Homepage`;```）
+- **类型**：MariaDB（`mariadb` 驱动）
+- **配置**：`apps/backend/.env` → `DB_*` 变量
+- **同步**：`DB_SYNCHRONIZE=true`（`.env` 中设置）开启 TypeORM 自动同步，改 Entity 后重启自动更新表结构
+- **初始化**：首次启动自动建表 + 种子数据（20 条配置 + `_initialized = '0'` + 1 个管理员）
+- **重置**：删表重启即可（或 `DROP DATABASE` 重建）
+- **初始化标记**：`site_config` 表中的 `_initialized` 记录控制首次设置流程，值为 `'0'` 时跳转设置向导
 
 ---
 
 ## 📁 项目结构
 
-````
-Dageling003-Homepage/
+```
+homepage/
 ├── apps/
-│   ├── frontend/          # Vue 3 + Vite + UnoCSS 前台主页
-│   │   └── src/
-│   │       ├── components/   # 组件（5 个）
-│   │       ├── views/        # 页面
-│   │       ├── stores/       # Pinia
-│   │       ├── api/          # axios 封装
-│   │       └── router/       # Vue Router
-│   │
-│   ├── admin/             # Vue 3 + Ant Design Vue 管理后台
-│   │   └── src/
-│   │       ├── views/        # 4 个页面
-│   │       ├── layouts/      # 布局组件
-│   │       ├── stores/       # auth Pinia store
-│   │       ├── api/          # axios + interceptor
-│   │       └── router/       # 登录守卫
-│   │
-│   └── backend/           # NestJS + TypeORM + MariaDB
-│       └── src/
-│           ├── auth/         # 认证模块（login/JWT/change-password）
-│           ├── config/       # 配置模块（CRUD + 分类 + 导出）
-│           ├── audit/        # 审计日志模块
-│           └── users/        # 用户实体
+│   ├── frontend/          # 前台主页
+│   └── src/
+│       ├── components/    # AnimatedLogo / ThemeToggle / TypewriterText / TimeGreeting / QuickLinks
+│       ├── views/         # HomeView (单页)
+│       ├── stores/        # Pinia
+│       └── api/           # axios
+│
+├── admin/                 # 管理后台
+│   └── src/
+│       ├── views/         # login / setup / dashboard / config / account / audit
+│       ├── layouts/       # AdminLayout (侧边栏+顶栏+标签页)
+│       ├── components/    # AppBreadcrumb / AppTab / ThemeSettings
+│       ├── stores/        # auth / tabs / theme
+│       └── api/           # axios + 拦截器
+│
+├── backend/               # 后端 API
+│   └── src/
+│       ├── auth/          # 登录 / JWT / 改密码
+│       ├── config/        # 配置 CRUD / 上传头像
+│       ├── audit/         # 审计日志
+│       └── users/         # 用户实体
 │
 ├── docs/                  # 项目文档
-├── package.json           # workspace 根配置
-└── pnpm-workspace.yaml    # pnpm monorepo 配置
-`````
+├── Caddyfile              # 反向代理（生产部署）
+├── Caddyfile.docker       # 反向代理（Docker 部署）
+├── Dockerfile.app         # Docker all-in-one 镜像构建
+├── docker-compose.yml     # Docker 编排（app + mariadb + caddy）
+├── ecosystem.config.cjs   # PM2
+└── package.json           # workspace
+```
 
 ---
 
 ## 🔧 常用命令
 
-````bash
-# 安装依赖到指定子项目
-pnpm add <package> --filter Dageling003-Homepage-frontend
-pnpm add <package> --filter Dageling003-Homepage-admin
-pnpm add <package> --filter Dageling003-Homepage-backend
+```bash
+# 安装依赖
+pnpm add <pkg> --filter homepage-frontend
+pnpm add <pkg> --filter homepage-admin
+pnpm add <pkg> --filter homepage-backend
 
 # 构建
-pnpm build                                # 构建全部
-pnpm --filter Dageling003-Homepage-frontend build     # 只构建前台
-pnpm --filter Dageling003-Homepage-admin build        # 只构建后台
-pnpm --filter Dageling003-Homepage-backend build      # 只构建后端
+pnpm build                              # 构建全部
+pnpm --filter homepage-frontend build   # 只构建前台
+pnpm --filter homepage-admin build      # 只构建后台
+pnpm --filter homepage-backend build    # 只构建后端
 
-# 类型检查（不构建）
-cd apps/frontend && npx vue-tsc -b --noEmit
-cd apps/admin && npx vue-tsc -b --noEmit
-`````
-
----
-
-## 🔄 开发流程
-
-````
-1. 确定要改哪个模块
-   ├── 前台页面      → apps/frontend
-   ├── 后台管理      → apps/admin
-   └── API/数据库   → apps/backend
-
-2. 改代码
-
-3. 验证
-   pnpm --filter <项目名> build
-`````
+# 类型检查
+cd apps/frontend && npx vue-tsc --noEmit
+cd apps/admin && npx vue-tsc --noEmit
+```
 
 ---
 
-## 🌐 局域网访问配置
+## 🌐 局域网访问
 
-Vite 已配置 `host: true`，手机/iPad 连接同一 Wi-Fi 即可访问。
+Vite 已配置 `host: true`，同 Wi-Fi 下手机/iPad 可访问：
 
-查看 IP：
-````bash
+| 服务 | 地址 |
+|------|------|
+| 前台主页 | `http://<本机IP>:3000` |
+| 管理后台 | `http://<本机IP>:3001` |
+
+```bash
+# 查看本机 IP
 ipconfig | grep IPv4
-`````
-
-如果换了网络 IP 变了，地址也跟着变（当前是 `192.168.31.86`）。
+```
 
 ---
 
-## 📦 前台页面配置项
+---
 
-通过后台 → 配置管理来动态控制前台内容：
+## 🐳 Docker 部署
 
-| 配置键 | 说明 | 值示例 |
-|--------|------|--------|
-| `name` | 昵称 | `"鹊楠"` |
-| `zodiac` | 星座 | `"摩羯座"` |
-| `infoSex` | 性别符号 | `"♂"` |
-| `infoProvince` | 所在省 | `"江苏"` |
-| `infoSchool` | 学校 | `"南通大学"` |
-| `professions` | 职业标签 | `["前端切图仔","摄影爱好者"]` |
-| `links` | 快捷链接 | `[{"text":"GitHub","url":"https://","color":"#333"}]` |
-| `techs` | 技术栈 | `[{"name":"Vue"},{"name":"HTML"}]` |
-| `todos` | 待办事项 | `[{"text":"学Java","done":false}]` |
-| `typewriterWords` | 打字机文字 | `["欢迎","Hello"]` |
+3 个镜像，一键启动：
 
-> 以上都是 JSON 格式的字符串，在后台配置管理的「格式化 JSON」按钮可以一键美化。
+| 镜像 | 容器 | 说明 |
+|------|------|------|
+| `homepage-app` | 应用容器 | 后端 API(:8000) + 前台静态文件(:3000) + 后台静态文件(:3001)，all-in-one |
+| `mariadb:11.4` | 数据库 | 持久化存储 |
+| `caddy:alpine` | 反向代理 | 统一入口(:80/:443) |
+
+### 前置要求
+
+- Docker Engine >= 24.x
+- Docker Compose >= 2.x
+
+### 1. 配置环境变量
+
+```bash
+# 复制环境变量模板
+cp .env.example .env
+# 编辑 .env，至少设置：
+#   JWT_SECRET（openssl rand -base64 32）
+#   DEFAULT_ADMIN_PASSWORD（至少 12 位）
+#   DB_ROOT_PASSWORD
+```
+
+### 2. 启动
+
+```bash
+docker compose up -d
+```
+
+### 3. 访问
+
+| 服务 | 直接访问 | 通过 Caddy |
+|------|----------|------------|
+| 前台主页 | http://localhost:3000 | http://localhost |
+| 管理后台 | http://localhost:3001 | http://admin.localhost |
+| 后端 API | http://localhost:8000 | http://localhost/api |
+| Swagger 文档 | http://localhost:8000/api/docs | http://localhost/api/docs |
+
+> Caddy 配置见 `Caddyfile.docker`，替换 `{host}` 为实际域名或 IP。
+
+### 文件说明
+
+| 文件 | 用途 |
+|------|------|
+| `docker-compose.yml` | 编排 3 个服务（app + mariadb + caddy） |
+| `Dockerfile.app` | All-in-one 构建（后端 + 前端静态 + 后台静态） |
+| `.dockerignore` | Docker 构建忽略清单 |
+| `Caddyfile.docker` | Caddy 反向代理配置 |
 
 ---
 
-## 🚢 生产环境部署（内网 HTTP）
+## 🐛 常见问题
 
-````bash
-# 1. 构建所有应用
-pnpm build
+### 登录后页面空白
 
-# 2. 将产物复制到服务器
-#    前台：apps/frontend/dist/ → /var/www/Dageling003-Homepage/frontend/
-#    后台：apps/admin/dist/    → /var/www/Dageling003-Homepage/admin/
-#    后端：apps/backend/dist/  → 保持原位（或部署到目标机器）
+**原因**：`AdminLayout.vue` 中缺少 `computed` 的 Vue 导入。
 
-# 3. 启动后端（PM2 守护）
-cd apps/backend
-cp .env .env.prod   # 按需修改生产数据库配置
-pm2 start ../../ecosystem.config.js
+```diff
+- import { ref, h, watch } from 'vue'
++ import { ref, computed, h, watch } from 'vue'
+```
 
-# 4. 启动 Caddy 反向代理
-caddy run --config ../../Caddyfile
+Vite HMR 会自动生效，无需重启。
 
-# 5. 访问
-#    前台：http://192.168.31.86:80
-#    后台：http://192.168.31.86:3001
-`````
+### 登录返回 500 Internal Server Error
 
-> **Caddyfile** 和 **ecosystem.config.js** 在项目根目录。
-> IP 地址改为实际机器的内网 IP，Caddy 配置为纯 HTTP（无 HTTPS）。
+**原因**：`JwtModule.register({ secret: process.env.JWT_SECRET! })` 在模块装饰器阶段执行，此时 `.env` 尚未加载，密钥为 `undefined`。
+
+**修复**：改为 `registerAsync` 延迟加载：
+
+```ts
+JwtModule.registerAsync({
+  useFactory: () => ({
+    secret: process.env.JWT_SECRET!,
+    signOptions: { expiresIn: '7d' },
+  }),
+}),
+```
+
+### 初始化向导不出现
+
+**原因**：数据库缺少 `_initialized` 记录（旧版 seed 数据不包含此字段）。
+
+**手动修复**：
+
+```sql
+INSERT INTO site_config (config_key, config_value, category, createdAt, updatedAt)
+VALUES ('_initialized', '0', 'system', NOW(), NOW());
+```
+
+或在后端 `main.ts` 中 `bootstrap()` 前添加 `require('dotenv').config({ path: 'apps/backend/.env' })`。
+
+---
+
+## 🔐 安全提醒
+
+- `.env` 已在 `.gitignore`，确保**不要把真实环境变量提交到 Git**
+- `JWT_SECRET` 使用强随机字符串（`openssl rand -base64 32`），后端启动时强制校验，不安全的密钥会拒绝启动
+- 首次登录后立即修改默认密码
+- 文件上传限制 5MB，仅接受图片格式，自动 WebP 压缩

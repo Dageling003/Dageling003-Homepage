@@ -14,6 +14,9 @@ export class User {
   @Column({ length: 10, default: 'admin' })
   role: string
 
+  @Column({ length: 255, nullable: true })
+  avatarUrl: string
+
   @Column({ length: 10, default: 'light' })
   theme: string
 

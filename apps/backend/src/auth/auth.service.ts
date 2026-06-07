@@ -43,6 +43,15 @@ export class AuthService {
     return profile
   }
 
+  async updateProfile(userId: number, data: { avatarUrl?: string }) {
+    const user = await this.usersRepository.findOne({ where: { id: userId } })
+    if (!user) throw new UnauthorizedException('用户不存在')
+    if (data.avatarUrl !== undefined) user.avatarUrl = data.avatarUrl
+    await this.usersRepository.save(user)
+    const { password, ...profile } = user
+    return profile
+  }
+
   async changePassword(userId: number, dto: ChangePasswordDto) {
     const user = await this.usersRepository.findOne({ where: { id: userId } })
     if (!user) throw new UnauthorizedException('用户不存在')

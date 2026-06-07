@@ -1,4 +1,4 @@
-﻿// Dageling003-Homepage site configuration types
+﻿// homepage site configuration types
 export interface SiteConfig {
   id: number
   configKey: string

@@ -1,5 +1,5 @@
 import { Controller, Post, Get, Put, Body, UseGuards, Request } from '@nestjs/common'
-import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger'
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiBody } from '@nestjs/swagger'
 import { AuthService } from './auth.service'
 import { LoginDto } from './dto/login.dto'
 import { ChangePasswordDto } from './dto/change-password.dto'
@@ -26,6 +26,14 @@ export class AuthController {
   @ApiOperation({ summary: '获取当前用户信息' })
   async getProfile(@Request() req: AuthenticatedRequest) {
     return this.authService.getProfile(req.user.sub)
+  }
+
+  @Put('profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '更新个人资料（需登录）' })
+  async updateProfile(@Request() req: AuthenticatedRequest, @Body() data: { avatarUrl?: string }) {
+    return { data: await this.authService.updateProfile(req.user.sub, data) }
   }
 
   @Put('change-password')

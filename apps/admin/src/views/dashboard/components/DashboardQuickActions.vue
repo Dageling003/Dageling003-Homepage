@@ -1,21 +1,36 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { SettingOutlined, UserOutlined } from '@ant-design/icons-vue'
+import {
+  SettingOutlined, UserOutlined, AuditOutlined, RocketOutlined,
+} from '@ant-design/icons-vue'
+
+defineOptions({ name: 'DashboardQuickActions' })
 
 const router = useRouter()
+
+const actions = computed(() => [
+  { label: '管理配置', icon: SettingOutlined, to: '/config/personal', type: 'primary' as const },
+  { label: '账号设置', icon: UserOutlined, to: '/account' },
+  { label: '操作日志', icon: AuditOutlined, to: '/audit' },
+  { label: '初始设置', icon: RocketOutlined, to: '/setup' },
+])
 </script>
 
 <template>
   <div class="dqa-section">
     <h3 class="dqa-title">快捷操作</h3>
     <div class="dqa-grid">
-      <a-button type="primary" size="large" @click="router.push('/config')" class="dqa-btn">
-        <template #icon><SettingOutlined /></template>
-        管理配置
-      </a-button>
-      <a-button size="large" @click="router.push('/account')" class="dqa-btn">
-        <template #icon><UserOutlined /></template>
-        账号设置
+      <a-button
+        v-for="a in actions"
+        :key="a.label"
+        :type="a.type || 'default'"
+        size="middle"
+        block
+        @click="router.push(a.to)"
+      >
+        <template #icon><component :is="a.icon" /></template>
+        {{ a.label }}
       </a-button>
     </div>
   </div>
@@ -23,7 +38,7 @@ const router = useRouter()
 
 <style scoped>
 .dqa-section {
-  margin-bottom: 1.5rem;
+  height: 100%;
 }
 
 .dqa-title {
@@ -35,7 +50,7 @@ const router = useRouter()
 
 .dqa-grid {
   display: flex;
-  gap: 0.6rem;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 </style>

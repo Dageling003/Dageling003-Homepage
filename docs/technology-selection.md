@@ -1,4 +1,4 @@
-﻿# Dageling003-Homepage全栈技术栈详细清单
+﻿# homepage全栈技术栈详细清单
 
 ***
 
@@ -63,7 +63,7 @@ allowBuilds:
 
 ```
 {
-  "name": "Dageling003-Homepage-frontend",
+  "name": "homepage-frontend",
   "private": true,
   "type": "module",
   "scripts": {
@@ -120,7 +120,7 @@ allowBuilds:
 
 ```
 {
-  "name": "Dageling003-Homepage-admin",
+  "name": "homepage-admin",
   "private": true,
   "type": "module",
   "scripts": {
@@ -171,13 +171,14 @@ allowBuilds:
 | **接口文档**  | @nestjs/swagger  | `^11.2.3`    | OpenAPI 自动生成 |
 | **配置**    | @nestjs/config   | `^4.x`       | 环境变量管理       |
 | **验证**    | class-validator  | `^0.14.1`    | DTO 参数校验     |
+| **图片处理**  | sharp            | `^0.33.x`    | 头像压缩（200×200 WebP） |
 | **进程管理**  | PM2              | `^5.3.1`     | 生产环境保活       |
 
 ### 后端 `package.json` 核心依赖
 
 ```
 {
-  "name": "Dageling003-Homepage-backend",
+  "name": "homepage-backend",
   "version": "0.0.1",
   "scripts": {
     "build": "nest build",
@@ -198,6 +199,7 @@ allowBuilds:
     "bcryptjs": "^2.4.3",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
+    "sharp": "^0.33.5",
     "class-validator": "^0.14.1",
     "class-transformer": "^0.5.1",
     "reflect-metadata": "^0.2.2",
@@ -222,6 +224,7 @@ allowBuilds:
 | **Web 服务器** | Caddy    | `2.8.x`      | 反向代理（HTTP，内网部署） |
 | **数据库**     | MariaDB  | `11.4.x LTS` | 关系型数据库       |
 | **进程管理**    | PM2      | `5.3.1`      | Node 应用守护     |
+| **容器化**     | Docker + Compose | `24.x+ / 2.x+` | 生产环境 Docker 部署 |
 | **数据库 GUI** | DBeaver  | -            | 数据库管理工具       |
 | **API 测试**  | Apifox   | -            | 接口调试          |
 
@@ -258,13 +261,18 @@ pnpm dev:admin        # 管理后台 → localhost:3001
 pnpm dev:frontend     # 前台主页 → localhost:3000
 
 # 单独操作某应用
-pnpm --filter Dageling003-Homepage-frontend dev
-pnpm --filter Dageling003-Homepage-admin dev
-pnpm --filter Dageling003-Homepage-backend dev
+pnpm --filter homepage-frontend dev
+pnpm --filter homepage-admin dev
+pnpm --filter homepage-backend dev
 
 # 生产部署（内网 HTTP）
 pnpm build
-pm2 start ecosystem.config.js       # PM2 守护后端
-caddy run --config Caddyfile         # Caddy 反向代理
+pm2 start ecosystem.config.cjs       # PM2 守护后端
+caddy run --config Caddyfile          # Caddy 反向代理
+
+# 或 Docker 一键部署
+docker compose up -d                  # 启动全部服务
+docker compose logs -f                # 查看日志
+docker compose down                   # 停止并删除容器
 ```
 

@@ -1,6 +1,8 @@
 # API 接口文档
 
 > 运行时可通过 Swagger UI 交互查看：http://localhost:8000/api/docs
+>
+> 最后更新：2026/06/07 v0.6.1
 
 ---
 
@@ -15,7 +17,7 @@
 ```json
 {
   "username": "admin",
-  "password": "admin123"
+  "password": "admin123456"
 }
 ```
 
@@ -44,11 +46,7 @@
 
 获取当前登录用户信息（需 Bearer Token）。
 
-**请求头：**
-
-```
-Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
-```
+**请求头：** `Authorization: Bearer <token>`
 
 **成功响应（200）：**
 
@@ -57,6 +55,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
   "id": 1,
   "username": "admin",
   "role": "admin",
+  "avatarUrl": "/files/uploads/avatar/xxx.webp",
   "theme": "light",
   "createdAt": "2026-06-06T...",
   "updatedAt": "2026-06-06T..."
@@ -65,27 +64,120 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
 
 ---
 
+### PUT /api/auth/profile
+
+更新个人资料（需登录）。
+
+**请求体：**
+
+```json
+{
+  "avatarUrl": "/files/uploads/avatar/xxx.webp"
+}
+```
+
+**响应（200）：** 返回更新后的用户信息（不含密码）
+
+---
+
+### PUT /api/auth/change-password
+
+修改密码（需登录）。
+
+**请求体：**
+
+```json
+{
+  "oldPassword": "old-password",
+  "newPassword": "new-password"
+}
+```
+
+**响应（200）：**
+
+```json
+{
+  "message": "密码修改成功"
+}
+```
+
+**错误（400）：** 旧密码不正确 / 新旧密码相同
+
+---
+
 ## 二、站点配置模块
 
 ### GET /api/config
 
-获取所有配置项（公开接口，无需登录）。
+获取所有配置项（公开接口）。
 
-**成功响应（200）：**
+**响应（200）：**
 
 ```json
 {
   "data": [
     {
       "id": 1,
-      "configKey": "greeting",
-      "configValue": "Hello, World!",
+      "configKey": "name",
+      "configValue": "张三",
+      "category": "info",
       "createdAt": "2026-06-06T...",
       "updatedAt": "2026-06-06T..."
     }
   ]
 }
 ```
+
+---
+
+### GET /api/config/grouped
+
+按分类分组获取所有配置（公开接口）。
+
+**响应（200）：**
+
+```json
+{
+  "data": {
+    "info": [{ "configKey": "name", "configValue": "张三", ... }],
+    "links": [...],
+    "techs": [...],
+    "todos": [...]
+  }
+}
+```
+
+---
+
+### GET /api/config/category/:category
+
+按分类筛选配置。
+
+**示例：** `GET /api/config/category/info`
+
+---
+
+### GET /api/config/initialized
+
+检查系统是否已完成初始化设置（公开接口）。
+
+**响应（200）：**
+
+```json
+{
+  "data": { "initialized": false }
+}
+```
+
+> `_initialized = '0'` 或 key 不存在时返回 `false`，前端路由守卫据此跳转 `/setup`。
+
+---
+
+### GET /api/config/export/json
+
+导出全部配置为 JSON 文件下载（需登录）。
+
+**响应：** 文件下载，`Content-Disposition: attachment; filename="homepage-config.json"`
 
 ---
 
@@ -99,51 +191,32 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
 {
   "data": {
     "id": 1,
-    "configKey": "greeting",
-    "configValue": "Hello, World!",
-    "createdAt": "2026-06-06T...",
-    "updatedAt": "2026-06-06T..."
+    "configKey": "name",
+    "configValue": "张三",
+    ...
   }
 }
 ```
 
-**错误响应（404）：**
-
-```json
-{
-  "message": "配置项 'xxx' 不存在",
-  "error": "Not Found",
-  "statusCode": 404
-}
-```
+**错误（404）：** 配置键不存在
 
 ---
 
 ### POST /api/config
 
-新增配置项（需登录）。
+新增配置项（需登录）。自动写入审计日志。
 
 **请求体：**
 
 ```json
 {
-  "configKey": "links",
-  "configValue": "[{\"title\": \"GitHub\", \"url\": \"https://github.com\"}]"
+  "configKey": "newKey",
+  "configValue": "value",
+  "category": "info"
 }
 ```
 
-**响应（201）：**
-
-```json
-{
-  "data": {
-    "id": 2,
-    "configKey": "links",
-    "configValue": "[{\"title\": \"GitHub\", \"url\": \"https://github.com\"}]",
-    ...
-  }
-}
-```
+**响应（201）：** 返回新增的配置对象
 
 **错误（409）：** 配置键已存在
 
@@ -151,14 +224,15 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
 
 ### PUT /api/config/:key
 
-更新配置项（需登录）。
+更新配置项（需登录）。自动写入审计日志。
 
 **请求体：**
 
 ```json
 {
-  "configKey": "greeting",
-  "configValue": "你好，世界！"
+  "configKey": "name",
+  "configValue": "新值",
+  "category": "info"
 }
 ```
 
@@ -168,37 +242,116 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
 
 ### DELETE /api/config/:key
 
-删除配置项（需登录）。
+删除配置项（需登录）。自动写入审计日志。
 
 **响应（200）：**
 
 ```json
 {
-  "message": "配置 'greeting' 已删除"
+  "message": "配置 'xxx' 已删除"
 }
 ```
 
 ---
 
-## 三、错误码汇总
+### POST /api/config/upload/avatar
 
-| 状态码 | 含义 | 常见原因 |
-|--------|------|---------|
-| 200 | 成功 | - |
-| 201 | 创建成功 | POST 请求成功 |
-| 400 | 请求参数错误 | DTO 校验失败 |
-| 401 | 未登录/Token过期 | 缺少或无效的 Bearer Token |
-| 404 | 资源不存在 | 配置键不存在 |
-| 409 | 资源冲突 | 配置键已存在 |
-| 500 | 服务器内部错误 | 请联系开发人员 |
+上传头像图片（需登录，multipart/form-data）。
+
+**参数：** `file` — 图片文件（jpg/png/gif/webp，≤5MB）
+
+**处理流程：** multer 接收 → sharp 压缩为 200×200 WebP → 保存至 `public/uploads/avatar/`
+
+**响应（200）：**
+
+```json
+{
+  "data": { "url": "/files/uploads/avatar/avatar-1234567890-123456789.webp" }
+}
+```
 
 ---
 
-## 四、前端代理配置
+## 三、审计日志模块
+
+### GET /api/audit
+
+获取操作日志列表（需登录）。
+
+**查询参数：**
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `page` | number | 页码，默认 1 |
+| `limit` | number | 每页条数，默认 20 |
+| `action` | string | 筛选操作类型（CREATE/UPDATE/DELETE） |
+| `operator` | string | 筛选操作人 |
+| `startDate` | string | 开始日期 |
+| `endDate` | string | 结束日期 |
+
+**响应（200）：**
+
+```json
+{
+  "items": [
+    {
+      "id": 1,
+      "action": "UPDATE",
+      "entity": "site_config",
+      "entityKey": "name",
+      "detail": "{ \"before\": \"旧值\", \"after\": \"新值\" }",
+      "operator": "admin",
+      "createdAt": "2026-06-07T..."
+    }
+  ],
+  "total": 42,
+  "page": 1,
+  "limit": 20
+}
+```
+
+---
+
+## 四、错误码汇总
+
+| 状态码 | 含义 | 常见原因 |
+|--------|------|---------|
+| 200 | 成功 | GET/PUT 请求成功 |
+| 201 | 创建成功 | POST 请求成功 |
+| 400 | 请求参数错误 | DTO 校验失败（密码太短、格式错误） |
+| 401 | 未登录/Token过期 | 缺少或无效的 Bearer Token |
+| 404 | 资源不存在 | 配置键不存在 |
+| 409 | 资源冲突 | 配置键已存在 |
+| 500 | 服务器内部错误 | 请查看后端日志 |
+
+---
+
+## 五、数据模型
+
+### 配置分类
+
+| 分类 | 说明 | 包含配置项 |
+|------|------|-----------|
+| `info` | 个人信息 | name, infoSex, infoSexDisplay, infoBirth, infoAge, infoAgeDisplay, infoProvince, infoSchool, avatarUrl, professions, infoShowName, infoShowZodiac, infoShowBirth |
+| `links` | 快捷链接 | links |
+| `techs` | 技术栈 | techs |
+| `todos` | 待办 & 打字机 | todos, typewriterWords |
+| `system` | 系统标记 | \_initialized |
+
+### 用户头像
+
+- 上传路径：`POST /api/config/upload/avatar` → 返回 URL
+- URL 格式：`/files/uploads/avatar/avatar-{timestamp}-{random}.webp`
+- 静态文件前缀：`/files/` → 映射到 `backend/public/`
+- 更新头像：`PUT /api/auth/profile` 设置 `avatarUrl`
+
+---
+
+## 六、前端代理配置
 
 开发环境通过 Vite proxy 转发 `/api` 请求到后端：
 
 - 前台 `localhost:3000` → `localhost:8000`（apps/frontend/vite.config.ts）
 - 后台 `localhost:3001` → `localhost:8000`（apps/admin/vite.config.ts）
 
-生产环境通过 Caddy/Nginx 反向代理实现。
+生产环境通过 Caddy 反向代理实现（`Caddyfile` / `Caddyfile.docker`）。

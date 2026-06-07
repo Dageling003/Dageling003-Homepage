@@ -1,13 +1,39 @@
 ﻿import { NestFactory } from '@nestjs/core'
 import { ValidationPipe } from '@nestjs/common'
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger'
+import { NestExpressApplication } from '@nestjs/platform-express'
+import { join } from 'path'
+import { existsSync, mkdirSync } from 'fs'
 import { AppModule } from './app.module'
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule)
+  // Security check: JWT_SECRET must be set and not the default
+  if (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'replace-with-a-strong-random-secret' || process.env.JWT_SECRET.length < 20) {
+    console.error('')
+    console.error('  ⛔  SECURITY ERROR: JWT_SECRET is not properly configured.')
+    console.error('  ')
+    console.error('     Please set a strong JWT_SECRET in apps/backend/.env:')
+    console.error('     JWT_SECRET=$(openssl rand -base64 32)')
+    console.error('')
+    process.exit(1)
+  }
+
+  const app = await NestFactory.create<NestExpressApplication>(AppModule)
+
+  // Auto-create public directories
+  const publicDir = join(__dirname, '..', 'public')
+  ;['', 'uploads', 'uploads/avatar'].forEach((dir) => {
+    const p = join(publicDir, dir)
+    if (!existsSync(p)) mkdirSync(p, { recursive: true })
+  })
+
+  // Static files for uploads
+  app.useStaticAssets(publicDir, { prefix: '/files/' })
 
   app.enableCors({
-    origin: ['http://localhost:3000', 'http://localhost:3001'],
+    origin: process.env.CORS_ORIGIN
+      ? process.env.CORS_ORIGIN.split(',')
+      : ['http://localhost:3000', 'http://localhost:3001'],
     credentials: true,
   })
 
@@ -22,14 +48,20 @@ async function bootstrap() {
   )
 
   const config = new DocumentBuilder()
-    .setTitle('Dageling003-Homepage API')
-    .setDescription('Dageling003-Homepage 前后端管理系统 API 文档')
+    .setTitle('homepage API')
+    .setDescription('homepage 前后端管理系统 API 文档')
     .setVersion('0.1.0')
     .addBearerAuth()
     .build()
 
   const document = SwaggerModule.createDocument(app, config)
   SwaggerModule.setup('api/docs', app, document)
+
+  // 根路径重定向到 Swagger 文档
+  const httpAdapter = app.getHttpAdapter()
+  httpAdapter.get('/', (req: any, res: any) => {
+    res.redirect('/api/docs')
+  })
 
   await app.listen(8000)
   console.log(`Server is running on http://localhost:8000`)

@@ -1,0 +1,64 @@
+version: "3.8"
+
+services:
+  # ====== MariaDB ======
+  mariadb:
+    image: mariadb:11.4
+    container_name: homepage-db
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpassword}
+      MARIADB_DATABASE: ${DB_DATABASE:-homepage}
+      MARIADB_USER: ${DB_USERNAME:-homepage}
+      MARIADB_PASSWORD: ${DB_PASSWORD:-homepage_pass}
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ====== All-in-one App (API + Frontend + Admin) ======
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.app
+    container_name: homepage-app
+    restart: unless-stopped
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    environment:
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required — generate one: openssl rand -base64 32}
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      DB_USERNAME: ${DB_USERNAME:-homepage}
+      DB_PASSWORD: ${DB_PASSWORD:-homepage_pass}
+      DB_DATABASE: ${DB_DATABASE:-homepage}
+      DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:?DEFAULT_ADMIN_PASSWORD is required — use at least 12 chars}
+    ports:
+      - "8000:8000"   # API
+      - "3000:3000"   # Frontend
+      - "3001:3001"   # Admin
+    volumes:
+      - app_uploads:/app/backend/public/uploads
+
+  # ====== Caddy (reverse proxy) ======
+  caddy:
+    image: caddy:alpine
+    container_name: homepage-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile.docker:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    depends_on:
+      - app
+
+volumes:
+  mariadb_data:
+  app_uploads:
+  caddy_data:
