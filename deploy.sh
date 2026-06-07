@@ -298,12 +298,12 @@ print_summary() {
     echo -e "  ${BOLD}⚠  请立即登录后台修改默认密码！${NC}"
     echo ""
     echo -e "  ${BOLD}常用命令：${NC}"
-    echo "    $COMPOSE_CMD ps             查看服务状态"
-    echo "    $COMPOSE_CMD logs -f        查看所有日志"
-    echo "    $COMPOSE_CMD logs -f caddy  查看 Caddy 日志"
-    echo "    $COMPOSE_CMD logs -f app    查看应用日志"
-    echo "    $COMPOSE_CMD down           停止并删除容器"
-    echo "    $COMPOSE_CMD up -d          重新启动"
+    echo "    $COMPOSE_CMD --env-file .env.docker ps             查看服务状态"
+    echo "    $COMPOSE_CMD --env-file .env.docker logs -f        查看所有日志"
+    echo "    $COMPOSE_CMD --env-file .env.docker logs -f caddy  查看 Caddy 日志"
+    echo "    $COMPOSE_CMD --env-file .env.docker logs -f app    查看应用日志"
+    echo "    $COMPOSE_CMD --env-file .env.docker down           停止并删除容器"
+    echo "    $COMPOSE_CMD --env-file .env.docker up -d          重新启动"
     echo ""
 
     if [ "$proto" = "https" ]; then
