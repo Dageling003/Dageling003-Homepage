@@ -34,8 +34,16 @@ async function bootstrap() {
   // Static files for uploads
   app.useStaticAssets(publicDir, { prefix: '/files/' })
 
-  const allowedOrigins = process.env.CORS_ORIGIN
-    ? process.env.CORS_ORIGIN.split(',').map(s => s.trim()).filter(s => s !== '*')
+  const corsOriginEnv = process.env.CORS_ORIGIN
+  const allowedOrigins: string[] = corsOriginEnv
+    ? corsOriginEnv.split(',').flatMap(s => {
+        const origin = s.trim()
+        if (!origin || origin === '*') return []
+        // If already a full URL (has scheme), use as-is
+        if (origin.startsWith('http://') || origin.startsWith('https://')) return [origin]
+        // Bare domain/IP → allow both http and https
+        return [`http://${origin}`, `https://${origin}`]
+      })
     : ['http://localhost:3000', 'http://localhost:3001']
   app.enableCors({
     origin: allowedOrigins.length ? allowedOrigins : ['http://localhost:3000', 'http://localhost:3001'],

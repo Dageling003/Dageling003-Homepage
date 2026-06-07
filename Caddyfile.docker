@@ -1,27 +1,27 @@
-# homepage — Caddy configuration for Docker all-in-one deployment
+# homepage — Caddy configuration with automatic HTTPS
+# All traffic goes through Caddy on ports 80/443.
+# {$DOMAIN} is set via docker-compose environment variable.
 #
-# ==== BEFORE DEPLOYING ====
-# Replace ALL occurrences of {host} below with your server's IP or domain.
-# Examples:
-#   {host} → 192.168.1.100
-#   {host} → myhomepage.example.com
-#   {host} → homepage.local
-# For local testing only, you can use 127.0.0.1 (won't work from other machines).
+# HTTPS: If {$DOMAIN} is a real public domain, Caddy automatically
+# obtains and renews Let's Encrypt certificates. HTTP is auto-redirected to HTTPS.
+# If {$DOMAIN} is an IP or .local name, Caddy serves HTTP-only (no cert).
 
-{host}:80 {
-
-    # ====== Frontend homepage ======
-    handle_path / {
-        reverse_proxy app:3000
-    }
-
-    # ====== API proxy ======
+{$DOMAIN} {
+    # ====== API reverse proxy ======
+    # Must come before catch-all to take priority
     handle_path /api/* {
         reverse_proxy app:8000
     }
-}
 
-# ====== Admin backend ======
-admin.{host}:80 {
-    reverse_proxy app:3001
+    # ====== Admin backend SPA ======
+    # /admin and /admin/* → admin app (path prefix stripped before forwarding)
+    handle_path /admin* {
+        reverse_proxy app:3001
+    }
+
+    # ====== Frontend homepage SPA ======
+    # Catch-all for all other paths
+    handle {
+        reverse_proxy app:3000
+    }
 }

@@ -34,10 +34,8 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-homepage_pass}
       DB_DATABASE: ${DB_DATABASE:-homepage}
       DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:?DEFAULT_ADMIN_PASSWORD is required}
-    ports:
-      - "8000:8000"
-      - "3000:3000"
-      - "3001:3001"
+      CORS_ORIGIN: ${DOMAIN:-localhost}
+    # Ports are NOT exposed to host — all traffic goes through Caddy (80/443)
     volumes:
       - app_uploads:/app/backend/public/uploads
 
@@ -51,6 +49,8 @@ services:
     volumes:
       - ./Caddyfile.docker:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
     depends_on:
       - app
 

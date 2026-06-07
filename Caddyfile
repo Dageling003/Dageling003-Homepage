@@ -1,23 +1,28 @@
-﻿# homepage — Caddy 配置（HTTP，内网部署）
-# 使用前：pnpm build 构建所有应用
-# 修改 server_ip 为实际部署机器的内网 IP
+# homepage — Caddy 配置（支持 HTTPS 自动续签）
+# 使用前：
+#   1. pnpm build 构建所有应用
+#   2. 将 {host} 替换为实际域名或 IP
+#
+# 域名 → 自动申请 Let's Encrypt 证书，HTTP 自动跳转 HTTPS
+# IP   → 仅 HTTP（Let's Encrypt 不支持 IP）
 
-http://192.168.31.86:80 {
-
-    # ====== 前台主页 ======
-    handle_path / {
-        root * /var/www/homepage/frontend
-        file_server
-    }
-
+{host} {
     # ====== API 反向代理 ======
     handle_path /api/* {
         reverse_proxy localhost:8000
     }
-}
 
-# ====== 管理后台 ======
-http://192.168.31.86:3001 {
-    root * /var/www/homepage/admin
-    file_server
+    # ====== 管理后台 SPA ======
+    handle_path /admin* {
+        root * /var/www/homepage/admin
+        try_files {path} /index.html
+        file_server
+    }
+
+    # ====== 前台主页 SPA ======
+    handle {
+        root * /var/www/homepage/frontend
+        try_files {path} /index.html
+        file_server
+    }
 }

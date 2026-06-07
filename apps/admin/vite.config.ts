@@ -4,6 +4,7 @@ import UnoCSS from 'unocss/vite'
 import { fileURLToPath, URL } from 'node:url'
 
 export default defineConfig({
+  base: '/admin/',
   plugins: [vue(), UnoCSS()],
   resolve: {
     alias: {
