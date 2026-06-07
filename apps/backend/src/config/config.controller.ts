@@ -118,7 +118,20 @@ export class SiteConfigController {
   )
   async uploadAvatar(@UploadedFile() file: any) {
     if (!file) throw new BadRequestException('请选择图片文件')
-    // Compress with sharp
+
+    // Verify file content via sharp metadata (not just MIME type)
+    let format: string | undefined
+    try {
+      const meta = await sharp(file.path).metadata()
+      format = meta.format
+    } catch {
+      throw new BadRequestException('无效的图片文件')
+    }
+    if (!format || !['jpeg', 'png', 'gif', 'webp'].includes(format)) {
+      throw new BadRequestException('仅支持 jpg/png/gif/webp 格式')
+    }
+
+    // Compress with sharp — re-read from disk after verification
     const filePath = file.path
     const buffer = await sharp(filePath)
       .resize(200, 200, { fit: 'inside', withoutEnlargement: true })

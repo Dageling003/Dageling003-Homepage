@@ -2,6 +2,7 @@
 import { ValidationPipe } from '@nestjs/common'
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger'
 import { NestExpressApplication } from '@nestjs/platform-express'
+import helmet from 'helmet'
 import { join } from 'path'
 import { existsSync, mkdirSync } from 'fs'
 import { AppModule } from './app.module'
@@ -20,6 +21,9 @@ async function bootstrap() {
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule)
 
+  // Security headers
+  app.use(helmet())
+
   // Auto-create public directories
   const publicDir = join(__dirname, '..', 'public')
   ;['', 'uploads', 'uploads/avatar'].forEach((dir) => {
@@ -30,10 +34,11 @@ async function bootstrap() {
   // Static files for uploads
   app.useStaticAssets(publicDir, { prefix: '/files/' })
 
+  const allowedOrigins = process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(',').map(s => s.trim()).filter(s => s !== '*')
+    : ['http://localhost:3000', 'http://localhost:3001']
   app.enableCors({
-    origin: process.env.CORS_ORIGIN
-      ? process.env.CORS_ORIGIN.split(',')
-      : ['http://localhost:3000', 'http://localhost:3001'],
+    origin: allowedOrigins.length ? allowedOrigins : ['http://localhost:3000', 'http://localhost:3001'],
     credentials: true,
   })
 

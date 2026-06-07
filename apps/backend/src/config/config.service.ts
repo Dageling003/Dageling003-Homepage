@@ -42,11 +42,15 @@ export class SiteConfigService {
     }
     const config = this.configRepository.create(dto)
     const saved = await this.configRepository.save(config)
+    // 截断长配置值，避免审计日志泄露完整个人信息
+    const truncatedValue = saved.configValue.length > 100
+      ? saved.configValue.slice(0, 100) + '…'
+      : saved.configValue
     await this.auditService.log({
       action: 'CREATE',
       entity: 'config',
       entityKey: saved.configKey,
-      detail: JSON.stringify({ configKey: saved.configKey, configValue: saved.configValue, category: saved.category }),
+      detail: JSON.stringify({ configKey: saved.configKey, configValue: truncatedValue, category: saved.category }),
       operator,
     })
     return saved
@@ -69,7 +73,9 @@ export class SiteConfigService {
 
   async update(key: string, dto: UpdateConfigDto, operator?: string): Promise<SiteConfig> {
     const config = await this.findByKey(key)
-    const oldDetail = JSON.stringify({ configKey: config.configKey, configValue: config.configValue, category: config.category })
+    // 截断旧值用于审计日志，避免泄露完整个人信息
+    const truncate = (v: string) => v.length > 100 ? v.slice(0, 100) + '…' : v
+    const oldDetail = JSON.stringify({ configKey: config.configKey, configValue: truncate(config.configValue), category: config.category })
     const updates: Partial<SiteConfig> = {}
     if (dto.configValue !== undefined) updates.configValue = dto.configValue
     if (dto.category !== undefined) updates.category = dto.category
@@ -79,7 +85,7 @@ export class SiteConfigService {
       action: 'UPDATE',
       entity: 'config',
       entityKey: saved.configKey,
-      detail: JSON.stringify({ before: oldDetail, after: { configValue: saved.configValue, category: saved.category } }),
+      detail: JSON.stringify({ before: oldDetail, after: { configValue: truncate(saved.configValue), category: saved.category } }),
       operator,
     })
     return saved
@@ -88,11 +94,12 @@ export class SiteConfigService {
   async delete(key: string, operator?: string): Promise<void> {
     const config = await this.findByKey(key)
     await this.configRepository.remove(config)
+    const truncate = (v: string) => v && v.length > 100 ? v.slice(0, 100) + '…' : v
     await this.auditService.log({
       action: 'DELETE',
       entity: 'config',
       entityKey: key,
-      detail: JSON.stringify({ configKey: config.configKey, configValue: config.configValue }),
+      detail: JSON.stringify({ configKey: config.configKey, configValue: truncate(config.configValue) }),
       operator,
     })
   }
