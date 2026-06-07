@@ -6,8 +6,8 @@ export class ChangePasswordDto {
   @IsString()
   oldPassword: string
 
-  @ApiProperty({ description: '新密码', minLength: 6, example: 'newpass123' })
+  @ApiProperty({ description: '新密码（至少 12 位）', minLength: 12, example: 'new-strong-password-12-chars' })
   @IsString()
-  @MinLength(6)
+  @MinLength(12)
   newPassword: string
 }

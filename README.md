@@ -44,7 +44,7 @@
   <tr>
     <td>
       <strong>🔐 JWT 鉴权</strong><br />
-      bcrypt 哈希 + JWT 无状态会话，路由守卫拦截未登录请求。
+      bcrypt 12 rounds 哈希 + JWT 无状态会话，路由守卫拦截未登录请求。
     </td>
     <td>
       <strong>📜 审计日志</strong><br />
@@ -77,8 +77,8 @@
       pnpm workspace 统一管理三端，一条命令启动全部服务。
     </td>
     <td>
-      <strong>📡 Swagger 文档</strong><br />
-      运行时访问 <code>/api/docs</code> 即可交互式调试全部 API。
+      <strong>🛡️ 生产级安全</strong><br />
+      helmet 安全头、API 限流、请求体限制、Swagger 生产禁用。
     </td>
   </tr>
 </table>
@@ -88,35 +88,37 @@
 ## 🏗 架构总览
 
 ```
-                    ┌─────────────────────────┐
-                    │     Caddy (80 / 443)     │
-                    │   HTTPS · ZeroSSL 证书   │
-                    │   自动续签 · 零配置       │
-                    └────┬──────┬──────┬───────┘
-                         │      │      │
-                   /     │  /admin   │ /api
-                         │      │      │
-              ┌──────────┴┐ ┌───┴──────┴──────────┐
-              │ Frontend  │ │   NestJS Backend     │
-              │ Vue 3     │ │   :8000 (内部)       │
-              │ :3000     │ │                      │
-              │ (内部)    │ │  ┌─────────────────┐ │
-              └───────────┘ │  │    MariaDB      │ │
-                            │  │    :3306        │ │
-              ┌─────────────┤  └─────────────────┘ │
-              │ Admin       │                      │
-              │ Ant Design  │                      │
-              │ :3001 (内部)│                      │
-              └─────────────┴──────────────────────┘
+                    ┌──────────────────────────────────┐
+                    │        Caddy (80 / 443)           │
+                    │    HTTPS · ZeroSSL 证书            │
+                    │    自动续签 · 零配置                │
+                    │                                   │
+                    │  /        → 静态文件 (直接提供)     │
+                    │  /admin*  → 静态文件 (直接提供)     │
+                    │  /api/*   → 反向代理 app:8000      │
+                    └────────────────┬──────────────────┘
+                                     │
+                                     │ /api/* (仅 API)
+                                     ▼
+                    ┌──────────────────────────────────┐
+                    │       NestJS Backend              │
+                    │       :8000 (容器内部)             │
+                    │                                  │
+                    │  ┌──────────┐  ┌───────────────┐ │
+                    │  │ Auth     │  │ MariaDB       │ │
+                    │  │ Config   │  │ :3306         │ │
+                    │  │ Audit    │  │ (容器内部)     │ │
+                    │  └──────────┘  └───────────────┘ │
+                    └──────────────────────────────────┘
 ```
 
-| 子项目 | 技术栈 | 内部端口 | 对外路径 |
+| 子项目 | 技术栈 | 开发端口 | 对外路径 |
 |--------|--------|----------|----------|
-| `apps/frontend` 前台主页 | Vue 3.5 + Vite 8 + UnoCSS + Pinia | `3000` | `/` |
-| `apps/admin` 管理后台 | Vue 3.5 + Ant Design Vue 4 + ECharts + Vite 8 | `3001` | `/admin` |
-| `apps/backend` API 服务 | NestJS 11 + TypeORM + MariaDB + JWT + Swagger | `8000` | `/api/*` |
+| `apps/frontend` 前台主页 | Vue 3.5 + Vite 8 + UnoCSS + Pinia | `3000` | `/` (Caddy 直接 serve) |
+| `apps/admin` 管理后台 | Vue 3.5 + Ant Design Vue 4 + ECharts + Vite 8 | `3001` | `/admin` (Caddy 直接 serve) |
+| `apps/backend` API 服务 | NestJS 11 + TypeORM + MariaDB + JWT | `8000` | `/api/*` (Caddy 反向代理) |
 
-> **端口对外隐藏**：3000 / 3001 / 8000 仅 Docker 内网互通，外部只暴露 80 / 443。
+> **Caddy 直接提供静态文件**：前端/后台的 HTML/JS/CSS 由 Caddy 内置文件服务器直接响应，不经过 Node.js 进程，零额外开销。仅 API 请求到达后端容器。
 
 ---
 
@@ -169,30 +171,39 @@ bash deploy.sh
 1. 输入域名或 IP 地址
 2. 选择 **ZeroSSL**（国内推荐，不被墙）或 Let's Encrypt
 3. 自动生成 JWT 密钥、管理员密码、数据库密码
-4. 构建 All-in-one Docker 镜像
+4. 构建两个镜像：**后端 API** → **Caddy + 静态文件**
 5. 启动全部服务
 
-部署完成后访问（端口 80/443 统一入口，3000/3001/8000 对外隐藏）：
+部署完成后访问（仅 80/443 端口对外暴露）：
 
 | 服务 | 地址 |
 |------|------|
-| 🖥 前台主页 | `http://your-domain/` |
-| ⚙️ 管理后台 | `http://your-domain/admin` |
-| 📡 API 文档 (Swagger) | `http://your-domain/api/docs` |
+| 🖥 前台主页 | `http(s)://your-domain/` |
+| ⚙️ 管理后台 | `http(s)://your-domain/admin` |
 
-> 💡 使用域名部署时自动启用 HTTPS，证书由 Caddy 自动续签。
+> 💡 使用域名部署时自动启用 HTTPS，证书由 Caddy 自动续签。Swagger 文档在生产环境已禁用。
 
 #### 手动部署（不使用 deploy.sh）
 
 ```bash
 # 1. 创建环境变量文件
 cp .env.docker.example .env.docker
-# 编辑 .env.docker，填入你的域名、密钥、密码
+# 编辑 .env.docker，填入你的域名、密钥、密码（所有密码必填，无弱默认值兜底）
 
-# 2. 构建并启动
+# 2. 构建镜像（必须先 app 后 caddy — caddy 从 app 镜像提取静态文件）
 docker compose --env-file .env.docker build app
+docker compose --env-file .env.docker build caddy
+
+# 3. 启动
 docker compose --env-file .env.docker up -d
 ```
+
+#### 镜像说明
+
+| 镜像 | Dockerfile | 内容 | 大小 |
+|------|-----------|------|------|
+| `homepage-app` | `Dockerfile.app` | NestJS 后端（`pnpm deploy --prod` 仅生产依赖） | ~80-120MB |
+| `homepage-caddy` | `Dockerfile.caddy` | Caddy 2 + 内置前端/后台静态文件 | ~50MB |
 
 #### ZeroSSL vs Let's Encrypt
 
@@ -205,16 +216,6 @@ docker compose --env-file .env.docker up -d
 
 > 💡 **推荐**：国内部署选择 ZeroSSL（默认），海外可选 Let's Encrypt。
 > 在 `.env.docker` 中设置 `ACME_CA` 即可切换，无需修改代码。
-
-<!--
-## 📸 预览
-
-| 前台主页 | 管理后台 |
-|----------|----------|
-| ![前台截图](docs/screenshots/frontend.png) | ![后台截图](docs/screenshots/admin.png) |
-
-> 💡 运行项目后截取实际效果图替换上述占位路径。
--->
 
 ---
 
@@ -245,10 +246,11 @@ homepage/
 │   ├── dev-guide.md         # 开发指南
 │   ├── progress.md          # 开发进度
 │   └── technology-selection.md  # 技术选型
-├── Caddyfile                # 反向代理配置（本地）
-├── Caddyfile.docker         # 反向代理配置（Docker）
-├── Dockerfile.app           # All-in-one 镜像构建
-├── docker-compose.yml       # Docker 编排
+├── Caddyfile                # 反向代理配置（开发/内网）
+├── Caddyfile.docker         # Caddy 配置（Docker，内置到 Caddy 镜像）
+├── Dockerfile.app           # 后端 API 镜像
+├── Dockerfile.caddy         # Caddy + 静态文件镜像
+├── docker-compose.yml       # Docker 编排（app + mariadb + caddy）
 ├── deploy.sh                # 一键部署脚本
 ├── .env.docker.example      # Docker 环境变量模板
 ├── ecosystem.config.cjs     # PM2 生产部署
@@ -275,6 +277,7 @@ pnpm format           # 格式化全部文件
 bash deploy.sh        # 一键部署（交互式）
 docker compose ps     # 查看服务状态
 docker compose logs -f caddy  # 查看 Caddy 日志
+docker compose logs -f app    # 查看后端日志
 docker compose down   # 停止所有服务
 ```
 
@@ -282,11 +285,15 @@ docker compose down   # 停止所有服务
 
 ## 🔒 安全
 
-- **JWT_SECRET** 启动时强制校验（长度 ≥ 20，不能是默认占位值）
-- 密码使用 **bcrypt** 加盐哈希存储
-- 头像上传限制：仅 `jpg/png/gif/webp`，≤ 5MB，服务端 sharp 统一转 200×200 WebP
-- `helmet` 安全头 + `@nestjs/throttler` 速率限制
-- `.env` 排除在版本控制之外
+- **JWT_SECRET** 启动时强制校验（长度 ≥ 20，不能是默认占位值，不通过则拒绝启动）
+- 密码 **bcrypt 12 rounds** 加盐哈希，管理员默认密码 ≥12 位，自定义密码 ≥12 位
+- **helmet** 安全头强化：CSP、HSTS (max-age: 1年)、crossOrigin 策略
+- **API 速率限制**：全局 120 req/min，登录接口 5 req/min
+- **请求体限制**：1MB（防止大 payload 攻击）
+- **DB 密码强制**：Docker 部署所有密码字段必填，无弱默认值兜底
+- **Swagger 生产禁用**：API 文档仅开发环境可用
+- 头像上传：MIME + sharp metadata 双重验证，仅 `jpg/png/gif/webp`，≤5MB，统一转 200×200 WebP
+- `.env` / `.env.docker` 排除在版本控制之外
 
 ---
 
@@ -295,8 +302,8 @@ docker compose down   # 停止所有服务
 | 文档 | 说明 |
 |------|------|
 | [架构设计](./docs/architecture.md) | 整体架构、数据流与模块划分 |
-| [API 文档](./docs/api.md) | 接口清单（也支持运行时 Swagger UI） |
-| [开发指南](./docs/dev-guide.md) | 本地开发流程、代码约定与常见问题 |
+| [API 文档](./docs/api.md) | 接口清单（也支持开发环境 Swagger UI） |
+| [开发指南](./docs/dev-guide.md) | 本地开发流程、Docker 部署、常见问题 |
 | [技术选型](./docs/technology-selection.md) | 技术栈清单与选择理由 |
 
 ---

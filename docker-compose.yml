@@ -4,57 +4,83 @@ services:
     container_name: homepage-db
     restart: unless-stopped
     environment:
-      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpassword}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD is required}
       MARIADB_DATABASE: ${DB_DATABASE:-homepage}
-      MARIADB_USER: ${DB_USERNAME:-homepage}
-      MARIADB_PASSWORD: ${DB_PASSWORD:-homepage_pass}
+      MARIADB_USER: ${DB_USERNAME:?DB_USERNAME is required}
+      MARIADB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
     volumes:
       - mariadb_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD", "mariadb-admin", "ping", "-h", "localhost"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1"
 
   app:
     build:
       context: .
       dockerfile: Dockerfile.app
-    image: dageling003_homepage:latest
+    image: homepage-app:latest
     container_name: homepage-app
     restart: unless-stopped
     depends_on:
       mariadb:
-        condition: service_started   # ✅ 关键修改
+        condition: service_healthy
     environment:
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       DB_HOST: mariadb
       DB_PORT: 3306
-      DB_USERNAME: ${DB_USERNAME:-homepage}
-      DB_PASSWORD: ${DB_PASSWORD:-homepage_pass}
+      DB_USERNAME: ${DB_USERNAME:?DB_USERNAME is required}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       DB_DATABASE: ${DB_DATABASE:-homepage}
+      DB_SYNCHRONIZE: ${DB_SYNCHRONIZE:-false}
       DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:?DEFAULT_ADMIN_PASSWORD is required}
       CORS_ORIGIN: ${DOMAIN:-localhost}
+      PORT: 8000
     # Ports are NOT exposed to host — all traffic goes through Caddy (80/443)
     volumes:
-      - app_uploads:/app/backend/public/uploads
+      - app_uploads:/app/public/uploads
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1"
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
 
   caddy:
-    image: caddy:2
+    build:
+      context: .
+      dockerfile: Dockerfile.caddy
+    image: homepage-caddy:latest
     container_name: homepage-caddy
     restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ./Caddyfile.docker:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
     environment:
       DOMAIN: ${DOMAIN:-localhost}
       ACME_CA: ${ACME_CA:-https://acme.zerossl.com/v2/DV90}
       ACME_EMAIL: ${ACME_EMAIL:-}
     depends_on:
-      - app
+      app:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
 
 volumes:
   mariadb_data:

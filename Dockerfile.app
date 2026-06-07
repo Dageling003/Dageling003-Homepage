@@ -1,9 +1,11 @@
-# homepage — All-in-one image: backend API + frontend/admin static files
-# No application code changes needed — only build & packaging
+# homepage — Backend API image (production-optimized)
+# Caddy serves static files directly; this image is backend-only.
+# Build:  docker compose build app
 
 # ====== Stage 1: Build all three projects ======
 FROM node:22-alpine AS builder
 WORKDIR /app
+
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Install dependencies (root workspace + all apps)
@@ -13,44 +15,36 @@ COPY apps/frontend/package.json apps/frontend/
 COPY apps/admin/package.json apps/admin/
 RUN pnpm install --frozen-lockfile
 
-# Copy source code
-COPY apps/backend apps/backend
-COPY apps/frontend apps/frontend
-COPY apps/admin apps/admin
-
-# Build all
+# Copy source code and build all three apps
+COPY apps/ apps/
 RUN pnpm --filter homepage-backend build
 RUN pnpm --filter homepage-frontend build
 RUN pnpm --filter homepage-admin build
 
-# ====== Stage 2: Runtime ======
-FROM node:20-alpine
+# Deploy backend to /deploy with production dependencies ONLY
+# This strips devDependencies (typescript, jest, eslint, ts-jest, etc.) — huge size savings
+RUN pnpm --filter homepage-backend deploy /deploy --prod
+
+# ====== Stage 2: Runtime (slim, production-only) ======
+FROM node:22-alpine AS runtime
 WORKDIR /app
 
-# Install lightweight static file server
-RUN npm install -g serve
+# Copy the pruned production deployment (dist + prod node_modules + package.json)
+COPY --from=builder /deploy /app
 
-# Backend runtime
-COPY --from=builder /app/apps/backend/dist ./backend/dist
-COPY --from=builder /app/apps/backend/package.json ./backend/
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/apps/backend/.env.example .env
+# Copy frontend/admin dist to /static for the Caddy build stage
+COPY --from=builder /app/apps/frontend/dist /static/frontend
+COPY --from=builder /app/apps/admin/dist /static/admin
 
-# Frontend & admin static assets
-COPY --from=builder /app/apps/frontend/dist ./frontend
-COPY --from=builder /app/apps/admin/dist ./admin
+# Uploads directory (mounted as volume at runtime)
+RUN mkdir -p /app/public/uploads/avatar
 
-# Startup script: runs backend + static servers concurrently
-RUN echo '#!/bin/sh\n\
-echo "Starting backend API on :8000..."\n\
-cd /app/backend && node dist/main.js &\n\
-echo "Starting frontend on :3000..."\n\
-serve /app/frontend -p 3000 -s --no-clipboard --no-request-logging &\n\
-echo "Starting admin on :3001..."\n\
-serve /app/admin -p 3001 -s --no-clipboard --no-request-logging &\n\
-echo "Ready — API:8000  Frontend:3000  Admin:3001"\n\
-wait\n' > /app/start.sh && chmod +x /app/start.sh
+ENV NODE_ENV=production
 
-EXPOSE 8000 3000 3001
+EXPOSE 8000
 
-CMD ["/app/start.sh"]
+# Health check: confirms the API is responding
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:8000/api/config/initialized',r=>{let d='';r.on('data',c=>d+=c);r.on('end',()=>process.exit(r.statusCode===200?0:1))})"
+
+CMD ["node", "dist/main.js"]

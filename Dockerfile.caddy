@@ -1,0 +1,19 @@
+# homepage — Caddy reverse proxy + static file server
+# This image includes the built frontend/admin static files,
+# so Caddy can serve them directly without going through the app container.
+#
+# IMPORTANT: Build the app image first, then this one:
+#   docker compose build app
+#   docker compose build caddy
+
+ARG APP_IMAGE=homepage-app:latest
+FROM ${APP_IMAGE} AS app-static
+
+FROM caddy:2-alpine
+
+# Copy built static files from the app image
+COPY --from=app-static /static/frontend /var/www/frontend
+COPY --from=app-static /static/admin /var/www/admin
+
+# Copy Caddy config
+COPY Caddyfile.docker /etc/caddy/Caddyfile

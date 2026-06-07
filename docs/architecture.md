@@ -1,6 +1,6 @@
 # homepage 技术架构文档
 
-> 最后更新：2026/06/07 v0.6.1
+> 最后更新：2026/06/08 v0.7.0
 
 ---
 
@@ -8,42 +8,79 @@
 
 homepage 是一个全栈前后端分离的首页管理系统，包含三个子系统：
 
-| 子系统 | 路径 | 端口 | 技术栈 |
+| 子系统 | 路径 | 开发端口 | 技术栈 |
 |--------|------|------|--------|
 | **前台主页** | `apps/frontend` | 3000 | Vue 3 + Vite + UnoCSS |
 | **管理后台** | `apps/admin` | 3001 | Vue 3 + Ant Design Vue + UnoCSS |
 | **后端 API** | `apps/backend` | 8000 | NestJS + TypeORM + MariaDB |
+
+> 开发环境端口 3000/3001/8000；Docker 生产环境仅暴露 80/443（Caddy 统一入口）。
 
 ---
 
 ## 二、整体架构图
 
 ```
-┌─────────────────┐      ┌─────────────────┐
-│   Frontend      │      │    Admin        │
-│  localhost:3000 │      │  localhost:3001 │
-│                 │      │                 │
-│  Vue 3 + Vite   │      │  Ant Design Vue │
-│  UnoCSS         │      │  Vue 3 + Vite   │
-└───────┬─────────┘      └───────┬─────────┘
-        │                        │
-        │    /api/* (代理)        │    /api/* (代理)
-        └───────────┬────────────┘
-                    │
-        ┌───────────▼──────────┐
-        │    Backend (NestJS)   │
-        │    localhost:8000     │
-        │                       │
-        │  AuthModule           │
-        │  SiteConfigModule     │
-        │  AuditModule          │
-        │  TypeORM ↔ MariaDB    │
-        └───────────────────────┘
+┌──────────────────────────────────────────────────────┐
+│                     Caddy (:80/:443)                  │
+│                                                      │
+│  /          → file_server (/var/www/frontend)        │
+│  /admin*    → file_server (/var/www/admin)           │
+│  /api/*     → reverse_proxy app:8000                 │
+│  HTTPS      → 自动申请 + 续签 (ZeroSSL / Let's Encrypt)│
+└──────┬───────────────────────────────────────────────┘
+       │
+       │  /api/* 反向代理
+       ▼
+┌──────────────────┐      ┌─────────────────┐
+│  Backend (NestJS) │      │    MariaDB      │
+│  app:8000         │◄────►│    :3306        │
+│                   │      │                 │
+│  AuthModule       │      │  users          │
+│  SiteConfigModule │      │  site_config    │
+│  AuditModule      │      │  audit_logs     │
+│  TypeORM          │      │                 │
+└──────────────────┘      └─────────────────┘
 ```
+
+> Docker 生产环境：Caddy 直接提供前端/后台静态文件（无中间 Node 进程），仅 API 请求到达后端容器。
 
 ---
 
-## 三、项目结构
+## 三、部署架构（Docker）
+
+```
+┌──────────────────────────────────────────────┐
+│  docker compose                               │
+│                                              │
+│  homepage-caddy (Caddy + 静态文件)             │
+│  ├─ 端口 80/443 暴露到宿主机                    │
+│  ├─ 内置 frontend + admin dist                │
+│  ├─ /api/* → app:8000                        │
+│  └─ depends_on: app (service_healthy)         │
+│                                              │
+│  homepage-app (后端 API 专用)                  │
+│  ├─ node:22-alpine                            │
+│  ├─ 仅生产依赖 (pnpm deploy --prod)            │
+│  ├─ HEALTHCHECK: /api/config/initialized      │
+│  └─ depends_on: mariadb (service_healthy)     │
+│                                              │
+│  homepage-db (MariaDB 11.4)                   │
+│  ├─ 持久化存储 (mariadb_data volume)           │
+│  └─ HEALTHCHECK: mariadb-admin ping           │
+└──────────────────────────────────────────────┘
+```
+
+**两个镜像，各司其职：**
+
+| 镜像 | Dockerfile | 内容 |
+|------|-----------|------|
+| `homepage-app` | `Dockerfile.app` | 后端 API（NestJS dist + 生产依赖）+ 静态文件 dist（供 Caddy 提取）|
+| `homepage-caddy` | `Dockerfile.caddy` | Caddy + 内置前端/后台静态文件 |
+
+---
+
+## 四、项目结构
 
 ```tree
 homepage/
@@ -86,10 +123,12 @@ homepage/
 │           └── users/             # 用户实体
 │
 ├── docs/                          # 项目文档
-├── Caddyfile                      # 反向代理（生产部署）
-├── Caddyfile.docker               # 反向代理（Docker 部署）
-├── Dockerfile.app                 # Docker all-in-one 镜像构建
+├── Caddyfile                      # 反向代理（开发/内网部署）
+├── Caddyfile.docker               # Caddy 配置（Docker 部署，内置到 Caddy 镜像）
+├── Dockerfile.app                 # 后端 API 镜像构建
+├── Dockerfile.caddy               # Caddy + 静态文件镜像构建
 ├── docker-compose.yml             # Docker 编排（app + mariadb + caddy）
+├── deploy.sh                      # 一键部署脚本
 ├── .dockerignore                  # Docker 构建忽略清单
 ├── ecosystem.config.cjs           # PM2 配置
 ├── package.json                   # workspace 根
@@ -98,7 +137,7 @@ homepage/
 
 ---
 
-## 四、数据流
+## 五、数据流
 
 ### 认证流程
 
@@ -120,7 +159,7 @@ POST /api/auth/login        config CRUD → 自动写入 audit_logs
   → POST /api/config/upload/avatar (multipart/form-data)
   → multer 接收文件 (仅 jpg/png/gif/webp, ≤5MB)
   → sharp 压缩为 200×200 WebP (quality 70)
-  → 存储至 backend/public/uploads/avatar/avatar-{timestamp}-{random}.webp
+  → 存储至 public/uploads/avatar/avatar-{timestamp}-{random}.webp
   → 返回 URL: /files/uploads/avatar/xxx.webp
   → 前端调用 PUT /api/auth/profile 更新 avatarUrl
 ```
@@ -152,14 +191,14 @@ POST /api/auth/login        config CRUD → 自动写入 audit_logs
 
 ---
 
-## 五、数据模型
+## 六、数据模型
 
 ```sql
 -- 用户表
 users:
   id            INT PK AUTO_INCREMENT
   username      VARCHAR(50) UNIQUE
-  password      VARCHAR(255)    (bcrypt 加密)
+  password      VARCHAR(255)    (bcrypt 12 rounds)
   role          VARCHAR(10) DEFAULT 'admin'
   avatarUrl     VARCHAR(255) NULL   (头像地址, /files/uploads/avatar/*.webp)
   theme         VARCHAR(10) DEFAULT 'light'
@@ -188,22 +227,28 @@ audit_logs:
 
 ---
 
-## 六、关键设计
+## 七、关键设计
 
 ### 安全性
 
-- 密码：bcrypt 哈希 + JWT Token 过期（7 天）
+- 密码：bcrypt 12 rounds + JWT Token 过期（7 天）
 - JWT_SECRET 启动时强制校验：未设置、为默认值或长度 < 20 字符则拒绝启动
 - `JwtModule.registerAsync` 确保 .env 加载后才读取密钥
-- 文件上传：sharp 压缩 + WebP 转换（200×200）+ 文件大小/类型校验（5MB，仅 jpg/png/gif/webp）
-- 审计日志：所有配置变更自动记录（操作人/时间/变更内容）
+- 管理员默认密码 ≥12 位，修改密码 ≥12 位，登录密码 ≥8 位
+- helmet 安全头强化：CSP、HSTS (max-age=1年)、crossOrigin 策略
+- 全局请求体 1MB 限制（DDoS 防护）
+- Swagger 文档仅在非生产环境启用
+- Rate limiting：全局 120/min，登录接口 5/min
+- 文件上传：sharp 压缩 + WebP 转换（200×200）+ 双重校验（MIME + sharp metadata）+ 5MB 限制
+- 审计日志：所有配置变更自动记录，长值截断防泄露
 - 初始化检查：首次使用必须完成设置向导（`_initialized` 标记）
 - 默认管理员：自动创建 + 环境变量 `DEFAULT_ADMIN_PASSWORD` 指定密码
 
 ### 数据库
 
-- TypeORM `synchronize: true`（开发环境），生产环境建议设为 `false`
-- 通过环境变量 `DB_SYNCHRONIZE` 控制：`DB_SYNCHRONIZE=true` 开启自动同步
+- TypeORM `synchronize` 通过环境变量 `DB_SYNCHRONIZE` 控制
+- 生产环境强制 `DB_SYNCHRONIZE=false`，设为 `true` 时打印警告
+- 连接池配置：connectionLimit=20, connectTimeout=10s
 
 ### 配置管理
 
@@ -218,6 +263,8 @@ audit_logs:
 - 开发：`pnpm dev` 一键启动三个子项目
 - 生产部署（内网 HTTP）：
   - `pnpm build` 构建全部 → Caddy 托管静态文件 + PM2 守护后端
-  - 或 `docker compose up -d` 一键 Docker 部署
-- 端口：Frontend(3000) / Admin(3001) / Backend(8000) / Caddy(80)
-- Docker 部署文件：`docker-compose.yml`（app + mariadb:11.4 + caddy:alpine）
+  - 或 `bash deploy.sh` Docker 一键部署
+- 生产部署（Docker）：
+  - 两个镜像：`homepage-app`（后端API）+ `homepage-caddy`（Caddy + 静态文件）
+  - 仅暴露 80/443 端口，所有流量走 Caddy
+  - 内置 HEALTHCHECK，`service_healthy` 依赖

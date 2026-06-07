@@ -22,18 +22,15 @@ registry=https://registry.npmmirror.com
 
 ```
 packages:
-  - "apps/frontend"    # 前台主页
-  - "apps/admin"       # 中后台管理
-  - "apps/backend"     # API 服务
+  - 'apps/*'
 
-# pnpm 11 配置（原 .npmrc 中的非 auth 配置迁移至此）
-nodeLinker: hoisted
-shamefullyHoist: true
-autoInstallPeers: true
-minimumReleaseAge: 0
-
+# Only allow build scripts for packages that need native compilation
 allowBuilds:
+  '@nestjs/core': true
   esbuild: true
+  unrs-resolver: true
+  vue-demi: true
+  'core-js': true
   sharp: true
 ```
 
@@ -168,6 +165,8 @@ allowBuilds:
 | **数据库**   | MariaDB          | `11.4.x LTS` | 关系型数据库       |
 | **鉴权**    | @nestjs/passport | `^11.0.5`    | JWT 认证策略     |
 | **JWT**   | @nestjs/jwt      | `^11.0.2`    | Token 生成     |
+| **限流**    | @nestjs/throttler | `^6.5.0`     | API 速率限制     |
+| **安全头**   | helmet           | `^8.2.0`     | HTTP 安全头     |
 | **接口文档**  | @nestjs/swagger  | `^11.2.3`    | OpenAPI 自动生成 |
 | **配置**    | @nestjs/config   | `^4.x`       | 环境变量管理       |
 | **验证**    | class-validator  | `^0.14.1`    | DTO 参数校验     |
@@ -194,6 +193,8 @@ allowBuilds:
     "@nestjs/passport": "^11.0.5",
     "@nestjs/config": "^4.0.0",
     "@nestjs/swagger": "^11.2.3",
+    "@nestjs/throttler": "^6.5.0",
+    "helmet": "^8.2.0",
     "typeorm": "^0.3.20",
     "mariadb": "^3.5.2",
     "bcryptjs": "^2.4.3",

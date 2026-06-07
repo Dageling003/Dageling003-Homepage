@@ -7,7 +7,5 @@ allowBuilds:
   esbuild: true
   unrs-resolver: true
   vue-demi: true
-  '@scarf/scarf': false
-  'better-sqlite3': false
   'core-js': true
   sharp: true

@@ -1,4 +1,4 @@
-﻿import { Module } from '@nestjs/common'
+import { Module } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler'
@@ -14,7 +14,7 @@ import { AuditLog } from './audit/audit.entity'
   imports: [
     ThrottlerModule.forRoot([{
       ttl: 60000,
-      limit: 60,
+      limit: 120,
     }]),
     ConfigModule.forRoot({
       isGlobal: true,
@@ -29,6 +29,13 @@ import { AuditLog } from './audit/audit.entity'
       database: process.env.DB_DATABASE || 'homepage',
       entities: [User, SiteConfig, AuditLog],
       synchronize: process.env.DB_SYNCHRONIZE === 'true',
+      // Production connection pool settings
+      extra: {
+        connectionLimit: 20,
+        connectTimeout: 10000,
+        acquireTimeout: 10000,
+        idleTimeout: 60000,
+      },
     }),
     AuthModule,
     SiteConfigModule,

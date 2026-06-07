@@ -176,15 +176,15 @@ collect_config() {
             warn "密码长度至少 12 位，当前 ${#ADMIN_PASSWORD} 位"
         done
     else
-        ADMIN_PASSWORD=$(openssl rand -base64 24 2>/dev/null || cat /dev/urandom | tr -dc 'a-zA-Z0-9!@#$%^&*' | head -c24)
+        ADMIN_PASSWORD=$(openssl rand -base64 24 2>/dev/null || cat /dev/urandom | tr -dc 'a-zA-Z0-9' | head -c24)
         ok "DEFAULT_ADMIN_PASSWORD 已自动生成"
     fi
 
     # --- DB passwords ---
     echo ""
     info "正在生成数据库密码..."
-    DB_ROOT_PASSWORD=$(openssl rand -base64 16 2>/dev/null || cat /dev/urandom | tr -dc 'a-zA-Z0-9' | head -c16)
-    DB_PASSWORD=$(openssl rand -base64 16 2>/dev/null || cat /dev/urandom | tr -dc 'a-zA-Z0-9' | head -c16)
+    DB_ROOT_PASSWORD=$(openssl rand -base64 20 2>/dev/null || cat /dev/urandom | tr -dc 'a-zA-Z0-9' | head -c20)
+    DB_PASSWORD=$(openssl rand -base64 20 2>/dev/null || cat /dev/urandom | tr -dc 'a-zA-Z0-9' | head -c20)
     DB_USERNAME="homepage"
     DB_DATABASE="homepage"
     ok "数据库密码已自动生成"
@@ -206,6 +206,7 @@ write_env() {
 
     cat > "$env_file" <<EOF
 # homepage Docker 部署环境变量 — $(date '+%Y-%m-%d %H:%M:%S') 生成
+# 请妥善保管此文件，其中包含敏感信息！
 DOMAIN=${DOMAIN}
 JWT_SECRET=${JWT_SECRET}
 DEFAULT_ADMIN_PASSWORD=${ADMIN_PASSWORD}
@@ -215,6 +216,7 @@ DB_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
 DB_USERNAME=${DB_USERNAME}
 DB_PASSWORD=${DB_PASSWORD}
 DB_DATABASE=${DB_DATABASE}
+DB_SYNCHRONIZE=false
 EOF
 
     ok ".env.docker 已生成"
@@ -225,12 +227,22 @@ EOF
 build_app() {
     echo ""
     echo -e "${BOLD}==> 4/5 构建 Docker 镜像${NC}"
-    info "正在构建 homepage-app 镜像（包含前后端全部应用）..."
 
-    if $COMPOSE_CMD --env-file .env.docker build app 2>&1 | tail -20; then
-        ok "镜像构建完成"
+    # Build app image first (backend API)
+    info "正在构建 homepage-app 镜像（后端 API + 静态文件）..."
+    if $COMPOSE_CMD --env-file .env.docker build app; then
+        ok "homepage-app 镜像构建完成"
     else
-        err "镜像构建失败，请检查上方错误信息"
+        err "app 镜像构建失败，请检查上方错误信息"
+        exit 1
+    fi
+
+    # Build caddy image (includes static files from app image)
+    info "正在构建 homepage-caddy 镜像（Caddy + 静态文件）..."
+    if $COMPOSE_CMD --env-file .env.docker build caddy; then
+        ok "homepage-caddy 镜像构建完成"
+    else
+        err "caddy 镜像构建失败，请检查上方错误信息"
         exit 1
     fi
 }
@@ -253,7 +265,7 @@ start_services() {
     info "等待服务就绪..."
     local attempts=0
     while [ $attempts -lt 30 ]; do
-        if $COMPOSE_CMD ps | grep -q 'homepage-app.*Up'; then
+        if $COMPOSE_CMD ps | grep -qE 'homepage-app.*healthy'; then
             ok "所有服务就绪"
             break
         fi
@@ -277,10 +289,10 @@ print_summary() {
     echo ""
     echo -e "  ${BOLD}前台主页：${NC}    ${CYAN}${proto}://${DOMAIN}/${NC}"
     echo -e "  ${BOLD}管理后台：${NC}    ${CYAN}${proto}://${DOMAIN}/admin${NC}"
-    echo -e "  ${BOLD}API 文档：${NC}    ${CYAN}${proto}://${DOMAIN}/api/docs${NC}"
+    echo -e "  ${BOLD}API 文档：${NC}    ${CYAN}${proto}://${DOMAIN}/api/docs${NC}（仅非生产环境可用）"
     echo ""
     echo -e "  ${BOLD}管理员账号：${NC}  ${YELLOW}admin${NC}"
-    echo -e "  ${BOLD}管理员密码：${NC}  ${YELLOW}${ADMIN_PASSWORD}${NC}"
+    echo -e "  ${BOLD}管理员密码：${NC}  ${YELLOW}（已保存到 .env.docker 中的 DEFAULT_ADMIN_PASSWORD）${NC}"
     echo ""
     echo -e "  ${BOLD}⚠  请立即登录后台修改默认密码！${NC}"
     echo ""

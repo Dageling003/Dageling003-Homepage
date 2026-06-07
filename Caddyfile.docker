@@ -1,38 +1,38 @@
 # homepage — Caddy configuration with automatic HTTPS
 # All traffic goes through Caddy on ports 80/443.
 #
+# Static files (frontend + admin) are served directly by Caddy.
+# Only API calls are proxied to the backend app container.
+#
 # Environment variables (set in docker-compose.yml):
 #   DOMAIN      — your domain name or IP address
 #   ACME_CA     — ACME provider URL (default: ZeroSSL, works in China)
 #   ACME_EMAIL  — email for ACME account (required for ZeroSSL)
-#
-# ====== ACME / HTTPS ======
-# ZeroSSL (default) — works in China, not blocked by GFW
-# Let's Encrypt — set ACME_CA=https://acme-v02.api.letsencrypt.org/directory
-# IP address    — ACME is skipped, HTTP only (no cert for IPs)
-# localhost     — HTTP only, no ACME
 
 {
-    acme_ca {$ACME_CA:https://acme.zerossl.com/v2/DV90}
-    email {$ACME_EMAIL}
+	acme_ca {$ACME_CA:https://acme.zerossl.com/v2/DV90}
+	email {$ACME_EMAIL}
 }
 
 {$DOMAIN} {
-    # ====== API reverse proxy ======
-    # Must come before catch-all to take priority
-    handle_path /api/* {
-        reverse_proxy app:8000
-    }
+	# ====== API reverse proxy (backend only) ======
+	handle_path /api/* {
+		reverse_proxy app:8000
+	}
 
-    # ====== Admin backend SPA ======
-    # /admin and /admin/* → admin app (path prefix stripped before forwarding)
-    handle_path /admin* {
-        reverse_proxy app:3001
-    }
+	# ====== Admin backend SPA ======
+	# Served directly by Caddy — no intermediate Node process
+	handle_path /admin* {
+		root * /var/www/admin
+		try_files {path} /index.html
+		file_server
+	}
 
-    # ====== Frontend homepage SPA ======
-    # Catch-all for all other paths
-    handle {
-        reverse_proxy app:3000
-    }
+	# ====== Frontend homepage SPA ======
+	# Catch-all: served directly by Caddy
+	handle {
+		root * /var/www/frontend
+		try_files {path} /index.html
+		file_server
+	}
 }

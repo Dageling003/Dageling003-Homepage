@@ -2,7 +2,7 @@
 
 > 如何启动、开发和维护 homepage 项目
 >
-> 最后更新：2026/06/07 v0.6.1
+> 最后更新：2026/06/08 v0.7.0
 
 ---
 
@@ -72,7 +72,7 @@ pnpm dev:admin      # http://localhost:3001
 |--------|------|
 | `admin` | 由 `DEFAULT_ADMIN_PASSWORD` 指定 |
 
-> 登录后请立即修改密码。
+> 登录后请立即修改密码。密码要求：至少 12 位。
 
 ---
 
@@ -115,10 +115,12 @@ homepage/
 │       └── users/         # 用户实体
 │
 ├── docs/                  # 项目文档
-├── Caddyfile              # 反向代理（生产部署）
-├── Caddyfile.docker       # 反向代理（Docker 部署）
-├── Dockerfile.app         # Docker all-in-one 镜像构建
+├── Caddyfile              # 反向代理（开发/内网部署）
+├── Caddyfile.docker       # Caddy 配置（Docker，内置到 Caddy 镜像）
+├── Dockerfile.app         # 后端镜像构建
+├── Dockerfile.caddy       # Caddy + 静态文件镜像构建
 ├── docker-compose.yml     # Docker 编排（app + mariadb + caddy）
+├── deploy.sh              # 一键部署脚本
 ├── ecosystem.config.cjs   # PM2
 └── package.json           # workspace
 ```
@@ -166,55 +168,76 @@ ipconfig | grep IPv4
 
 ## 🐳 Docker 部署
 
-3 个镜像，一键启动：
+两个镜像，各司其职：
 
 | 镜像 | 容器 | 说明 |
 |------|------|------|
-| `homepage-app` | 应用容器 | 后端 API(:8000) + 前台静态文件(:3000) + 后台静态文件(:3001)，all-in-one |
+| `homepage-app` | 后端 API | NestJS 后端 (:8000)，仅生产依赖，有 HEALTHCHECK |
+| `homepage-caddy` | 反向代理 | Caddy + 内置前端/后台静态文件，统一入口 (:80/:443) |
 | `mariadb:11.4` | 数据库 | 持久化存储 |
-| `caddy:alpine` | 反向代理 | 统一入口(:80/:443) |
+
+> Caddy 直接提供静态文件（不经过 Node 进程），仅 `/api/*` 到达后端容器。
 
 ### 前置要求
 
 - Docker Engine >= 24.x
 - Docker Compose >= 2.x
 
-### 1. 配置环境变量
+### 1. 一键部署（推荐）
 
 ```bash
-# 复制环境变量模板
-cp .env.example .env
-# 编辑 .env，至少设置：
-#   JWT_SECRET（openssl rand -base64 32）
-#   DEFAULT_ADMIN_PASSWORD（至少 12 位）
-#   DB_ROOT_PASSWORD
+bash deploy.sh
 ```
 
-### 2. 启动
+交互式配置域名、邮箱、密码等，自动生成 `.env.docker` 并构建+启动。
+
+### 2. 手动部署
 
 ```bash
-docker compose up -d
+# 复制并编辑环境变量
+cp .env.docker.example .env.docker
+# 编辑 .env.docker，所有密码字段必填（无默认值兜底）
+
+# 构建镜像（先 app，后 caddy — caddy 需要从 app 镜像提取静态文件）
+docker compose --env-file .env.docker build app
+docker compose --env-file .env.docker build caddy
+
+# 启动
+docker compose --env-file .env.docker up -d
 ```
 
 ### 3. 访问
 
-| 服务 | 直接访问 | 通过 Caddy |
-|------|----------|------------|
-| 前台主页 | http://localhost:3000 | http://localhost |
-| 管理后台 | http://localhost:3001 | http://admin.localhost |
-| 后端 API | http://localhost:8000 | http://localhost/api |
-| Swagger 文档 | http://localhost:8000/api/docs | http://localhost/api/docs |
-
-> Caddy 配置见 `Caddyfile.docker`，替换 `{host}` 为实际域名或 IP。
+| 服务 | 地址 |
+|------|------|
+| 前台主页 | `http(s)://<你的域名>/` |
+| 管理后台 | `http(s)://<你的域名>/admin` |
+| 健康检查 | `http(s)://<你的域名>/health` |
+| Swagger 文档 | 仅开发环境可用（生产环境已禁用） |
 
 ### 文件说明
 
 | 文件 | 用途 |
 |------|------|
-| `docker-compose.yml` | 编排 3 个服务（app + mariadb + caddy） |
-| `Dockerfile.app` | All-in-one 构建（后端 + 前端静态 + 后台静态） |
+| `docker-compose.yml` | 编排 3 个服务（app + mariadb + caddy），含 HEALTHCHECK、资源限制、日志轮转 |
+| `Dockerfile.app` | 后端 API 镜像（多阶段构建 + pnpm deploy --prod） |
+| `Dockerfile.caddy` | Caddy 镜像（从 app 镜像提取静态文件） |
+| `Caddyfile.docker` | Caddy 配置（反向代理 /api，直接 serve 静态文件） |
 | `.dockerignore` | Docker 构建忽略清单 |
-| `Caddyfile.docker` | Caddy 反向代理配置 |
+| `deploy.sh` | 一键部署（交互式配置 + 构建 + 启动） |
+
+### 常用运维命令
+
+```bash
+docker compose ps                    # 查看服务状态
+docker compose logs -f               # 查看所有日志
+docker compose logs -f app           # 查看后端日志
+docker compose logs -f caddy         # 查看 Caddy 日志
+docker compose restart app           # 重启后端
+docker compose down                  # 停止并删除容器
+docker compose up -d                 # 重新启动
+docker compose --env-file .env.docker build app --no-cache  # 重新构建
+```
 
 ---
 
@@ -257,13 +280,13 @@ INSERT INTO site_config (config_key, config_value, category, createdAt, updatedA
 VALUES ('_initialized', '0', 'system', NOW(), NOW());
 ```
 
-或在后端 `main.ts` 中 `bootstrap()` 前添加 `require('dotenv').config({ path: 'apps/backend/.env' })`。
-
 ---
 
 ## 🔐 安全提醒
 
 - `.env` 已在 `.gitignore`，确保**不要把真实环境变量提交到 Git**
-- `JWT_SECRET` 使用强随机字符串（`openssl rand -base64 32`），后端启动时强制校验，不安全的密钥会拒绝启动
-- 首次登录后立即修改默认密码
+- `JWT_SECRET` 使用强随机字符串（`openssl rand -base64 32`），后端启动时强制校验
+- `DEFAULT_ADMIN_PASSWORD` ≥12 位，首次登录后立即修改
+- Docker 部署中所有密码强制设置（无弱默认值兜底）
 - 文件上传限制 5MB，仅接受图片格式，自动 WebP 压缩
+- 生产环境 Swagger 文档已禁用，/health 端点始终可用用于监控

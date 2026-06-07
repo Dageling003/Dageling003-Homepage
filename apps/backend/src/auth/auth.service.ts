@@ -63,7 +63,7 @@ export class AuthService {
       throw new BadRequestException('新密码不能与旧密码相同')
     }
 
-    user.password = await bcrypt.hash(dto.newPassword, 10)
+    user.password = await bcrypt.hash(dto.newPassword, 12)
     await this.usersRepository.save(user)
     return { message: '密码修改成功' }
   }
@@ -85,7 +85,7 @@ export class AuthService {
             'Please use a stronger password or generate one with `openssl rand -base64 24`.',
         )
       }
-      const hashedPassword = await bcrypt.hash(defaultPassword, 10)
+      const hashedPassword = await bcrypt.hash(defaultPassword, 12)
       const admin = this.usersRepository.create({
         username: 'admin',
         password: hashedPassword,

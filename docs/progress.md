@@ -1,6 +1,6 @@
 ﻿# 开发进度记录
 
-> 最后更新：2026/06/07 v0.6.1
+> 最后更新：2026/06/08 v0.7.0
 
 ---
 
@@ -168,6 +168,33 @@
 | v0.4.0 | 2026/06/06 | ECharts + 主题预设 |
 | v0.5.0 | 2026/06/07 | UX 大改 + 表单化配置 + 头像上传 |
 | v0.6.0 | 2026/06/07 | 初始化向导 + 安全加固 + 文档更新 |
+| v0.7.0 | 2026/06/08 | 生产环境全面安全加固 + Docker 架构重构 |
+
+## 第七阶段：生产环境安全加固 + Docker 架构重构 ✅
+
+- [x] Docker 架构重构：Caddy 直接提供静态文件（不再经 `serve` → Node 进程）
+- [x] 新增 `Dockerfile.caddy`：Caddy + 静态文件合并镜像
+- [x] `Dockerfile.app` 重写：后端专用，`pnpm deploy --prod` 仅生产依赖
+- [x] 容器 HEALTHCHECK：app（HTTP 端点）+ mariadb（mariadb-admin ping）
+- [x] `depends_on` 升级为 `service_healthy`（替代 `service_started`）
+- [x] DB 密码强制设置（移除 `rootpassword`/`homepage_pass` 弱默认值）
+- [x] 容器资源限制（memory: 512M, cpus: 1）+ 日志轮转（20MB×3）
+- [x] Swagger 文档仅非生产环境启用
+- [x] 全局请求体 1MB 大小限制（DDoS 防护）
+- [x] helmet 安全头强化（CSP / HSTS / crossOrigin 策略）
+- [x] bcrypt 轮次 10→12
+- [x] 密码最小长度：登录 6→8，改密码 6→12
+- [x] Rate limiting：全局 60→120/min，登录保持 5/min
+- [x] DB 连接池配置（connectionLimit=20，timeouts）
+- [x] `DB_SYNCHRONIZE=true` 生产环境启动警告
+- [x] PM2 配置：`fork` → `cluster` 模式，`instances: 1` → `max`
+- [x] 新增 `/health` 健康检查端点
+- [x] deploy.sh 安全改进：不再明文打印管理员密码
+- [x] 镜像体积 4-5× 压缩（~500MB → ~80-120MB）
+- [x] `pnpm-workspace.yaml` 清理不使用的 allowBuilds
+- [x] 全量文档更新
+
+---
 
 ## Bug 修复记录
 

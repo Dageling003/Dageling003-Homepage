@@ -1,8 +1,9 @@
-﻿import { NestFactory } from '@nestjs/core'
+import { NestFactory } from '@nestjs/core'
 import { ValidationPipe } from '@nestjs/common'
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger'
 import { NestExpressApplication } from '@nestjs/platform-express'
 import helmet from 'helmet'
+import { json, urlencoded } from 'express'
 import { join } from 'path'
 import { existsSync, mkdirSync } from 'fs'
 import { AppModule } from './app.module'
@@ -19,10 +20,44 @@ async function bootstrap() {
     process.exit(1)
   }
 
+  // Warn if DB_SYNCHRONIZE is enabled in production
+  if (process.env.NODE_ENV === 'production' && process.env.DB_SYNCHRONIZE === 'true') {
+    console.warn('')
+    console.warn('  ⚠️  WARNING: DB_SYNCHRONIZE=true in production mode.')
+    console.warn('     This may cause data loss. Set DB_SYNCHRONIZE=false for production.')
+    console.warn('')
+  }
+
   const app = await NestFactory.create<NestExpressApplication>(AppModule)
 
-  // Security headers
-  app.use(helmet())
+  // Security headers — hardened for production
+  app.use(helmet({
+    contentSecurityPolicy: process.env.NODE_ENV === 'production' ? {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:', 'https:'],
+        connectSrc: ["'self'"],
+        fontSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        mediaSrc: ["'self'"],
+        frameSrc: ["'none'"],
+      },
+    } : false,
+    crossOriginEmbedderPolicy: true,
+    crossOriginOpenerPolicy: { policy: 'same-origin' },
+    crossOriginResourcePolicy: { policy: 'same-origin' },
+    hsts: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true,
+    },
+  }))
+
+  // Global body size limits to prevent large payload attacks
+  app.use(json({ limit: '1mb' }))
+  app.use(urlencoded({ extended: true, limit: '1mb' }))
 
   // Auto-create public directories
   const publicDir = join(__dirname, '..', 'public')
@@ -60,24 +95,36 @@ async function bootstrap() {
     }),
   )
 
-  const config = new DocumentBuilder()
-    .setTitle('homepage API')
-    .setDescription('homepage 前后端管理系统 API 文档')
-    .setVersion('0.1.0')
-    .addBearerAuth()
-    .build()
+  // Swagger — disabled in production
+  if (process.env.NODE_ENV !== 'production') {
+    const config = new DocumentBuilder()
+      .setTitle('homepage API')
+      .setDescription('homepage 前后端管理系统 API 文档')
+      .setVersion('0.1.0')
+      .addBearerAuth()
+      .build()
 
-  const document = SwaggerModule.createDocument(app, config)
-  SwaggerModule.setup('api/docs', app, document)
+    const document = SwaggerModule.createDocument(app, config)
+    SwaggerModule.setup('api/docs', app, document)
 
-  // 根路径重定向到 Swagger 文档
+    // Root redirect to Swagger docs (development only)
+    const httpAdapter = app.getHttpAdapter()
+    httpAdapter.get('/', (_req: any, res: any) => {
+      res.redirect('/api/docs')
+    })
+  }
+
+  // Health check endpoint (always available)
   const httpAdapter = app.getHttpAdapter()
-  httpAdapter.get('/', (req: any, res: any) => {
-    res.redirect('/api/docs')
+  httpAdapter.get('/health', (_req: any, res: any) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() })
   })
 
-  await app.listen(8000)
-  console.log(`Server is running on http://localhost:8000`)
-  console.log(`API docs at http://localhost:8000/api/docs`)
+  const port = process.env.PORT || 8000
+  await app.listen(port)
+  console.log(`Server is running on http://localhost:${port}`)
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`API docs at http://localhost:${port}/api/docs`)
+  }
 }
 bootstrap()
