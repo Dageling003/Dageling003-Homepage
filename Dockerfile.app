@@ -8,6 +8,21 @@ WORKDIR /app
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
+# Low-memory tuning for small VMs (1-2GB RAM, no swap).
+# pnpm defaults assume plentiful RAM; on a constrained host `pnpm install`
+# is OOM-killed (exit 137) when native postinstalls (sharp, esbuild,
+# unrs-resolver) run in parallel.
+#   - child_concurrency=1   : serialize package processing (biggest memory win)
+#   - network_concurrency=2 : limit parallel HTTP fetches
+#   - reporter=append-only  : skip in-memory progress bookkeeping
+#   - NODE_OPTIONS          : give V8 more headroom for the main pnpm process
+# These ENV vars are picked up by every pnpm invocation in this stage
+# (both `pnpm install` and `pnpm deploy`), so no per-command flags needed.
+ENV PNPM_CONFIG_CHILD_CONCURRENCY=1 \
+    PNPM_CONFIG_NETWORK_CONCURRENCY=2 \
+    PNPM_CONFIG_REPORTER=append-only \
+    NODE_OPTIONS=--max-old-space-size=2048
+
 # Install dependencies (root workspace + all apps)
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json .npmrc ./
 COPY apps/backend/package.json apps/backend/
