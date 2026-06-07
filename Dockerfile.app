@@ -23,7 +23,7 @@ RUN pnpm --filter homepage-admin build
 
 # Deploy backend to /deploy with production dependencies ONLY
 # This strips devDependencies (typescript, jest, eslint, ts-jest, etc.) — huge size savings
-RUN pnpm --filter homepage-backend deploy /deploy --prod
+RUN pnpm --filter homepage-backend deploy /deploy --prod --legacy
 
 # ====== Stage 2: Runtime (slim, production-only) ======
 FROM node:22-alpine AS runtime
