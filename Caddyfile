@@ -2,9 +2,20 @@
 # 使用前：
 #   1. pnpm build 构建所有应用
 #   2. 将 {host} 替换为实际域名或 IP
+#   3. 将 {email} 替换为你的邮箱（ZeroSSL 必需）
 #
-# 域名 → 自动申请 Let's Encrypt 证书，HTTP 自动跳转 HTTPS
-# IP   → 仅 HTTP（Let's Encrypt 不支持 IP）
+# ====== HTTPS / ACME ======
+# 默认使用 ZeroSSL（国内可正常访问）
+# 切换到 Let's Encrypt：
+#   将 acme_ca 改为 https://acme-v02.api.letsencrypt.org/directory
+#
+# 域名 → 自动申请证书，HTTP 自动跳转 HTTPS
+# IP   → 仅 HTTP（ACME 不支持 IP 签发证书）
+
+{
+    acme_ca https://acme.zerossl.com/v2/DV90
+    email {email}
+}
 
 {host} {
     # ====== API 反向代理 ======

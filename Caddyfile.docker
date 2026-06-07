@@ -1,10 +1,21 @@
 # homepage — Caddy configuration with automatic HTTPS
 # All traffic goes through Caddy on ports 80/443.
-# {$DOMAIN} is set via docker-compose environment variable.
 #
-# HTTPS: If {$DOMAIN} is a real public domain, Caddy automatically
-# obtains and renews Let's Encrypt certificates. HTTP is auto-redirected to HTTPS.
-# If {$DOMAIN} is an IP or .local name, Caddy serves HTTP-only (no cert).
+# Environment variables (set in docker-compose.yml):
+#   DOMAIN      — your domain name or IP address
+#   ACME_CA     — ACME provider URL (default: ZeroSSL, works in China)
+#   ACME_EMAIL  — email for ACME account (required for ZeroSSL)
+#
+# ====== ACME / HTTPS ======
+# ZeroSSL (default) — works in China, not blocked by GFW
+# Let's Encrypt — set ACME_CA=https://acme-v02.api.letsencrypt.org/directory
+# IP address    — ACME is skipped, HTTP only (no cert for IPs)
+# localhost     — HTTP only, no ACME
+
+{
+    acme_ca {$ACME_CA:https://acme.zerossl.com/v2/DV90}
+    email {$ACME_EMAIL}
+}
 
 {$DOMAIN} {
     # ====== API reverse proxy ======

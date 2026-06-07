@@ -51,6 +51,8 @@ services:
       - caddy_data:/data
     environment:
       DOMAIN: ${DOMAIN:-localhost}
+      ACME_CA: ${ACME_CA:-https://acme.zerossl.com/v2/DV90}
+      ACME_EMAIL: ${ACME_EMAIL:-}
     depends_on:
       - app
 

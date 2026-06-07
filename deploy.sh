@@ -85,8 +85,8 @@ collect_config() {
 
     # --- DOMAIN ---
     echo -e "  ${CYAN}请输入域名或 IP 地址：${NC}"
-    echo "    域名（推荐）→ 自动申请 Let's Encrypt 免费 HTTPS 证书"
-    echo "    IP 地址     → 仅 HTTP（无法使用 HTTPS）"
+    echo "    域名（推荐）→ 自动申请免费 HTTPS 证书"
+    echo "    IP 地址     → 仅 HTTP（ACME 不支持 IP 签发证书）"
     echo ""
     while true; do
         read -rp "  DOMAIN: " DOMAIN
@@ -99,13 +99,47 @@ collect_config() {
     # Detect if IP or domain
     if [[ "$DOMAIN" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
         echo ""
-        warn "检测到 IP 地址。Let's Encrypt 不支持为 IP 签发证书，将使用 HTTP 模式。"
+        warn "检测到 IP 地址。ACME 不支持为 IP 签发证书，将使用 HTTP 模式。"
         warn "如需 HTTPS，请使用域名（可使用免费 DDNS 服务如 duckdns.org）。"
         echo ""
         read -rp "  确认继续？[Y/n]: " cont
         [[ "$cont" =~ ^[Nn]$ ]] && exit 0
+        USE_ACME=false
     elif [[ "$DOMAIN" == "localhost" || "$DOMAIN" == "127.0.0.1" ]]; then
         warn "使用 localhost — 仅限本机访问，HTTP 模式"
+        USE_ACME=false
+    else
+        USE_ACME=true
+    fi
+
+    # --- ACME CA selection (only for domain-based deployments) ---
+    if [ "$USE_ACME" = true ]; then
+        echo ""
+        echo -e "  ${CYAN}选择证书颁发机构 (CA)：${NC}"
+        echo "    1) ZeroSSL（默认，国内可正常访问）"
+        echo "    2) Let's Encrypt（国内可能被墙）"
+        read -rp "  请选择 [1]: " ca_choice
+        if [ "${ca_choice:-1}" = "2" ]; then
+            ACME_CA="https://acme-v02.api.letsencrypt.org/directory"
+            ok "已选择 Let's Encrypt"
+        else
+            ACME_CA="https://acme.zerossl.com/v2/DV90"
+            ok "已选择 ZeroSSL"
+        fi
+
+        # --- ACME Email ---
+        echo ""
+        echo -e "  ${CYAN}请输入邮箱地址（用于证书到期提醒）：${NC}"
+        while true; do
+            read -rp "  ACME_EMAIL: " ACME_EMAIL
+            if [[ "$ACME_EMAIL" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
+                break
+            fi
+            warn "请输入有效的邮箱地址"
+        done
+    else
+        ACME_CA="https://acme.zerossl.com/v2/DV90"
+        ACME_EMAIL=""
     fi
 
     # --- JWT_SECRET ---
@@ -175,6 +209,8 @@ write_env() {
 DOMAIN=${DOMAIN}
 JWT_SECRET=${JWT_SECRET}
 DEFAULT_ADMIN_PASSWORD=${ADMIN_PASSWORD}
+ACME_CA=${ACME_CA}
+ACME_EMAIL=${ACME_EMAIL}
 DB_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
 DB_USERNAME=${DB_USERNAME}
 DB_PASSWORD=${DB_PASSWORD}
@@ -258,7 +294,9 @@ print_summary() {
     echo ""
 
     if [ "$proto" = "https" ]; then
-        echo -e "  ${GREEN}🔒 HTTPS 证书由 Let's Encrypt 自动管理，无需手动续签${NC}"
+        local ca_name="ZeroSSL"
+        [[ "$ACME_CA" == *"letsencrypt"* ]] && ca_name="Let's Encrypt"
+        echo -e "  ${GREEN}🔒 HTTPS 证书由 ${ca_name} 自动管理，无需手动续签${NC}"
         echo ""
     fi
 }

@@ -67,8 +67,8 @@
       新部署自动检测未初始化状态，<strong>7 步向导</strong>引导站长完成全站配置。
     </td>
     <td>
-      <strong>🐳 一行部署</strong><br />
-      <code>docker compose up -d</code> 一键拉起 MariaDB + 全栈应用 + Caddy 反向代理。
+      <strong>🐳 一键部署</strong><br />
+      <code>bash deploy.sh</code> 交互式引导，自动配置 HTTPS 证书（<strong>ZeroSSL</strong>，国内可用）。
     </td>
   </tr>
   <tr>
@@ -88,25 +88,35 @@
 ## 🏗 架构总览
 
 ```
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│   Frontend   │     │    Admin     │     │   Backend    │
-│  Vue 3 + Vite│     │ Vue 3 + Ant │     │  NestJS 11   │
-│  :3000       │     │  DV :3001    │     │  :8000       │
-└──────┬───────┘     └──────┬───────┘     └──────┬───────┘
-       │                    │                    │
-       └────────────────────┼────────────────────┘
-                            │
-                     ┌──────┴──────┐
-                     │   MariaDB    │
-                     │   :3306      │
-                     └─────────────┘
+                    ┌─────────────────────────┐
+                    │     Caddy (80 / 443)     │
+                    │   HTTPS · ZeroSSL 证书   │
+                    │   自动续签 · 零配置       │
+                    └────┬──────┬──────┬───────┘
+                         │      │      │
+                   /     │  /admin   │ /api
+                         │      │      │
+              ┌──────────┴┐ ┌───┴──────┴──────────┐
+              │ Frontend  │ │   NestJS Backend     │
+              │ Vue 3     │ │   :8000 (内部)       │
+              │ :3000     │ │                      │
+              │ (内部)    │ │  ┌─────────────────┐ │
+              └───────────┘ │  │    MariaDB      │ │
+                            │  │    :3306        │ │
+              ┌─────────────┤  └─────────────────┘ │
+              │ Admin       │                      │
+              │ Ant Design  │                      │
+              │ :3001 (内部)│                      │
+              └─────────────┴──────────────────────┘
 ```
 
-| 子项目 | 技术栈 | 端口 |
-|--------|--------|------|
-| `apps/frontend` 前台主页 | Vue 3.5 + Vite 8 + UnoCSS + Pinia | `3000` |
-| `apps/admin` 管理后台 | Vue 3.5 + Ant Design Vue 4 + ECharts + Vite 8 | `3001` |
-| `apps/backend` API 服务 | NestJS 11 + TypeORM + MariaDB + JWT + Swagger | `8000` |
+| 子项目 | 技术栈 | 内部端口 | 对外路径 |
+|--------|--------|----------|----------|
+| `apps/frontend` 前台主页 | Vue 3.5 + Vite 8 + UnoCSS + Pinia | `3000` | `/` |
+| `apps/admin` 管理后台 | Vue 3.5 + Ant Design Vue 4 + ECharts + Vite 8 | `3001` | `/admin` |
+| `apps/backend` API 服务 | NestJS 11 + TypeORM + MariaDB + JWT + Swagger | `8000` | `/api/*` |
+
+> **端口对外隐藏**：3000 / 3001 / 8000 仅 Docker 内网互通，外部只暴露 80 / 443。
 
 ---
 
@@ -147,18 +157,54 @@ pnpm dev
 | ⚙️ 管理后台 | http://localhost:3001 |
 | 📡 API 文档 (Swagger) | http://localhost:8000/api/docs |
 
-### Docker 部署
+### Docker 一键部署
 
 ```bash
-# 配置环境变量
-export JWT_SECRET=$(openssl rand -base64 32)
-export DEFAULT_ADMIN_PASSWORD="your-secure-password-12chars"
-
-# 一行启动
-docker compose up -d
+# 一键部署 — 交互式引导，自动生成配置、构建镜像、启动服务
+bash deploy.sh
 ```
 
-> 启动后访问 `http://localhost` 即可通过 Caddy 反向代理访问全部服务。
+脚本会引导你完成：
+
+1. 输入域名或 IP 地址
+2. 选择 **ZeroSSL**（国内推荐，不被墙）或 Let's Encrypt
+3. 自动生成 JWT 密钥、管理员密码、数据库密码
+4. 构建 All-in-one Docker 镜像
+5. 启动全部服务
+
+部署完成后访问（端口 80/443 统一入口，3000/3001/8000 对外隐藏）：
+
+| 服务 | 地址 |
+|------|------|
+| 🖥 前台主页 | `http://your-domain/` |
+| ⚙️ 管理后台 | `http://your-domain/admin` |
+| 📡 API 文档 (Swagger) | `http://your-domain/api/docs` |
+
+> 💡 使用域名部署时自动启用 HTTPS，证书由 Caddy 自动续签。
+
+#### 手动部署（不使用 deploy.sh）
+
+```bash
+# 1. 创建环境变量文件
+cp .env.docker.example .env.docker
+# 编辑 .env.docker，填入你的域名、密钥、密码
+
+# 2. 构建并启动
+docker compose --env-file .env.docker build app
+docker compose --env-file .env.docker up -d
+```
+
+#### ZeroSSL vs Let's Encrypt
+
+| | ZeroSSL | Let's Encrypt |
+|--|---------|---------------|
+| 国内访问 | ✅ 正常 | ❌ 可能被墙 |
+| 免费 | ✅ 有免费额度 | ✅ 完全免费 |
+| 证书有效期 | 90 天 | 90 天 |
+| 自动续签 | ✅ Caddy 内置 | ✅ Caddy 内置 |
+
+> 💡 **推荐**：国内部署选择 ZeroSSL（默认），海外可选 Let's Encrypt。
+> 在 `.env.docker` 中设置 `ACME_CA` 即可切换，无需修改代码。
 
 <!--
 ## 📸 预览
@@ -203,6 +249,8 @@ homepage/
 ├── Caddyfile.docker         # 反向代理配置（Docker）
 ├── Dockerfile.app           # All-in-one 镜像构建
 ├── docker-compose.yml       # Docker 编排
+├── deploy.sh                # 一键部署脚本
+├── .env.docker.example      # Docker 环境变量模板
 ├── ecosystem.config.cjs     # PM2 生产部署
 └── pnpm-workspace.yaml
 ```
@@ -212,6 +260,7 @@ homepage/
 ## 🛠 常用命令
 
 ```bash
+# ---- 本地开发 ----
 pnpm dev              # 并行启动全部服务
 pnpm dev:backend      # 仅后端 :8000
 pnpm dev:frontend     # 仅前台 :3000
@@ -221,6 +270,12 @@ pnpm build            # 构建全部
 
 pnpm lint             # 代码检查
 pnpm format           # 格式化全部文件
+
+# ---- Docker 部署 ----
+bash deploy.sh        # 一键部署（交互式）
+docker compose ps     # 查看服务状态
+docker compose logs -f caddy  # 查看 Caddy 日志
+docker compose down   # 停止所有服务
 ```
 
 ---
