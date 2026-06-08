@@ -67,8 +67,8 @@
       新部署自动检测未初始化状态，<strong>8 步向导</strong>（含创建管理员）引导站长完成全站配置。
     </td>
     <td>
-      <strong>🐳 一键部署 v2</strong><br />
-      <code>bash deploy.sh</code> 默认全自动 / <code>-i</code> 交互式。自动 HTTPS（<strong>ZeroSSL</strong>，国内可用），含 SMTP 找回密码邮件配置。
+      <strong>🐳 一键部署 v3</strong><br />
+      <code>bash deploy.sh</code> 向导模式（域名 → 邮箱 → SMTP → 管理员）。自动 HTTPS（<strong>ZeroSSL</strong>，国内可用）。
     </td>
   </tr>
   <tr>
@@ -172,17 +172,24 @@ pnpm dev
 ### Docker 一键部署
 
 ```bash
-# 一键部署 — 交互式引导，自动生成配置、构建镜像、启动服务
+# 向导模式 — 逐项询问关键配置，其余自动生成
 bash deploy.sh
+
+# 跳过域名询问（其余仍交互）
+DOMAIN=dageling003.top bash deploy.sh
+
+# CI 全自动模式（零交互）
+CI=true bash deploy.sh
 ```
 
 脚本会引导你完成：
 
-1. 输入域名或 IP 地址
-2. 选择 **ZeroSSL**（国内推荐，不被墙）或 Let's Encrypt
-3. 自动生成 JWT 密钥、管理员密码、数据库密码
-4. 构建两个镜像：**后端 API** → **Caddy + 静态文件**
-5. 启动全部服务
+1. **域名** — 输入域名或 IP 地址
+2. **HTTPS 证书邮箱** — 真实域名需要，留空则 Caddy 自动生成
+3. **邮件通知 (SMTP)** — 可选，内置 QQ/163/Gmail 快捷选项，填入授权码即可
+4. **管理员账号** — 可选自动生成/自定义/留空网页端创建
+
+> 💡 SMTP 暂不配置也没关系，找回密码链接会降级写入 `docker logs`。
 
 部署完成后访问（仅 80/443 端口对外暴露）：
 
@@ -258,6 +265,7 @@ homepage/
 │   └── technology-selection.md  # 技术选型
 ├── Caddyfile                # 反向代理配置（开发/内网）
 ├── Caddyfile.docker         # Caddy 配置（Docker，内置到 Caddy 镜像）
+├── caddy-entrypoint.sh      # Caddy 入口脚本（处理空 ACME_EMAIL）
 ├── Dockerfile.app           # 后端 API 镜像
 ├── Dockerfile.caddy         # Caddy + 静态文件镜像
 ├── docker-compose.yml       # Docker 编排（app + mariadb + caddy）
@@ -284,11 +292,12 @@ pnpm lint             # 代码检查
 pnpm format           # 格式化全部文件
 
 # ---- Docker 部署 ----
-bash deploy.sh        # 一键部署（交互式）
-docker compose ps     # 查看服务状态
-docker compose logs -f caddy  # 查看 Caddy 日志
-docker compose logs -f app    # 查看后端日志
-docker compose down   # 停止所有服务
+bash deploy.sh        # 一键部署（向导模式）
+CI=true bash deploy.sh  # 一键部署（全自动）
+docker compose --env-file .env.docker ps     # 查看服务状态
+docker compose --env-file .env.docker logs -f caddy  # 查看 Caddy 日志
+docker compose --env-file .env.docker logs -f app    # 查看后端日志
+docker compose --env-file .env.docker down   # 停止所有服务
 ```
 
 ---

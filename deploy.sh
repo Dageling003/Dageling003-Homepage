@@ -1,15 +1,11 @@
 #!/usr/bin/env bash
 # ===================================================
-# homepage — 一键部署脚本
+# homepage — 一键部署脚本 v3
 # ===================================================
 # 用法：
-#   bash deploy.sh                       # 全自动：缺则生成 .env.docker，无交互
-#   DOMAIN=my.example.com bash deploy.sh # 自定义域名（仅首次生成时生效）
-#   bash deploy.sh -i                    # 交互式配置（兼容旧版）
-#
-#   1) DEFAULT_ADMIN_PASSWORD 现在是「可选」——留空时通过 /admin/setup 自设密码
-#   2) 自动收集 SMTP 邮件配置（不配也能用，找回密码降级到 docker logs）
-#   3) 自动写入 PUBLIC_ADMIN_URL（找回密码邮件链接里要用）
+#   bash deploy.sh                       # 向导模式：逐一询问关键配置
+#   DOMAIN=my.example.com bash deploy.sh # 跳过域名询问（其余仍交互）
+#   CI=true bash deploy.sh               # CI 模式：全自动，无任何交互
 # ===================================================
 set -euo pipefail
 
@@ -25,7 +21,7 @@ NC='\033[0m' # No Color
 banner() {
     echo -e "${CYAN}"
     echo "  ╔══════════════════════════════════════════╗"
-    echo "  ║         homepage — 一键部署脚本 v2        ║"
+    echo "  ║         homepage — 一键部署脚本 v3        ║"
     echo "  ║     全栈前后端分离首页管理系统              ║"
     echo "  ╚══════════════════════════════════════════╝"
     echo -e "${NC}"
@@ -37,13 +33,15 @@ err()  { echo -e "  ${RED}✗${NC} $1"; }
 info() { echo -e "  ${BLUE}→${NC} $1"; }
 
 # ====== 参数解析 ======
-INTERACTIVE=false
+CI_MODE=false
 for arg in "$@"; do
     case "$arg" in
-        -i|--interactive) INTERACTIVE=true ;;
         -h|--help)
-            sed -n '2,11p' "$0" | sed 's/^# \?//'
+            sed -n '2,8p' "$0" | sed 's/^# \?//'
             exit 0
+            ;;
+        -i|--interactive)
+            # 兼容旧版 -i 参数，等同于默认向导模式
             ;;
         *)
             err "未知参数: $arg  (使用 -h 查看帮助)"
@@ -51,6 +49,10 @@ for arg in "$@"; do
             ;;
     esac
 done
+# CI 环境或显式 CI=true → 跳过所有交互
+if [ "${CI:-false}" = "true" ]; then
+    CI_MODE=true
+fi
 
 # ====== 工具函数 ======
 rand() {
@@ -168,191 +170,140 @@ check_deps() {
     fi
 }
 
-# ====== 2a. 交互式收集配置（仅 -i 模式） ======
-collect_config() {
+# ====== 2. 部署配置向导 ======
+wizard() {
     echo ""
-    echo -e "${BOLD}==> 2/5 配置部署参数${NC}"
-
-    # ----- 域名 -----
-    echo ""
-    echo -e "  ${CYAN}请输入域名或 IP 地址：${NC}"
-    while true; do
-        read -rp "  DOMAIN: " DOMAIN
-        [ -n "$DOMAIN" ] && break
-        warn "域名/IP 不能为空"
-    done
-
-    if [[ "$DOMAIN" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
-        warn "检测到 IP 地址 — 仅 HTTP 模式（ACME 不支持 IP）"
-        ACME_EMAIL=""
-    elif [[ "$DOMAIN" == "localhost" || "$DOMAIN" == "127.0.0.1" ]]; then
-        warn "使用 localhost — 仅本机 HTTP 访问"
-        ACME_EMAIL=""
-    else
-        echo ""
-        echo -e "  ${CYAN}请输入邮箱（用于 HTTPS 证书到期提醒）：${NC}"
-        while true; do
-            read -rp "  ACME_EMAIL: " ACME_EMAIL
-            [[ "$ACME_EMAIL" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]] && break
-            warn "邮箱格式无效"
-        done
-    fi
-
-    # ----- JWT -----
-    echo ""
-    echo -e "  ${CYAN}JWT 密钥：${NC}"
-    read -rp "  自动生成？[Y/n]: " jwt_choice
-    if [[ "${jwt_choice:-Y}" =~ ^[Nn]$ ]]; then
-        while true; do
-            read -rp "  JWT_SECRET (≥20位): " JWT_SECRET
-            [ ${#JWT_SECRET} -ge 20 ] && break
-            warn "长度至少 20 位"
-        done
-    else
-        JWT_SECRET=$(rand 32)
-    fi
-
-    # ----- 默认管理员密码 -----
-    echo ""
-    echo -e "  ${CYAN}默认管理员密码：${NC}"
-    echo -e "  ${BLUE}1) 自动生成（写入 .env.docker，请记下）${NC}"
-    echo -e "  ${BLUE}2) 自定义（≥12 位）${NC}"
-    echo -e "  ${BLUE}3) 留空，首次访问 /admin/setup 时自设（推荐：不会被任何人看到）${NC}"
-    while true; do
-        read -rp "  选择 [1/2/3，默认 1]: " admin_choice
-        admin_choice="${admin_choice:-1}"
-        case "$admin_choice" in
-            1)
-                DEFAULT_ADMIN_PASSWORD=$(rand 24)
-                ok "已自动生成密码"
-                break
-                ;;
-            2)
-                while true; do
-                    read -rp "  DEFAULT_ADMIN_PASSWORD (≥12位): " DEFAULT_ADMIN_PASSWORD
-                    [ ${#DEFAULT_ADMIN_PASSWORD} -ge 12 ] && break
-                    warn "长度至少 12 位"
-                done
-                break
-                ;;
-            3)
-                DEFAULT_ADMIN_PASSWORD=""
-                ok "已选择首次 /admin/setup 自设密码"
-                break
-                ;;
-            *) warn "请输入 1 / 2 / 3" ;;
-        esac
-    done
-
-    # ----- SMTP（可选） -----
-    echo ""
-    echo -e "  ${CYAN}找回密码邮件配置（可选，回车跳过）：${NC}"
-    read -rp "  启用 SMTP？[y/N]: " smtp_choice
-    if [[ "${smtp_choice:-N}" =~ ^[Yy]$ ]]; then
-        read -rp "  SMTP_HOST (例 smtp.qq.com): " SMTP_HOST
-        read -rp "  SMTP_PORT (默认 465): " SMTP_PORT
-        SMTP_PORT="${SMTP_PORT:-465}"
-        if [ "$SMTP_PORT" = "465" ] || [ "$SMTP_PORT" = "994" ]; then
-            SMTP_SECURE_DEFAULT="true"
-        else
-            SMTP_SECURE_DEFAULT="false"
-        fi
-        read -rp "  SMTP_SECURE (true/false, 默认 $SMTP_SECURE_DEFAULT): " SMTP_SECURE
-        SMTP_SECURE="${SMTP_SECURE:-$SMTP_SECURE_DEFAULT}"
-        read -rp "  SMTP_USER (例 noreply@your-domain.com): " SMTP_USER
-        read -rp "  SMTP_PASS (授权码 / 应用密码): " SMTP_PASS
-        read -rp "  SMTP_FROM (默认 = SMTP_USER): " SMTP_FROM
-        SMTP_FROM="${SMTP_FROM:-$SMTP_USER}"
-        ok "SMTP 已配置：${SMTP_USER}@${SMTP_HOST}:${SMTP_PORT} (SSL=${SMTP_SECURE})"
-    else
-        SMTP_HOST=""
-        SMTP_PORT="465"
-        SMTP_SECURE="true"
-        SMTP_USER=""
-        SMTP_PASS=""
-        SMTP_FROM=""
-        ok "跳过 SMTP — 找回密码链接将写入 docker logs"
-    fi
-
-    # ----- PUBLIC_ADMIN_URL（可选） -----
-    echo ""
-    read -rp "  PUBLIC_ADMIN_URL (留空则取 https://${DOMAIN}): " PUBLIC_ADMIN_URL
-    PUBLIC_ADMIN_URL="${PUBLIC_ADMIN_URL:-}"
-
-    ACME_CA="https://acme.zerossl.com/v2/DV90"
-    DB_USERNAME="homepage"
-    DB_DATABASE="homepage"
-    DB_ROOT_PASSWORD=$(rand 20)
-    DB_PASSWORD=$(rand 20)
-    info "数据库密码已自动生成"
-}
-
-# ====== 2b. 一键加载 / 生成配置（默认模式） ======
-load_or_generate_env() {
-    echo ""
-    echo -e "${BOLD}==> 2/5 加载部署配置${NC}"
+    echo -e "${BOLD}==> 2/5 部署配置${NC}"
 
     local env_file=".env.docker"
+    local is_new=false
 
     if [ -f "$env_file" ]; then
         info "检测到现有 .env.docker，正在加载..."
         load_env_file "$env_file"
-        ok "已加载 .env.docker"
-        # 如果从旧 .env.docker 加载的 DOMAIN 仍是 localhost，询问是否更新
-        if [ "${DOMAIN:-localhost}" = "localhost" ] && [ -z "${DOMAIN_OVERRIDE:-}" ]; then
-            echo ""
-            echo -e "  ${YELLOW}当前 DOMAIN 为 localhost，要改成实际域名吗？${NC}"
-            read -rp "  输入域名（回车跳过 / 保持 localhost）: " new_domain
-            if [ -n "$new_domain" ]; then
-                DOMAIN="$new_domain"
-                local proto
-                proto=$(derive_proto "$DOMAIN")
-                PUBLIC_ADMIN_URL="${PUBLIC_ADMIN_URL:-${proto}://${DOMAIN}}"
-                write_env_file "$env_file"
-                ok "DOMAIN 已更新为 ${DOMAIN}"
-            fi
-        fi
+        ok "已加载"
     else
-        # DOMAIN 优先取环境变量，否则询问
-        if [ -z "${DOMAIN:-}" ]; then
-            echo ""
-            echo -e "  ${CYAN}请输入域名或 IP：${NC}"
-            read -rp "  DOMAIN: " DOMAIN
-            DOMAIN="${DOMAIN:-localhost}"
-        fi
-        # 真实域名需要邮箱申请 HTTPS 证书
-        if [[ "$DOMAIN" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]] \
-           || [[ "$DOMAIN" == "localhost" || "$DOMAIN" == "127.0.0.1" ]]; then
-            ACME_EMAIL=""
-        elif [ -z "${ACME_EMAIL:-}" ]; then
-            echo ""
-            echo -e "  ${CYAN}请输入邮箱（HTTPS 证书需要，留空则 Caddy 自动生成）：${NC}"
-            read -rp "  ACME_EMAIL: " ACME_EMAIL
-        fi
-        info "未找到 .env.docker，正在自动生成..."
-        ACME_CA="https://acme.zerossl.com/v2/DV90"
-        JWT_SECRET=$(rand 32)
-        DEFAULT_ADMIN_PASSWORD=$(rand 24)
-        DB_ROOT_PASSWORD=$(rand 20)
-        DB_USERNAME="homepage"
-        DB_PASSWORD=$(rand 20)
-        DB_DATABASE="homepage"
-
-        # SMTP 全部留空（无交互）
-        SMTP_HOST=""
-        SMTP_PORT="465"
-        SMTP_SECURE="true"
-        SMTP_USER=""
-        SMTP_PASS=""
-        SMTP_FROM=""
-        SMTP_REJECT_UNAUTHORIZED="true"
-        PUBLIC_ADMIN_URL="${PUBLIC_ADMIN_URL:-}"
-
-        write_env_file "$env_file"
-        load_env_file "$env_file"
-        ok ".env.docker 已自动生成"
-        warn "管理员账号: admin  密码: ${DEFAULT_ADMIN_PASSWORD}"
+        is_new=true
     fi
+
+    # ====== DOMAIN ======
+    echo ""
+    if [ -n "${DOMAIN:-}" ] && [ "$is_new" = false ]; then
+        echo -e "  ${CYAN}域名${NC}    ${BOLD}${DOMAIN}${NC}  (从 .env.docker 读取，回车不变)"
+        read -rp "  → 新域名留空跳过: " new_domain
+        if [ -n "$new_domain" ]; then
+            DOMAIN="$new_domain"
+        fi
+    elif [ -n "${DOMAIN:-}" ]; then
+        ok "域名    ${BOLD}${DOMAIN}${NC}  (环境变量)"
+    else
+        echo -e "  ${BOLD}① 域名 / IP${NC}  (例 dageling003.top 或 1.2.3.4)"
+        read -rp "  → DOMAIN: " DOMAIN
+        DOMAIN="${DOMAIN:-localhost}"
+    fi
+
+    # ====== ACME_EMAIL ======
+    if [[ "$DOMAIN" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]] \
+       || [[ "$DOMAIN" == "localhost" || "$DOMAIN" == "127.0.0.1" ]]; then
+        warn "${DOMAIN} 仅 HTTP，无需 HTTPS 证书"
+        ACME_EMAIL=""
+    else
+        echo ""
+        local email_hint="${ACME_EMAIL:-}"
+        [ -z "$email_hint" ] && email_hint="留空自动生成"
+        echo -e "  ${BOLD}② HTTPS 证书邮箱${NC}  (当前: ${email_hint})"
+        read -rp "  → ACME_EMAIL: " ACME_EMAIL_INPUT
+        if [ -n "${ACME_EMAIL_INPUT:-}" ]; then
+            ACME_EMAIL="$ACME_EMAIL_INPUT"
+        elif [ "$is_new" = true ] && [ -z "${ACME_EMAIL:-}" ]; then
+            ACME_EMAIL=""
+        fi
+    fi
+
+    # ====== SMTP ======
+    echo ""
+    if [ -n "${SMTP_HOST:-}" ] && [ -n "${SMTP_USER:-}" ]; then
+        echo -e "  ${GREEN}${BOLD}③ 邮件通知已配置${NC}   ${SMTP_USER} → ${SMTP_HOST}:${SMTP_PORT:-465}"
+        read -rp "  → 重新配置？[y/N]: " smtp_redo
+        if [[ ! "${smtp_redo:-N}" =~ ^[Yy]$ ]]; then
+            true # keep existing
+        else
+            SMTP_HOST=""
+        fi
+    fi
+    if [ -z "${SMTP_HOST:-}" ] || [ -z "${SMTP_USER:-}" ]; then
+        echo -e "  ${BOLD}③ 邮件通知 (SMTP)${NC}"
+        echo -e "  常用：QQ邮箱 smtp.qq.com:465 | 163 smtp.163.com:465"
+        read -rp "  → 现在配置？[y/N]: " smtp_choice
+        if [[ "${smtp_choice:-N}" =~ ^[Yy]$ ]]; then
+            echo ""
+            echo -e "  ${CYAN}SMTP 服务器${NC}"
+            echo "  1) QQ邮箱     smtp.qq.com:465 (SSL)"
+            echo "  2) 163邮箱    smtp.163.com:465 (SSL)"
+            echo "  3) Gmail      smtp.gmail.com:465 (SSL)"
+            echo "  4) 自定义"
+            read -rp "  → 选择 [1/2/3/4]: " smtp_provider
+            case "${smtp_provider:-1}" in
+                1) SMTP_HOST="smtp.qq.com"; SMTP_PORT="465"; SMTP_SECURE="true" ;;
+                2) SMTP_HOST="smtp.163.com"; SMTP_PORT="465"; SMTP_SECURE="true" ;;
+                3) SMTP_HOST="smtp.gmail.com"; SMTP_PORT="465"; SMTP_SECURE="true" ;;
+                4) read -rp "  → SMTP_HOST: " SMTP_HOST
+                   read -rp "  → SMTP_PORT (默认 465): " SMTP_PORT
+                   SMTP_PORT="${SMTP_PORT:-465}"
+                   read -rp "  → SSL? [Y/n]: " smtp_ssl
+                   SMTP_SECURE="$([[ "${smtp_ssl:-Y}" =~ ^[Nn]$ ]] && echo "false" || echo "true")"
+                   ;;
+            esac
+            read -rp "  → 邮箱地址 (例 noreply@qq.com): " SMTP_USER
+            SMTP_FROM="${SMTP_USER}"
+            echo -e "  ${YELLOW}⚠ QQ/163 需用授权码，非登录密码${NC}"
+            read -rp "  → SMTP 授权码: " SMTP_PASS
+            ok "SMTP 已配置"
+        else
+            SMTP_HOST=""; SMTP_PORT="465"; SMTP_SECURE="true"
+            SMTP_USER=""; SMTP_PASS=""; SMTP_FROM=""
+            info "跳过 SMTP，找回密码链接写入 docker logs"
+        fi
+    fi
+    SMTP_REJECT_UNAUTHORIZED="${SMTP_REJECT_UNAUTHORIZED:-true}"
+
+    # ====== ADMIN PASSWORD ======
+    echo ""
+    echo -e "  ${BOLD}④ 管理员账号${NC}"
+    if [ "$is_new" = true ]; then
+        echo "  1) 自动生成密码（部署完成后在终端显示）"
+        echo "  2) 自己设置密码 (≥12位)"
+        echo "  3) 留空 — 首次访问网页 /admin/setup 时创建（推荐）"
+        read -rp "  → 选择 [1/2/3，默认 3]: " admin_choice
+        admin_choice="${admin_choice:-3}"
+        case "$admin_choice" in
+            1) DEFAULT_ADMIN_PASSWORD=$(rand 24) ;;
+            2)
+                while true; do
+                    read -rp "  → 密码 (≥12位): " DEFAULT_ADMIN_PASSWORD
+                    [ ${#DEFAULT_ADMIN_PASSWORD} -ge 12 ] && break
+                    warn "至少 12 位"
+                done
+                ;;
+            3) DEFAULT_ADMIN_PASSWORD="" ;;
+        esac
+    else
+        [ -n "${DEFAULT_ADMIN_PASSWORD:-}" ] && echo -e "  ${GREEN}✓ 已有管理员密码${NC}" || echo -e "  管理员将在网页端创建"
+    fi
+
+    # ====== 自动生成项 ======
+    ACME_CA="https://acme.zerossl.com/v2/DV90"
+    JWT_SECRET="${JWT_SECRET:-$(rand 32)}"
+    DB_ROOT_PASSWORD="${DB_ROOT_PASSWORD:-$(rand 20)}"
+    DB_USERNAME="${DB_USERNAME:-homepage}"
+    DB_PASSWORD="${DB_PASSWORD:-$(rand 20)}"
+    DB_DATABASE="${DB_DATABASE:-homepage}"
+    PUBLIC_ADMIN_URL="${PUBLIC_ADMIN_URL:-}"
+
+    write_env_file "$env_file"
+    load_env_file "$env_file"
+    ok "配置完成"
+    [ -n "${DEFAULT_ADMIN_PASSWORD:-}" ] && warn "管理员: admin / ${DEFAULT_ADMIN_PASSWORD}"
 }
 
 # ====== 3. 构建镜像 ======
@@ -497,13 +448,33 @@ print_summary() {
 main() {
     banner
     check_deps
-    if [ "$INTERACTIVE" = true ]; then
-        collect_config
+    if [ "$CI_MODE" = true ]; then
+        # CI 全自动模式：不交互，缺的用默认值
+        DOMAIN="${DOMAIN:-localhost}"
+        ACME_EMAIL="${ACME_EMAIL:-}"
+        ACME_CA="https://acme.zerossl.com/v2/DV90"
+        JWT_SECRET="${JWT_SECRET:-$(rand 32)}"
+        DEFAULT_ADMIN_PASSWORD="${DEFAULT_ADMIN_PASSWORD:-$(rand 24)}"
+        DB_ROOT_PASSWORD="${DB_ROOT_PASSWORD:-$(rand 20)}"
+        DB_USERNAME="${DB_USERNAME:-homepage}"
+        DB_PASSWORD="${DB_PASSWORD:-$(rand 20)}"
+        DB_DATABASE="${DB_DATABASE:-homepage}"
+        SMTP_HOST="${SMTP_HOST:-}"; SMTP_PORT="${SMTP_PORT:-465}"
+        SMTP_SECURE="${SMTP_SECURE:-true}"; SMTP_USER="${SMTP_USER:-}"
+        SMTP_PASS="${SMTP_PASS:-}"; SMTP_FROM="${SMTP_FROM:-}"
+        SMTP_REJECT_UNAUTHORIZED="${SMTP_REJECT_UNAUTHORIZED:-true}"
+        PUBLIC_ADMIN_URL="${PUBLIC_ADMIN_URL:-}"
         local env_file=".env.docker"
-        write_env_file "$env_file"
-        load_env_file "$env_file"
+        if [ ! -f "$env_file" ]; then
+            write_env_file "$env_file"
+            load_env_file "$env_file"
+            ok ".env.docker 已生成 (CI 模式)"
+        else
+            load_env_file "$env_file"
+            ok "已加载 .env.docker (CI 模式)"
+        fi
     else
-        load_or_generate_env
+        wizard
     fi
     build_app
     start_services
