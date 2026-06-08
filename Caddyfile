@@ -18,11 +18,6 @@
 }
 
 {host} {
-    # ====== 根路径：默认跳转后台管理 ======
-    # 用户访问根路径时，默认进入管理后台
-    @root path /
-    redir @root /admin/ 301
-
     # ====== API 反向代理 ======
     handle_path /api/* {
         reverse_proxy localhost:8000
@@ -35,8 +30,9 @@
         file_server
     }
 
-    # ====== 前台主页 SPA（搬到 /site/） ======
-    handle_path /site* {
+    # ====== 前台主页 SPA（根路径默认入口） ======
+    # 未初始化时只显示布局/默认内容
+    handle {
         root * /var/www/homepage/frontend
         try_files {path} /index.html
         file_server

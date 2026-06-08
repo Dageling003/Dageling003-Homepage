@@ -58,8 +58,8 @@ pnpm dev:admin      # http://localhost:3001
 
 | 入口 | 地址 |
 |------|------|
-| 管理后台（默认入口） | http://localhost:3001 |
-| 前台主页 | http://localhost:3000 |
+| 网站主页 | http://localhost:3000 |
+| 管理后台 | http://localhost:3001 |
 | API 文档 | http://localhost:8000/api/docs |
 
 ---
@@ -210,8 +210,9 @@ docker compose --env-file .env.docker up -d
 
 | 服务 | 地址 |
 |------|------|
-| 前台主页 | `http(s)://<你的域名>/` |
+| 网站主页 | `http(s)://<你的域名>/` |
 | 管理后台 | `http(s)://<你的域名>/admin` |
+| 首次初始化 | `http(s)://<你的域名>/admin/setup` |
 | 健康检查 | `http(s)://<你的域名>/health` |
 | Swagger 文档 | 仅开发环境可用（生产环境已禁用） |
 

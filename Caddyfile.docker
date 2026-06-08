@@ -15,11 +15,6 @@
 }
 
 {$DOMAIN} {
-	# ====== Root path: redirect to admin (default landing) ======
-	# 用户访问根路径时，默认进入管理后台
-	@root path /
-	redir @root /admin/ 301
-
 	# ====== API reverse proxy (backend only) ======
 	handle_path /api/* {
 		reverse_proxy app:8000
@@ -33,9 +28,9 @@
 		file_server
 	}
 
-	# ====== Frontend homepage SPA ======
-	# Public homepage moved to /site/* so root can be admin
-	handle_path /site* {
+	# ====== Frontend homepage SPA (default landing) ======
+	# 根路径直接服务公开主页，未初始化时只显示布局/默认内容
+	handle {
 		root * /var/www/frontend
 		try_files {path} /index.html
 		file_server
