@@ -400,14 +400,14 @@ async function handleFinish() {
         </a-button>
         <div class="sw-nav-right">
           <a-button
-            v-if="!isLast && !isFirst"
+            v-if="!isLast"
             type="primary"
             :loading="saving || creatingAdmin"
             :disabled="isAdminStep && !canCreateAdmin"
             @click="handleNext"
           >
             <template #icon><UserAddOutlined v-if="isAdminStep" /><RightOutlined v-else /></template>
-            {{ isAdminStep ? '创建并继续' : '下一步' }}
+            {{ isFirst ? '开始设置' : isAdminStep ? '创建并继续' : '下一步' }}
           </a-button>
           <a-button v-if="isLast" type="primary" :loading="saving" @click="handleFinish" size="large">
             <template #icon><CheckOutlined /></template>{{ done ? '已完成' : '完成设置' }}
