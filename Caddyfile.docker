@@ -16,7 +16,9 @@
 
 {$DOMAIN} {
 	# ====== API reverse proxy (backend only) ======
-	handle_path /api/* {
+	# 使用 handle 而非 handle_path：NestJS 设了 globalPrefix 'api'，
+	# 需要保留 /api 前缀转发给后端，否则后端匹配不到路由返回 404。
+	handle /api/* {
 		reverse_proxy app:8000
 	}
 
