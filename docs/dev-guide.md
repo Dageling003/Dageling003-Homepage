@@ -58,8 +58,8 @@ pnpm dev:admin      # http://localhost:3001
 
 | 入口 | 地址 |
 |------|------|
+| 管理后台（默认入口） | http://localhost:3001 |
 | 前台主页 | http://localhost:3000 |
-| 管理后台 | http://localhost:3001 |
 | API 文档 | http://localhost:8000/api/docs |
 
 ---

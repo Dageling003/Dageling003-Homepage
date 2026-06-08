@@ -93,8 +93,9 @@
                     │    HTTPS · ZeroSSL 证书            │
                     │    自动续签 · 零配置                │
                     │                                   │
-                    │  /        → 静态文件 (直接提供)     │
+                    │  /        → 301 → /admin/ (默认)  │
                     │  /admin*  → 静态文件 (直接提供)     │
+                    │  /site*   → 静态文件 (直接提供)     │
                     │  /api/*   → 反向代理 app:8000      │
                     └────────────────┬──────────────────┘
                                      │
@@ -178,8 +179,8 @@ bash deploy.sh
 
 | 服务 | 地址 |
 |------|------|
-| 🖥 前台主页 | `http(s)://your-domain/` |
-| ⚙️ 管理后台 | `http(s)://your-domain/admin` |
+| ⚙️ 管理后台（默认入口） | `http(s)://your-domain/` (自动跳转到 `/admin/`) |
+| 🖥 前台主页 | `http(s)://your-domain/site/` |
 
 > 💡 使用域名部署时自动启用 HTTPS，证书由 Caddy 自动续签。Swagger 文档在生产环境已禁用。
 
