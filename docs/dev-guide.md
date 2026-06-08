@@ -266,14 +266,32 @@ ipconfig | grep IPv4
 bash deploy.sh
 ```
 
-交互式配置域名、邮箱、密码等，自动生成 `.env.docker` 并构建+启动。
+默认是**全自动模式**：未检测到 `.env.docker` 时自动生成全部配置，无需任何交互。
+需要细调时再用 `-i` 进入交互模式，会逐步询问：
+
+- 域名 / IP + ACME 邮箱
+- JWT 密钥（默认自动生成）
+- **默认管理员密码**（三选一）：
+  1. 自动生成（写入 `.env.docker`）
+  2. 自定义 ≥ 12 位
+  3. **留空 → 首次访问 `/admin/setup` 时自设（最安全）**
+- **找回密码邮件**（可选，主流邮箱一键配置，留空则降级到 `docker logs`）
+- `PUBLIC_ADMIN_URL`（默认从 DOMAIN 推断）
+
+```bash
+bash deploy.sh -i                  # 进入交互模式
+DOMAIN=my.example.com bash deploy.sh  # 指定域名
+```
 
 ### 2. 手动部署
 
 ```bash
 # 复制并编辑环境变量
 cp .env.docker.example .env.docker
-# 编辑 .env.docker，所有密码字段必填（无默认值兜底）
+# 编辑 .env.docker，关键字段：
+#   - DOMAIN / JWT_SECRET 必填
+#   - DEFAULT_ADMIN_PASSWORD 留空则走 /admin/setup 自设
+#   - SMTP_* 留空则找回密码降级到 docker logs
 
 # 构建镜像（先 app，后 caddy — caddy 需要从 app 镜像提取静态文件）
 docker compose --env-file .env.docker build app
@@ -290,6 +308,7 @@ docker compose --env-file .env.docker up -d
 | 网站主页 | `http(s)://<你的域名>/` |
 | 管理后台 | `http(s)://<你的域名>/admin` |
 | 首次初始化 | `http(s)://<你的域名>/admin/setup` |
+| 找回密码 | `http(s)://<你的域名>/admin/forgot-password` |
 | 健康检查 | `http(s)://<你的域名>/health` |
 | Swagger 文档 | 仅开发环境可用（生产环境已禁用） |
 
@@ -302,7 +321,7 @@ docker compose --env-file .env.docker up -d
 | `Dockerfile.caddy` | Caddy 镜像（从 app 镜像提取静态文件） |
 | `Caddyfile.docker` | Caddy 配置（反向代理 /api，直接 serve 静态文件） |
 | `.dockerignore` | Docker 构建忽略清单 |
-| `deploy.sh` | 一键部署（交互式配置 + 构建 + 启动） |
+| `deploy.sh` | 一键部署 v2（默认全自动 / `-i` 交互式），含 SMTP 邮件配置 + 自助创建管理员 |
 
 ### 常用运维命令
 

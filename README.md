@@ -64,21 +64,21 @@
   <tr>
     <td>
       <strong>🚀 首次设置向导</strong><br />
-      新部署自动检测未初始化状态，<strong>7 步向导</strong>引导站长完成全站配置。
+      新部署自动检测未初始化状态，<strong>8 步向导</strong>（含创建管理员）引导站长完成全站配置。
     </td>
     <td>
-      <strong>🐳 一键部署</strong><br />
-      <code>bash deploy.sh</code> 交互式引导，自动配置 HTTPS 证书（<strong>ZeroSSL</strong>，国内可用）。
+      <strong>🐳 一键部署 v2</strong><br />
+      <code>bash deploy.sh</code> 默认全自动 / <code>-i</code> 交互式。自动 HTTPS（<strong>ZeroSSL</strong>，国内可用），含 SMTP 找回密码邮件配置。
     </td>
   </tr>
   <tr>
     <td>
       <strong>🔑 找回密码</strong><br />
-      登录页「忘记密码」一键发起重置。支持主流邮箱 SMTP；<strong>未配 SMTP 时降级写入 docker logs</strong>，SSH 即可拾取链接。
+      登录页「忘记密码」一键发起重置。支持主流邮箱 SMTP（QQ/163/Gmail/Outlook/阿里/腾讯）；<strong>未配 SMTP 时降级写入 docker logs</strong>，SSH 即可拾取链接。
     </td>
     <td>
       <strong>👤 自助创建管理员</strong><br />
-      首次部署无需 SSH 改密码，<code>/admin/setup</code> 引导用户<strong>自设账号密码</strong>；已有账号时该步骤自动隐藏。
+      首次部署无需 SSH 改密码，<code>/admin/setup</code> 第一步引导用户<strong>自设账号密码</strong>；已有账号时该步骤自动隐藏。deploy 脚本中也提供 3 选 1（自动生成 / 自定义 / 留空）。
     </td>
   </tr>
   <tr>
