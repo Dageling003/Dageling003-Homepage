@@ -40,9 +40,18 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       DB_DATABASE: ${DB_DATABASE:-homepage}
       DB_SYNCHRONIZE: ${DB_SYNCHRONIZE:-true}
-      DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:?DEFAULT_ADMIN_PASSWORD is required}
+      DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:-}
       CORS_ORIGIN: ${DOMAIN:-localhost}
       PORT: 8000
+      # 找回密码 / 邮件
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_SECURE: ${SMTP_SECURE:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_REJECT_UNAUTHORIZED: ${SMTP_REJECT_UNAUTHORIZED:-true}
+      PUBLIC_ADMIN_URL: ${PUBLIC_ADMIN_URL:-}
     # Ports are NOT exposed to host — all traffic goes through Caddy (80/443)
     volumes:
       - app_uploads:/app/public/uploads

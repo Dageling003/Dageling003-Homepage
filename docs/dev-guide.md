@@ -64,15 +64,92 @@ pnpm dev:admin      # http://localhost:3001
 
 ---
 
-## 🔑 默认管理员
+## 🔑 默认管理员与找回密码
 
-后端首次启动时自动创建（需设置环境变量 `DEFAULT_ADMIN_PASSWORD`）：
+### 首次创建管理员
 
-| 用户名 | 密码 |
-|--------|------|
-| `admin` | 由 `DEFAULT_ADMIN_PASSWORD` 指定 |
+| 方式 | 触发条件 | 用户名 | 密码 |
+|------|---------|--------|------|
+| 环境变量 | `DEFAULT_ADMIN_PASSWORD` 设置且 ≥ 12 位 | `admin` | 该环境变量值 |
+| 首次 setup 向导 | `DEFAULT_ADMIN_PASSWORD` 留空 / 缺失 | 用户在向导里自定（默认 `admin`） | 用户在向导里自定（≥ 12 位） |
 
-> 登录后请立即修改密码。密码要求：至少 12 位。
+> 两种方式**只能二选一**：环境变量生效后，向导里的「创建管理员」步骤会被自动隐藏。
+
+### 找回密码
+
+后台登录页提供「忘记密码？」入口：
+
+- **配置了 SMTP**（见 [找回密码邮件配置](#找回密码邮件配置)）：系统向账号邮箱发送重置链接，1 小时内有效。
+- **未配置 SMTP**：链接会同时通过 `docker logs homepage-app` 输出，运维可从日志中复制。
+
+完整流程：
+
+```text
+登录页 → 忘记密码？ → 输入用户名
+  ↓
+后端生成一次性 token（哈希入库，1 小时过期）
+  ↓
+┌──────────────┬────────────────────┐
+│ SMTP 已配置  │ 发送邮件           │
+│ SMTP 未配置  │ 写入 docker logs   │
+└──────────────┴────────────────────┘
+  ↓
+用户点击链接 / 打开 docker logs 抄链接
+  ↓
+打开 /admin/reset-password?token=...
+  ↓
+输入新密码（≥ 12 位，两次确认）
+  ↓
+立即用新密码登录
+```
+
+### 找回密码邮件配置
+
+在 `.env.docker` 或 `apps/backend/.env` 中追加：
+
+```bash
+# 必填（不配 SMTP 就走 docker logs）
+SMTP_HOST=smtp.qq.com
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=noreply@your-domain.com
+SMTP_PASS=你的授权码或密码
+SMTP_FROM="Homepage <noreply@your-domain.com>"
+SMTP_REJECT_UNAUTHORIZED=true   # 自签证书可设为 false
+
+# 可选：重置链接中展示的域名（不填则取 DOMAIN）
+PUBLIC_ADMIN_URL=https://your-domain.com
+```
+
+主流邮箱参考（端口 / 加密）：
+
+| 邮箱 | SMTP 地址 | 端口 | 加密 | 鉴权方式 |
+|------|----------|------|------|---------|
+| QQ | `smtp.qq.com` | 465 | SSL | 授权码 |
+| 163 | `smtp.163.com` | 465 / 994 | SSL | 授权码 |
+| Gmail | `smtp.gmail.com` | 465 | SSL | 应用专用密码 |
+| Outlook | `smtp.office365.com` | 587 | STARTTLS | 账号密码 |
+| 阿里企业邮 | `smtp.mxhichina.com` | 465 | SSL | 账号密码 |
+| 腾讯企业邮 | `smtp.exmail.qq.com` | 465 | SSL | 账号密码 |
+| 自建 | `mail.your-domain.com` | 587 | STARTTLS | 账号密码 |
+
+> 端口 465 默认 SSL（`SMTP_SECURE=true`），587 通常用 STARTTLS（`SMTP_SECURE=false`）。
+
+### 找回密码未配置 SMTP 时的应急步骤
+
+```bash
+# 1. 触发找回（也可以在后台登录页直接提交用户名）
+curl -X POST https://your-domain.com/api/auth/forgot-password \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"admin"}'
+
+# 2. 在服务器抓日志中的链接
+docker logs homepage-app 2>&1 | grep -A 6 '密码重置请求'
+# 会输出：重置链接: https://.../admin/reset-password?token=...
+#       重置 token (原样): <64位hex>
+
+# 3. 浏览器打开链接，填新密码完成重置
+```
 
 ---
 

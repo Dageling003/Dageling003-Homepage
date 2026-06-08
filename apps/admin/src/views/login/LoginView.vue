@@ -32,6 +32,10 @@ async function handleLogin() {
     loading.value = false
   }
 }
+
+function goForgot() {
+  router.push({ name: 'forgot-password' })
+}
 </script>
 
 <template>
@@ -85,6 +89,12 @@ async function handleLogin() {
           </a-button>
         </a-form-item>
       </a-form>
+
+      <div class="lg-extra">
+        <a-button type="link" size="small" @click="goForgot" class="lg-forgot">
+          忘记密码？
+        </a-button>
+      </div>
 
       <p class="lg-footer-text">© 2026 homepage · 管理后台</p>
     </div>
@@ -200,6 +210,13 @@ async function handleLogin() {
 
 /* ====== Form ====== */
 .lg-form .ant-form-item { margin-bottom: 1rem; }
+
+.lg-extra {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -0.5rem;
+}
+.lg-forgot { padding: 0 4px; font-size: 0.85rem; }
 
 .lg-input :deep(.ant-input-prefix) { margin-right: 6px; }
 .lg-input-icon { color: #bfbfbf; font-size: 0.95rem; }

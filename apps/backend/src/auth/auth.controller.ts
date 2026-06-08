@@ -1,9 +1,10 @@
-import { Controller, Post, Get, Put, Body, UseGuards, Request } from '@nestjs/common'
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiBody } from '@nestjs/swagger'
+import { Controller, Post, Get, Put, Body, UseGuards, Request, HttpCode, HttpStatus } from '@nestjs/common'
+import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger'
 import { Throttle } from '@nestjs/throttler'
 import { AuthService } from './auth.service'
 import { LoginDto } from './dto/login.dto'
 import { ChangePasswordDto } from './dto/change-password.dto'
+import { ForgotPasswordDto, ResetPasswordDto, CreateFirstAdminDto } from './dto/password-recovery.dto'
 import { JwtAuthGuard } from './jwt-auth.guard'
 
 interface AuthenticatedRequest {
@@ -16,11 +17,63 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Post('login')
+  @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @ApiOperation({ summary: '管理员登录' })
   async login(@Body() dto: LoginDto) {
     return this.authService.login(dto)
   }
+
+  // ============================================================
+  //  找回密码 / 重置密码（公开接口）
+  // ============================================================
+
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @ApiOperation({
+    summary: '申请密码重置（公开）',
+    description: '提交用户名，系统生成一次性 token。若配置了 SMTP 则发送邮件，否则写入服务器日志。',
+  })
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.requestPasswordReset(dto.username)
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @ApiOperation({ summary: '使用重置 token 设置新密码（公开）' })
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto.token, dto.newPassword)
+  }
+
+  // ============================================================
+  //  系统状态 / 首次创建管理员（公开接口）
+  // ============================================================
+
+  @Get('has-users')
+  @ApiOperation({
+    summary: '系统是否已存在任意用户（公开）',
+    description: '前端用此判断是否进入「首次设置」流程。',
+  })
+  async hasUsers() {
+    return { data: { hasUsers: await this.authService.hasAnyUser() } }
+  }
+
+  @Post('create-first-admin')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @ApiOperation({
+    summary: '创建第一个管理员账号（仅 users 表为空时可用）',
+    description: '首次部署时由 /admin/setup 调用，创建完成后请用该账号登录并继续配置。',
+  })
+  async createFirstAdmin(@Body() dto: CreateFirstAdminDto) {
+    return this.authService.createFirstAdmin(dto.username, dto.password)
+  }
+
+  // ============================================================
+  //  需登录的接口
+  // ============================================================
 
   @Get('profile')
   @UseGuards(JwtAuthGuard)

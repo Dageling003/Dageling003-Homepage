@@ -14,6 +14,7 @@
 | 第四阶段 | 中后台管理 | ✅ **已完成** |
 | 第五阶段 | 联调精修 | ✅ **已完成** |
 | 第六阶段 | UX 大改 + 安全加固 | ✅ **已完成** |
+| 第七阶段 | 找回密码 + 自助创建管理员 | ✅ **已完成** |
 
 ---
 
@@ -29,11 +30,15 @@
 
 ## 第二阶段：后端 API ✅
 
-### API 接口（16 个）
+### API 接口（20 个）
 
 | 方法 | 路径 | 鉴权 | 说明 |
 |------|------|------|------|
 | POST | `/api/auth/login` | ❌ | 管理员登录 |
+| POST | `/api/auth/forgot-password` | ❌ | 申请密码重置（邮件或日志） |
+| POST | `/api/auth/reset-password` | ❌ | 使用 token 设置新密码 |
+| GET | `/api/auth/has-users` | ❌ | 系统是否已存在任意用户 |
+| POST | `/api/auth/create-first-admin` | ❌ | 创建第一个管理员（仅首次） |
 | GET | `/api/auth/profile` | ✅ | 获取当前用户信息 |
 | PUT | `/api/auth/profile` | ✅ | 更新个人资料（头像等） |
 | PUT | `/api/auth/change-password` | ✅ | 修改密码 |

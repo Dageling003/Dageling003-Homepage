@@ -1,15 +1,33 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { checkInitializedApi } from '@/api'
+import { checkInitializedApi, hasUsersApi } from '@/api'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 
+/**
+ * 路由 meta 约定：
+ * - requiresAuth = false  → 公开访问
+ * - guestOnly = true      → 仅未登录时显示（如登录页、首次 setup）
+ * - allowInBootstrap      → 当数据库无用户时，绕过登录直接放行（用于首次 setup）
+ */
 const routes: RouteRecordRaw[] = [
   {
     path: '/login',
     name: 'login',
     component: () => import('@/views/login/LoginView.vue'),
-    meta: { requiresAuth: false },
+    meta: { requiresAuth: false, guestOnly: true },
+  },
+  {
+    path: '/forgot-password',
+    name: 'forgot-password',
+    component: () => import('@/views/login/ForgotPasswordView.vue'),
+    meta: { requiresAuth: false, guestOnly: true },
+  },
+  {
+    path: '/reset-password',
+    name: 'reset-password',
+    component: () => import('@/views/login/ResetPasswordView.vue'),
+    meta: { requiresAuth: false, guestOnly: true },
   },
   {
     path: '/',
@@ -62,7 +80,7 @@ const routes: RouteRecordRaw[] = [
         path: 'setup',
         name: 'setup',
         component: () => import('@/views/setup/SetupWizard.vue'),
-        meta: { title: '初始设置', noSidebar: true },
+        meta: { title: '初始设置', noSidebar: true, allowInBootstrap: true },
       },
       {
         path: 'account',
@@ -100,15 +118,47 @@ const router = createRouter({
 router.beforeEach(async (to, _from, next) => {
   const authStore = useAuthStore()
 
-  // Requires auth but not logged in → redirect to login
-  if (to.meta.requiresAuth !== false && !authStore.isAuthenticated) {
+  // 1) guestOnly（登录/找回/重置）页面：已登录就跳到 dashboard
+  if (to.meta.guestOnly && authStore.isAuthenticated) {
+    next({ name: 'dashboard' })
+    return
+  }
+
+  // 2) 公开页面（已 includes guestOnly）：直接放行
+  if (to.meta.requiresAuth === false) {
+    next()
+    return
+  }
+
+  // 3) 启动态判断：数据库是否已有用户
+  let hasUsers = true
+  try {
+    const res = await hasUsersApi()
+    hasUsers = !!(res.data as any)?.data?.hasUsers
+  } catch {
+    // 接口挂了兜底为有用户，避免误放行到 setup
+    hasUsers = true
+  }
+
+  // 4) 数据库无用户：仅放行到 setup，其它全部重定向到 setup 创建管理员
+  if (!hasUsers) {
+    if (to.name === 'setup') {
+      next()
+      return
+    }
+    next({ name: 'setup' })
+    return
+  }
+
+  // 5) 已有用户：常规鉴权
+  if (!authStore.isAuthenticated) {
     next({ name: 'login', query: { redirect: to.fullPath } })
     return
   }
 
-  // Skip initialization check for these routes
-  const skipRoutes = ['login', 'setup', '403', '404']
-  if (authStore.isAuthenticated && !skipRoutes.includes(to.name as string)) {
+  // 6) 已登录但站点未初始化完成（_initialized != 1）→ 跳到 setup
+  const skipInitCheckRoutes = ['setup']
+  if (!skipInitCheckRoutes.includes(to.name as string)) {
     try {
       const res = await checkInitializedApi()
       const initialized = (res.data as any)?.data?.initialized
@@ -117,7 +167,7 @@ router.beforeEach(async (to, _from, next) => {
         return
       }
     } catch {
-      // API unavailable — allow through
+      // API 不可用 — 放行，避免误伤
     }
   }
 

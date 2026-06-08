@@ -95,6 +95,23 @@ export function changePasswordApi(oldPassword: string, newPassword: string) {
   return request.put('/auth/change-password', { oldPassword, newPassword })
 }
 
+// Password recovery (public)
+export function forgotPasswordApi(username: string) {
+  return request.post('/auth/forgot-password', { username })
+}
+
+export function resetPasswordApi(token: string, newPassword: string) {
+  return request.post('/auth/reset-password', { token, newPassword })
+}
+
+export function hasUsersApi() {
+  return request.get('/auth/has-users')
+}
+
+export function createFirstAdminApi(username: string, password: string) {
+  return request.post('/auth/create-first-admin', { username, password })
+}
+
 // Profile
 export function updateProfileApi(data: { avatarUrl?: string }) {
   return request.put('/auth/profile', data)

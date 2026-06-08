@@ -73,6 +73,16 @@
   </tr>
   <tr>
     <td>
+      <strong>🔑 找回密码</strong><br />
+      登录页「忘记密码」一键发起重置。支持主流邮箱 SMTP；<strong>未配 SMTP 时降级写入 docker logs</strong>，SSH 即可拾取链接。
+    </td>
+    <td>
+      <strong>👤 自助创建管理员</strong><br />
+      首次部署无需 SSH 改密码，<code>/admin/setup</code> 引导用户<strong>自设账号密码</strong>；已有账号时该步骤自动隐藏。
+    </td>
+  </tr>
+  <tr>
+    <td>
       <strong>📦 Monorepo</strong><br />
       pnpm workspace 统一管理三端，一条命令启动全部服务。
     </td>

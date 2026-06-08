@@ -42,6 +42,75 @@
 
 ---
 
+### POST /api/auth/forgot-password
+
+申请密码重置。生成一次性 token；配置 SMTP 时发邮件，未配置时写入 `docker logs homepage-app`。
+
+**请求体：**
+
+```json
+{ "username": "admin" }
+```
+
+**响应（200）：**
+
+```json
+{
+  "message": "如果该用户存在，重置链接已发送（请同时检查垃圾邮件）",
+  "smtpEnabled": true
+}
+```
+
+未配置 SMTP 时额外返回 `devHint` 字段，提示从日志获取。
+
+---
+
+### POST /api/auth/reset-password
+
+使用重置 token 设置新密码。
+
+**请求体：**
+
+```json
+{
+  "token": "从邮件/日志中拿到的一次性 token",
+  "newPassword": "新密码（至少 12 位）"
+}
+```
+
+**响应（200）：** `{ "message": "密码重置成功，请使用新密码登录" }`
+
+**错误响应（400）：** token 无效 / 已过期 / 已被使用
+
+---
+
+### GET /api/auth/has-users
+
+系统是否已存在任意用户（公开）。前端用于决定是否进入「创建管理员」流程。
+
+**响应（200）：** `{ "data": { "hasUsers": false } }`
+
+---
+
+### POST /api/auth/create-first-admin
+
+创建第一个管理员账号。**仅当 users 表为空时可用**。
+
+**请求体：**
+
+```json
+{
+  "username": "admin",
+  "password": "你的强密码（≥ 12 位）"
+}
+```
+
+**响应（200）：** `{ "message": "管理员账号已创建", "username": "admin" }`
+
+**错误响应（409）：** `{ "message": "系统已存在管理员账号..." }`
+
+---
+
 ### GET /api/auth/profile
 
 获取当前登录用户信息（需 Bearer Token）。

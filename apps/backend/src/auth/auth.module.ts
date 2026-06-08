@@ -1,4 +1,4 @@
-﻿import { Module, OnModuleInit } from '@nestjs/common'
+import { Module, OnModuleInit, Global } from '@nestjs/common'
 import { JwtModule } from '@nestjs/jwt'
 import { PassportModule } from '@nestjs/passport'
 import { TypeOrmModule } from '@nestjs/typeorm'
@@ -6,10 +6,13 @@ import { AuthController } from './auth.controller'
 import { AuthService } from './auth.service'
 import { JwtStrategy } from './jwt.strategy'
 import { User } from '../users/user.entity'
+import { PasswordResetToken } from './entities/password-reset-token.entity'
+import { MailService } from '../common/mail.service'
 
+@Global()
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User, PasswordResetToken]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       useFactory: () => ({
@@ -19,8 +22,8 @@ import { User } from '../users/user.entity'
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
-  exports: [AuthService],
+  providers: [AuthService, JwtStrategy, MailService],
+  exports: [AuthService, MailService],
 })
 export class AuthModule implements OnModuleInit {
   constructor(private authService: AuthService) {}

@@ -3,10 +3,11 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   getConfigsApi, updateConfigApi, createConfigApi,
+  hasUsersApi, createFirstAdminApi,
 } from '@/api'
 import { message } from 'ant-design-vue'
 import {
-  RightOutlined, LeftOutlined, CheckOutlined, SmileOutlined,
+  RightOutlined, LeftOutlined, CheckOutlined, SmileOutlined, UserAddOutlined,
 } from '@ant-design/icons-vue'
 
 const router = useRouter()
@@ -21,6 +22,13 @@ const linkItems = ref<Array<{ text: string; url: string; color: string }>>([])
 const techItems = ref<Array<{ name: string }>>([])
 const typewriterItems = ref<string[]>([])
 const todoItems = ref<Array<{ text: string; done: boolean }>>([])
+
+// 首管账号（仅在 hasUsers=false 时启用）
+const needsBootstrap = ref(false)
+const adminUsername = ref('admin')
+const adminPassword = ref('')
+const adminPasswordConfirm = ref('')
+const creatingAdmin = ref(false)
 
 // ==================== Age/Zodiac auto-calc ====================
 function calcAge(birthStr: string): number | null {
@@ -52,18 +60,46 @@ function calcZodiac(birthStr: string): string | null {
 const previewAge = computed(() => calcAge(form.value['infoBirth'] || ''))
 const previewZodiac = computed(() => calcZodiac(form.value['infoBirth'] || ''))
 
-const STEPS = [
-  { title: '欢迎', icon: '👋' },
-  { title: '个人信息', icon: '👤' },
-  { title: '快捷链接', icon: '🔗' },
-  { title: '技术栈', icon: '🛠️' },
-  { title: '打字机', icon: '📝' },
-  { title: '待办事项', icon: '📋' },
-  { title: '完成', icon: '🎉' },
-]
+const adminPwdStrength = computed(() => {
+  const v = adminPassword.value
+  if (!v) return 0
+  let s = 0
+  if (v.length >= 12) s++
+  if (v.length >= 16) s++
+  if (/[A-Z]/.test(v) && /[a-z]/.test(v)) s++
+  if (/\d/.test(v)) s++
+  if (/[^A-Za-z0-9]/.test(v)) s++
+  return Math.min(s, 4)
+})
+const adminPwdStrengthColor = computed(() => ['', '#ff4d4f', '#faad14', '#1677ff', '#52c41a'][adminPwdStrength.value])
+const adminPwdStrengthLabel = computed(() => ['', '弱', '一般', '良好', '强'][adminPwdStrength.value])
+const canCreateAdmin = computed(() =>
+  adminUsername.value.length >= 2
+  && adminPassword.value.length >= 12
+  && adminPassword.value === adminPasswordConfirm.value,
+)
+
+// 动态步骤：启动态多一步「创建管理员」
+const STEPS = computed(() => {
+  const base = [
+    { title: '欢迎', icon: '👋' },
+    { title: '管理员', icon: '👑' },
+    { title: '个人信息', icon: '👤' },
+    { title: '快捷链接', icon: '🔗' },
+    { title: '技术栈', icon: '🛠️' },
+    { title: '打字机', icon: '📝' },
+    { title: '待办事项', icon: '📋' },
+    { title: '完成', icon: '🎉' },
+  ]
+  if (!needsBootstrap.value) {
+    return base.filter(s => s.title !== '管理员')
+  }
+  return base
+})
 
 const isFirst = computed(() => step.value === 0)
-const isLast = computed(() => step.value === STEPS.length - 1)
+const isLast = computed(() => step.value === STEPS.value.length - 1)
+const isAdminStep = computed(() => needsBootstrap.value && step.value === 1)
 
 async function loadExisting() {
   try {
@@ -100,7 +136,19 @@ async function loadExisting() {
   } catch { /* use defaults */ }
 }
 
-onMounted(loadExisting)
+async function loadBootstrapState() {
+  try {
+    const res = await hasUsersApi()
+    needsBootstrap.value = !(res.data as any)?.data?.hasUsers
+  } catch {
+    needsBootstrap.value = false
+  }
+}
+
+onMounted(async () => {
+  await loadBootstrapState()
+  await loadExisting()
+})
 
 async function saveConfig(key: string, value: string) {
   try {
@@ -115,13 +163,36 @@ async function saveConfig(key: string, value: string) {
   } catch { /* ignore */ }
 }
 
+async function createFirstAdmin() {
+  if (!canCreateAdmin.value) {
+    message.warning('请检查用户名（≥ 2 位）和密码（≥ 12 位且两次输入一致）')
+    return
+  }
+  creatingAdmin.value = true
+  try {
+    await createFirstAdminApi(adminUsername.value, adminPassword.value)
+    message.success('管理员账号已创建')
+    // 创建成功后清理临时输入，避免停留在内存
+    adminPassword.value = ''
+    adminPasswordConfirm.value = ''
+    step.value++
+  } catch (err: any) {
+    message.error(err?.response?.data?.message || '创建管理员失败')
+  } finally {
+    creatingAdmin.value = false
+  }
+}
+
 async function handleNext() {
   if (step.value === 0) { step.value++; return }
+  if (isAdminStep.value) { await createFirstAdmin(); return }
 
   saving.value = true
   try {
-    switch (step.value) {
-      case 1: // Personal info
+    // 步骤下标因 bootstrap 偏移 0/1，需按 STEPS 名称定位
+    const currentTitle = STEPS.value[step.value]?.title
+    switch (currentTitle) {
+      case '个人信息': {
         for (const [k, v] of Object.entries(form.value)) {
           if (v) await saveConfig(k, v)
         }
@@ -129,16 +200,17 @@ async function handleNext() {
           await saveConfig('professions', JSON.stringify(professionTags.value))
         }
         break
-      case 2: // Links
+      }
+      case '快捷链接':
         await saveConfig('links', JSON.stringify(linkItems.value.filter(l => l.text && l.url)))
         break
-      case 3: // Tech stack
+      case '技术栈':
         await saveConfig('techs', JSON.stringify(techItems.value.filter(t => t.name)))
         break
-      case 4: // Typewriter
+      case '打字机':
         await saveConfig('typewriterWords', JSON.stringify(typewriterItems.value.filter(t => t.trim())))
         break
-      case 5: // Todos
+      case '待办事项':
         await saveConfig('todos', JSON.stringify(todoItems.value.filter(t => t.text.trim())))
         break
     }
@@ -156,8 +228,8 @@ async function handleFinish() {
     // Mark as initialized
     await saveConfig('_initialized', '1')
     done.value = true
-    message.success('🎉 初始化完成！')
-    setTimeout(() => router.push('/dashboard'), 1500)
+    message.success('🎉 初始化完成！请使用刚才设置的账号登录')
+    setTimeout(() => router.push('/login'), 1500)
   } catch {
     message.error('保存失败')
   } finally {
@@ -191,13 +263,37 @@ async function handleFinish() {
         <div class="sw-welcome">
           <div class="sw-welcome-icon">🚀</div>
           <h2>欢迎使用 homepage 管理系统</h2>
-          <p>接下来几步将帮你完成初始设置，包括个人信息、快捷链接等。</p>
-          <p class="sw-hint">完成后即可进入仪表盘开始管理</p>
+          <p v-if="needsBootstrap">这是首次部署，下一步我们将一起创建管理员账号并完成初始设置。</p>
+          <p v-else>接下来几步将帮你完善或修改站点信息。</p>
+          <p class="sw-hint">每步点击「下一步」保存，末步点击「完成设置」</p>
         </div>
       </div>
 
-      <!-- Step 1: Personal Info -->
-      <div v-else-if="step === 1" class="sw-step-content">
+      <!-- Step 1: Create first admin (only when bootstrap) -->
+      <div v-else-if="isAdminStep" class="sw-step-content">
+        <h3 class="sw-section-title">👑 创建管理员账号</h3>
+        <p class="sw-section-desc">这是登录后台的唯一账号，请使用一个你能记住的强密码（≥ 12 位）。</p>
+        <div class="sw-form">
+          <a-form-item label="用户名" required class="sw-form-full">
+            <a-input v-model:value="adminUsername" placeholder="admin" size="middle" />
+          </a-form-item>
+          <a-form-item label="密码" required class="sw-form-full">
+            <a-input-password v-model:value="adminPassword" placeholder="至少 12 位" size="middle" />
+            <div v-if="adminPassword" class="sw-strength">
+              <div class="sw-strength-bar">
+                <div class="sw-strength-fill" :style="{ width: `${(adminPwdStrength / 4) * 100}%`, background: adminPwdStrengthColor }" />
+              </div>
+              <span class="sw-strength-text" :style="{ color: adminPwdStrengthColor }">强度：{{ adminPwdStrengthLabel }}</span>
+            </div>
+          </a-form-item>
+          <a-form-item label="确认密码" required class="sw-form-full">
+            <a-input-password v-model:value="adminPasswordConfirm" placeholder="再输入一次" size="middle" />
+          </a-form-item>
+        </div>
+      </div>
+
+      <!-- Step: Personal Info (index shifts depending on bootstrap) -->
+      <div v-else-if="STEPS[step]?.title === '个人信息'" class="sw-step-content">
         <h3 class="sw-section-title">👤 填写个人信息</h3>
         <div class="sw-form">
           <a-input v-model:value="form['name']" placeholder="昵称" size="middle" class="sw-input" />
@@ -229,8 +325,8 @@ async function handleFinish() {
         </div>
       </div>
 
-      <!-- Step 2: Links -->
-      <div v-else-if="step === 2" class="sw-step-content">
+      <!-- Step: Links -->
+      <div v-else-if="STEPS[step]?.title === '快捷链接'" class="sw-step-content">
         <h3 class="sw-section-title">🔗 添加快捷链接</h3>
         <div class="sw-list">
           <div v-for="(item, i) in linkItems" :key="i" class="sw-list-row">
@@ -244,8 +340,8 @@ async function handleFinish() {
         </div>
       </div>
 
-      <!-- Step 3: Tech Stack -->
-      <div v-else-if="step === 3" class="sw-step-content">
+      <!-- Step: Tech Stack -->
+      <div v-else-if="STEPS[step]?.title === '技术栈'" class="sw-step-content">
         <h3 class="sw-section-title">🛠️ 设置技术栈</h3>
         <div class="sw-grid-2">
           <div v-for="(item, i) in techItems" :key="i">
@@ -261,8 +357,8 @@ async function handleFinish() {
         </a-button>
       </div>
 
-      <!-- Step 4: Typewriter -->
-      <div v-else-if="step === 4" class="sw-step-content">
+      <!-- Step: Typewriter -->
+      <div v-else-if="STEPS[step]?.title === '打字机'" class="sw-step-content">
         <h3 class="sw-section-title">📝 设置打字机文字</h3>
         <div class="sw-list">
           <div v-for="(_, i) in typewriterItems" :key="i" class="sw-list-row">
@@ -274,8 +370,8 @@ async function handleFinish() {
         </div>
       </div>
 
-      <!-- Step 5: Todos -->
-      <div v-else-if="step === 5" class="sw-step-content">
+      <!-- Step: Todos -->
+      <div v-else-if="STEPS[step]?.title === '待办事项'" class="sw-step-content">
         <h3 class="sw-section-title">📋 设置待办事项</h3>
         <div class="sw-list">
           <div v-for="(item, i) in todoItems" :key="i" class="sw-list-row">
@@ -287,23 +383,31 @@ async function handleFinish() {
         </div>
       </div>
 
-      <!-- Step 6: Done -->
-      <div v-else-if="step === 6" class="sw-step-content">
+      <!-- Last Step: Done -->
+      <div v-else-if="isLast" class="sw-step-content">
         <div class="sw-welcome">
           <div class="sw-welcome-icon"><SmileOutlined /></div>
           <h2>🎉 一切就绪！</h2>
-          <p>{{ done ? '正在跳转到仪表盘...' : '点击下方按钮完成设置' }}</p>
+          <p>{{ done ? '正在跳转登录页...' : '点击下方按钮完成设置' }}</p>
+          <p v-if="!done" class="sw-hint">完成后请用刚才设置的管理员账号登录</p>
         </div>
       </div>
 
       <!-- Navigation -->
       <div class="sw-nav">
-        <a-button v-if="!isFirst && !isLast" @click="step--" :disabled="saving">
+        <a-button v-if="!isFirst && !isLast" @click="step--" :disabled="saving || creatingAdmin">
           <template #icon><LeftOutlined /></template>上一步
         </a-button>
         <div class="sw-nav-right">
-          <a-button v-if="!isLast && !isFirst" type="primary" :loading="saving" @click="handleNext">
-            下一步<template #icon><RightOutlined /></template>
+          <a-button
+            v-if="!isLast && !isFirst"
+            type="primary"
+            :loading="saving || creatingAdmin"
+            :disabled="isAdminStep && !canCreateAdmin"
+            @click="handleNext"
+          >
+            <template #icon><UserAddOutlined v-if="isAdminStep" /><RightOutlined v-else /></template>
+            {{ isAdminStep ? '创建并继续' : '下一步' }}
           </a-button>
           <a-button v-if="isLast" type="primary" :loading="saving" @click="handleFinish" size="large">
             <template #icon><CheckOutlined /></template>{{ done ? '已完成' : '完成设置' }}
@@ -322,11 +426,11 @@ async function handleFinish() {
 /* ====== Progress ====== */
 .sw-progress {
   display: flex; justify-content: space-between; margin-bottom: 1.5rem;
-  padding: 0 0.5rem;
+  padding: 0 0.5rem; overflow-x: auto;
 }
 .sw-step {
   display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
-  flex: 1; position: relative;
+  flex: 1; position: relative; min-width: 56px;
 }
 .sw-step::after {
   content: ''; position: absolute; top: 16px; left: 50%; width: 100%;
@@ -360,7 +464,8 @@ async function handleFinish() {
 
 /* ====== Form ====== */
 .sw-step-content { min-height: 280px; }
-.sw-section-title { font-size: 1rem; font-weight: 650; margin: 0 0 0.8rem; color: #262626; }
+.sw-section-title { font-size: 1rem; font-weight: 650; margin: 0 0 0.3rem; color: #262626; }
+.sw-section-desc { font-size: 0.82rem; color: #8c8c8c; margin: 0 0 1rem; }
 .sw-form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .sw-form-full { grid-column: 1 / -1; }
 .sw-input { width: 100%; }
@@ -374,6 +479,11 @@ async function handleFinish() {
 .sw-date-input:focus { border-color: #1677ff; box-shadow: 0 0 0 2px rgba(22,119,255,0.1); }
 .sw-birth-preview { font-size: 0.82rem; color: #1677ff; background: #f0f5ff; padding: 4px 10px; border-radius: 6px; }
 .sw-birth-preview b { font-weight: 700; }
+
+.sw-strength { margin-top: 6px; display: flex; align-items: center; gap: 8px; }
+.sw-strength-bar { flex: 1; height: 4px; background: #f0f0f0; border-radius: 2px; overflow: hidden; }
+.sw-strength-fill { height: 100%; transition: width 0.3s, background 0.3s; }
+.sw-strength-text { font-size: 0.78rem; white-space: nowrap; }
 
 .sw-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
 
@@ -392,7 +502,7 @@ async function handleFinish() {
 
 /* ====== Responsive ====== */
 @media (max-width: 768px) {
-  .sw-progress { overflow-x: auto; gap: 0; }
+  .sw-progress { gap: 0; }
   .sw-step-label { font-size: 0.65rem; }
   .sw-form { grid-template-columns: 1fr; }
   .sw-grid-2 { grid-template-columns: 1fr; }

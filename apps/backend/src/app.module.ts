@@ -9,6 +9,7 @@ import { AuditModule } from './audit/audit.module'
 import { User } from './users/user.entity'
 import { SiteConfig } from './config/entities/config.entity'
 import { AuditLog } from './audit/audit.entity'
+import { PasswordResetToken } from './auth/entities/password-reset-token.entity'
 
 @Module({
   imports: [
@@ -27,7 +28,7 @@ import { AuditLog } from './audit/audit.entity'
       username: process.env.DB_USERNAME || 'root',
       password: process.env.DB_PASSWORD || '',
       database: process.env.DB_DATABASE || 'homepage',
-      entities: [User, SiteConfig, AuditLog],
+      entities: [User, SiteConfig, AuditLog, PasswordResetToken],
       synchronize: process.env.DB_SYNCHRONIZE === 'true',
       // Production connection pool settings
       extra: {
