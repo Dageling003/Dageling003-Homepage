@@ -320,8 +320,16 @@ load_or_generate_env() {
             read -rp "  DOMAIN: " DOMAIN
             DOMAIN="${DOMAIN:-localhost}"
         fi
+        # 真实域名需要邮箱申请 HTTPS 证书
+        if [[ "$DOMAIN" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]] \
+           || [[ "$DOMAIN" == "localhost" || "$DOMAIN" == "127.0.0.1" ]]; then
+            ACME_EMAIL=""
+        elif [ -z "${ACME_EMAIL:-}" ]; then
+            echo ""
+            echo -e "  ${CYAN}请输入邮箱（HTTPS 证书需要，留空则 Caddy 自动生成）：${NC}"
+            read -rp "  ACME_EMAIL: " ACME_EMAIL
+        fi
         info "未找到 .env.docker，正在自动生成..."
-        ACME_EMAIL="${ACME_EMAIL:-}"
         ACME_CA="https://acme.zerossl.com/v2/DV90"
         JWT_SECRET=$(rand 32)
         DEFAULT_ADMIN_PASSWORD=$(rand 24)
