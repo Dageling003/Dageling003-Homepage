@@ -298,10 +298,29 @@ load_or_generate_env() {
         info "检测到现有 .env.docker，正在加载..."
         load_env_file "$env_file"
         ok "已加载 .env.docker"
+        # 如果从旧 .env.docker 加载的 DOMAIN 仍是 localhost，询问是否更新
+        if [ "${DOMAIN:-localhost}" = "localhost" ] && [ -z "${DOMAIN_OVERRIDE:-}" ]; then
+            echo ""
+            echo -e "  ${YELLOW}当前 DOMAIN 为 localhost，要改成实际域名吗？${NC}"
+            read -rp "  输入域名（回车跳过 / 保持 localhost）: " new_domain
+            if [ -n "$new_domain" ]; then
+                DOMAIN="$new_domain"
+                local proto
+                proto=$(derive_proto "$DOMAIN")
+                PUBLIC_ADMIN_URL="${PUBLIC_ADMIN_URL:-${proto}://${DOMAIN}}"
+                write_env_file "$env_file"
+                ok "DOMAIN 已更新为 ${DOMAIN}"
+            fi
+        fi
     else
-        info "未找到 .env.docker，正在自动生成（DOMAIN 默认 localhost）..."
-        # DOMAIN 优先取环境变量，否则 localhost
-        DOMAIN="${DOMAIN:-localhost}"
+        # DOMAIN 优先取环境变量，否则询问
+        if [ -z "${DOMAIN:-}" ]; then
+            echo ""
+            echo -e "  ${CYAN}请输入域名或 IP：${NC}"
+            read -rp "  DOMAIN: " DOMAIN
+            DOMAIN="${DOMAIN:-localhost}"
+        fi
+        info "未找到 .env.docker，正在自动生成..."
         ACME_EMAIL="${ACME_EMAIL:-}"
         ACME_CA="https://acme.zerossl.com/v2/DV90"
         JWT_SECRET=$(rand 32)
