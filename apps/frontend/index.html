@@ -1,13 +1,61 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>homepage</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <meta name="description" content="鹊楠的个人主页 - 前端开发者，热爱技术与摄影" />
+    <meta name="keywords" content="前端开发, Vue, TypeScript, 个人主页, 技术博客" />
+    <meta name="theme-color" content="#d0e8ff" />
+    
+    <meta property="og:title" content="鹊楠的个人主页" />
+    <meta property="og:description" content="前端开发者，热爱技术与摄影" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="zh_CN" />
+    
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="鹊楠的个人主页" />
+    <meta name="twitter:description" content="前端开发者，热爱技术与摄影" />
+    
+    <title>鹊楠的个人主页</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+    <link rel="preconnect" href="https://api.iconify.design" crossorigin />
+    
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" /></noscript>
+    
+    <style>
+      :root {
+        --background: #d0e8ff;
+        --theme-color: #ffb3b3;
+      }
+      html {
+        background-color: var(--background);
+      }
+      #app {
+        opacity: 0;
+      }
+      #app.loaded {
+        opacity: 1;
+        transition: opacity 0.3s ease-out;
+      }
+    </style>
+    
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Person",
+      "name": "鹊楠",
+      "description": "前端开发者，热爱技术与摄影",
+      "occupation": "前端工程师",
+      "sameAs": [
+        "https://github.com",
+        "https://bilibili.com"
+      ]
+    }
+    </script>
   </head>
   <body>
     <div id="app"></div>

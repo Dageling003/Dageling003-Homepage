@@ -51,10 +51,12 @@ function tick() {
 }
 
 onMounted(() => {
-  tick()
-  cursorTimer = setInterval(() => {
-    isBlink.value = !isBlink.value
-  }, 530)
+  requestAnimationFrame(() => {
+    tick()
+    cursorTimer = setInterval(() => {
+      isBlink.value = !isBlink.value
+    }, 530)
+  })
 })
 
 onUnmounted(() => {
@@ -65,7 +67,7 @@ onUnmounted(() => {
 
 <template>
   <span class="typewriter">
-    {{ displayText }}<span class="cursor" :class="{ blink: isBlink }">{{ cursorChar }}</span>
+    {{ displayText }}<span class="cursor" :class="{ blink: isBlink }" aria-hidden="true">{{ cursorChar }}</span>
   </span>
 </template>
 

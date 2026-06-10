@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="image/logo.svg" alt="Homepage" width="120" />
+  <img src="image/logo.png" alt="Homepage" width="240" height="240" test-align="center" />
 </p>
 
 <h1 align="center">Homepage</h1>
@@ -176,7 +176,8 @@ pnpm dev
 bash deploy.sh
 
 # 跳过域名询问（其余仍交互）
-DOMAIN=dageling003.top bash deploy.sh
+#【提示】：请将【your-domain】替换为你的域名或 IP 地址，例如：your-domain.com
+DOMAIN=【your-domain】 bash deploy.sh
 
 # CI 全自动模式（零交互）
 CI=true bash deploy.sh

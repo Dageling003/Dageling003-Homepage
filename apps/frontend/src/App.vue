@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { useThemeStore } from '@/stores/theme'
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeMount } from 'vue'
 
 const themeStore = useThemeStore()
 const loaded = ref(false)
 
-onMounted(() => {
+onBeforeMount(() => {
   themeStore.initTheme()
+})
+
+onMounted(() => {
   requestAnimationFrame(() => {
     loaded.value = true
   })
@@ -15,13 +18,38 @@ onMounted(() => {
 
 <template>
   <div class="app" :class="{ loaded }">
-    <RouterView />
+    <RouterView v-slot="{ Component }">
+      <Transition name="fade" mode="out-in">
+        <component :is="Component" />
+      </Transition>
+    </RouterView>
   </div>
 </template>
 
 <style>
-* {
-  transition: all 0.3s ease-in-out;
+html {
+  background-color: var(--background, #d0e8ff);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text-color, #000);
+}
+
+#app {
+  min-height: 100vh;
+}
+
+.app {
+  opacity: 0;
+}
+
+.app.loaded {
+  opacity: 1;
+  transition: opacity 0.3s ease-out;
 }
 
 :root {
@@ -44,86 +72,9 @@ onMounted(() => {
   --loading-background: #2b2b2b;
 }
 
-body {
-  background: var(--background);
-  padding: 0;
-  margin: 0;
-  min-height: 100vh;
-  position: relative;
-  transition: background 0s;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  color: var(--text-color);
-}
-
-#app {
-  min-height: 100vh;
-}
-
-img {
-  width: 100%;
-  height: 100%;
-}
-
-a {
-  text-decoration: none;
-  position: relative;
-  color: var(--theme-color);
-  transition: all 0.3s ease-in-out;
-  padding: 0 0.3rem;
-}
-
-a:hover {
-  color: #fff;
-}
-
-a:hover::before {
-  height: 100%;
-}
-
-a::before {
-  content: '';
-  transition: all 0.3s ease-in-out;
-  border-radius: 5px;
-  z-index: -1;
-  display: inline-block;
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: 0;
-  width: 100%;
-  height: 2px;
-  background: var(--theme-color);
-}
-
-b {
-  display: inline-block;
-  position: relative;
-  margin: 0 0.2rem;
-  text-align: center;
-  z-index: 1;
-}
-
-b::before {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  z-index: -1;
-  opacity: 0.8;
-  border-radius: 4px;
-  width: 100%;
-  height: 30%;
-  background: var(--theme-color);
-  transition: all 0.3s ease-in-out;
-}
-
-b:hover::before {
-  height: 70%;
-}
-
-/* Vue transition */
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.3s ease;
+  transition: opacity 0.2s ease;
 }
 
 .fade-enter-from,
@@ -131,12 +82,13 @@ b:hover::before {
   opacity: 0;
 }
 
-.app {
-  opacity: 0;
-  transition: opacity 0.5s ease;
+img {
+  max-width: 100%;
+  height: auto;
 }
 
-.app.loaded {
-  opacity: 1;
+a {
+  text-decoration: none;
+  color: var(--theme-color);
 }
 </style>

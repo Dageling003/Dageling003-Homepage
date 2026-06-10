@@ -53,6 +53,7 @@ allowBuilds:
 | **HTTP 客户端** | Axios        | `^1.7.9`    | API 请求封装           |
 | **图标库**      | @iconify/vue | **`5.0.0`** | SVG 图标系统（按需加载 + 40+ 技术品牌彩色图标映射） |
 | **工具库**      | @vueuse/core | `^12.0.0`   | 组合式工具函数（时间计算等）     |
+| **PWA**        | vite-plugin-pwa | `^1.3.0` | 离线缓存 + 桌面安装支持 |
 | **代码规范**     | ESLint       | `^9.17.0`   | 代码检查               |
 | **格式化**      | Prettier     | `^3.4.2`    | 统一代码风格             |
 
@@ -81,6 +82,7 @@ allowBuilds:
     "vite": "^8.0.12",
     "@vitejs/plugin-vue": "^6.0.6",
     "unocss": "^66.7.0",
+    "vite-plugin-pwa": "^1.3.0",
     "eslint": "^9.17.0",
     "prettier": "^3.4.2"
   },

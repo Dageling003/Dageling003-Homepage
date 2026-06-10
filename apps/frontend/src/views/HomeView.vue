@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { Icon } from '@iconify/vue'
 import { getAllConfigs } from '@/api'
@@ -8,64 +8,58 @@ import TimeGreeting from '@/components/TimeGreeting.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import AnimatedLogo from '@/components/AnimatedLogo.vue'
 
-// ==================== Tech Icon Mapping ====================
 const TECH_ICONS: Record<string, string> = {
-  HTML:       'logos:html-5',
-  CSS:        'logos:css-3',
-  JS:         'logos:javascript',
+  HTML: 'logos:html-5',
+  CSS: 'logos:css-3',
+  JS: 'logos:javascript',
   JavaScript: 'logos:javascript',
-  Vue:        'logos:vue',
-  React:      'logos:react',
-  Angular:    'logos:angular-icon',
-  Node:       'logos:nodejs-icon',
-  'Node.js':  'logos:nodejs-icon',
-  Python:     'logos:python',
+  Vue: 'logos:vue',
+  React: 'logos:react',
+  Angular: 'logos:angular-icon',
+  Node: 'logos:nodejs-icon',
+  'Node.js': 'logos:nodejs-icon',
+  Python: 'logos:python',
   TypeScript: 'logos:typescript-icon',
-  TS:         'logos:typescript-icon',
-  Git:        'logos:git-icon',
-  Docker:     'logos:docker-icon',
-  Rust:       'logos:rust',
-  Go:         'logos:go',
-  Java:       'logos:java',
-  PHP:        'logos:php',
-  Sass:       'logos:sass',
-  Vite:       'logos:vitejs',
-  Webpack:    'logos:webpack',
-  MongoDB:    'logos:mongodb-icon',
+  TS: 'logos:typescript-icon',
+  Git: 'logos:git-icon',
+  Docker: 'logos:docker-icon',
+  Rust: 'logos:rust',
+  Go: 'logos:go',
+  Java: 'logos:java',
+  PHP: 'logos:php',
+  Sass: 'logos:sass',
+  Vite: 'logos:vitejs',
+  Webpack: 'logos:webpack',
+  MongoDB: 'logos:mongodb-icon',
   PostgreSQL: 'logos:postgresql',
-  Redis:      'logos:redis',
-  GraphQL:    'logos:graphql',
-  AWS:        'logos:aws',
-  Linux:      'logos:linux-tux',
-  Figma:      'logos:figma',
-  Tailwind:   'logos:tailwindcss-icon',
+  Redis: 'logos:redis',
+  GraphQL: 'logos:graphql',
+  AWS: 'logos:aws',
+  Linux: 'logos:linux-tux',
+  Figma: 'logos:figma',
+  Tailwind: 'logos:tailwindcss-icon',
   'Tailwind CSS': 'logos:tailwindcss-icon',
-  Prisma:     'logos:prisma',
-  Next:       'logos:nextjs-icon',
-  'Next.js':  'logos:nextjs-icon',
-  Nuxt:       'logos:nuxt-icon',
-  'Nuxt.js':  'logos:nuxt-icon',
-  Electron:   'logos:electron',
-  Android:    'logos:android-icon',
+  Prisma: 'logos:prisma',
+  Next: 'logos:nextjs-icon',
+  'Next.js': 'logos:nextjs-icon',
+  Nuxt: 'logos:nuxt-icon',
+  'Nuxt.js': 'logos:nuxt-icon',
+  Electron: 'logos:electron',
+  Android: 'logos:android-icon',
 }
 
 function techIcon(name: string): string {
-  // Direct match
   if (TECH_ICONS[name]) return TECH_ICONS[name]
-  // Case-insensitive match
   const lower = name.toLowerCase()
   for (const [k, v] of Object.entries(TECH_ICONS)) {
     if (k.toLowerCase() === lower) return v
   }
-  // Fallback to a generic icon
   return 'logos:codecov-icon'
 }
 
-// ==================== UX ====================
 const showContent = ref(false)
 const logoRef = ref<InstanceType<typeof AnimatedLogo> | null>(null)
 
-// ==================== User Data (with defaults) ====================
 const name = ref('鹊楠')
 const avatarUrl = ref('https://api.dicebear.com/7.x/thumbs/svg?seed=cat')
 const infoSex = ref('♂')
@@ -73,7 +67,6 @@ const infoSexDisplay = ref('symbol')
 const infoBirth = ref('')
 const infoAgeDisplay = ref('all')
 const infoProvince = ref('江苏省')
-// Display toggles (1 = show, 0 = hide)
 const infoShowName = ref('1')
 const infoShowZodiac = ref('1')
 const infoShowBirth = ref('1')
@@ -101,7 +94,6 @@ const typewriterWords = ref([
   'May you happy every day ✨',
 ])
 
-// Auto-calculate age & zodiac from birth date
 function calcAgeFromBirth(birthStr: string): number | null {
   if (!birthStr) return null
   const birth = new Date(birthStr)
@@ -121,7 +113,7 @@ function calcZodiac(birthStr: string): string | null {
   const day = parseInt(parts[2])
   if (isNaN(month) || isNaN(day)) return null
   const ZODIAC = [
-    { name: '摩羯座', start: [1, 1],  end: [1, 19] },
+    { name: '摩羯座', start: [1, 1], end: [1, 19] },
     { name: '水瓶座', start: [1, 20], end: [2, 18] },
     { name: '双鱼座', start: [2, 19], end: [3, 20] },
     { name: '白羊座', start: [3, 21], end: [4, 19] },
@@ -145,14 +137,13 @@ function calcZodiac(birthStr: string): string | null {
 const displayAge = computed(() => {
   const fromBirth = calcAgeFromBirth(infoBirth.value)
   if (fromBirth !== null && fromBirth >= 0) return fromBirth
-  return 0  // 负数或无效 → 不显示
+  return 0
 })
 
 const displayZodiac = computed(() => {
   return calcZodiac(infoBirth.value) || ''
 })
 
-// Gender display text
 function genderLabel(): string {
   const isMale = infoSex.value === '♂'
   const symbol = isMale ? '♂' : '♀'
@@ -164,7 +155,6 @@ function genderLabel(): string {
   }
 }
 
-// ==================== Config Handlers ====================
 const configHandlers: Record<string, (val: string) => void> = {
   name: (v) => { name.value = v },
   infoSex: (v) => { infoSex.value = v },
@@ -184,7 +174,6 @@ const configHandlers: Record<string, (val: string) => void> = {
   typewriterWords: (v) => { try { typewriterWords.value = JSON.parse(v) } catch {} },
 }
 
-// ==================== Lifecycle ====================
 onMounted(async () => {
   try {
     const res = await getAllConfigs()
@@ -195,13 +184,11 @@ onMounted(async () => {
   } catch {
     // API unavailable — keep defaults
   }
-
   logoRef.value?.finish()
 })
 </script>
 
 <template>
-  <!-- Loading Logo -->
   <AnimatedLogo
     v-if="!showContent"
     ref="logoRef"
@@ -211,34 +198,35 @@ onMounted(async () => {
     @done="showContent = true"
   />
 
-  <!-- Main Content -->
-  <main class="main" :class="{ loaded: showContent }">
-    <!-- Theme toggle -->
+  <main class="main" :class="{ loaded: showContent }" aria-label="个人主页">
     <ThemeToggle />
 
-    <div class="mainCard">
-      <!-- ====== HEADER ====== -->
-      <div class="header">
-        <div class="avatar">
-          <img :src="avatarUrl" alt="avatar" />
-          <span class="avatar-emoji">🐱</span>
+    <article class="mainCard" role="article">
+      <header class="header" role="banner">
+        <div class="avatar" role="img" aria-label="头像">
+          <img
+            :src="avatarUrl"
+            :alt="`${name}的头像`"
+            loading="lazy"
+            width="144"
+            height="144"
+          />
+          <span class="avatar-emoji" aria-hidden="true">🐱</span>
         </div>
         <div class="sayHi">
           <h1>Hi, I'm <span class="hl-name" :data-text="name">{{ name }}</span></h1>
-          <div class="infoTags">
-            <span class="tag"><span :class="infoSex === '♂' ? 'boy' : 'girl'">{{ genderLabel() }}</span></span>
-            <span class="tag" v-if="(infoAgeDisplay === 'all' || infoAgeDisplay === 'tag') && displayAge > 0">{{ displayAge }}岁</span>
-            <span class="tag" v-if="infoShowBirth === '1' && infoBirth">{{ infoBirth.replace(/-/g, '/') }}</span>
-            <span class="tag">{{ infoProvince }}</span>
-            <span class="tag">{{ infoSchool }}</span>
+          <div class="infoTags" role="list">
+            <span class="tag" role="listitem"><span :class="infoSex === '♂' ? 'boy' : 'girl'" aria-label="性别">{{ genderLabel() }}</span></span>
+            <span v-if="(infoAgeDisplay === 'all' || infoAgeDisplay === 'tag') && displayAge > 0" class="tag" role="listitem" :aria-label="`年龄${displayAge}岁`">{{ displayAge }}岁</span>
+            <span v-if="infoShowBirth === '1' && infoBirth" class="tag" role="listitem" :aria-label="`生日${infoBirth}`">{{ infoBirth.replace(/-/g, '/') }}</span>
+            <span class="tag" role="listitem" aria-label="省份">{{ infoProvince }}</span>
+            <span class="tag" role="listitem" aria-label="学校">{{ infoSchool }}</span>
           </div>
         </div>
-      </div>
+      </header>
 
-      <!-- ====== CONTENT ====== -->
-      <div class="content">
-        <!-- Full-width Intro Card -->
-        <div class="card hover intro-card">
+      <section class="content" role="main">
+        <div class="card hover intro-card" role="region" aria-label="自我介绍">
           <p class="intro-line">你好鸭，很高兴认识你👋</p>
           <p class="intro-line">
             <template v-if="infoShowName === '1'">我叫 <b>{{ name }}</b></template>
@@ -253,38 +241,45 @@ onMounted(async () => {
           </p>
         </div>
 
-        <!-- 3-Column Grid -->
         <div class="card-grid">
-          <!-- Tech Stack -->
-          <div class="card hover">
+          <div class="card hover" role="region" aria-label="技术栈">
             <div class="cardHeader">🛠️ 技术栈</div>
-            <div class="techStack">
-              <div v-for="(t, i) in techs" :key="i" class="techItem" :data-name="t.name">
+            <div class="techStack" role="list">
+              <div
+                v-for="(t, i) in techs"
+                :key="i"
+                class="techItem"
+                :data-name="t.name"
+                role="listitem"
+                :aria-label="t.name"
+              >
                 <Icon :icon="techIcon(t.name)" class="techIconSvg" />
               </div>
             </div>
           </div>
 
-          <!-- Todo -->
-          <div class="card hover">
+          <div class="card hover" role="region" aria-label="待办事项">
             <div class="cardHeader">📃 鸽子计划</div>
-            <div class="todoList">
-              <div v-for="(item, i) in todos" :key="i" class="todoItem">
-                <span class="todo-check">{{ item.done ? '✅' : '⭕' }}</span>
+            <div class="todoList" role="list">
+              <div
+                v-for="(item, i) in todos"
+                :key="i"
+                class="todoItem"
+                role="listitem"
+              >
+                <span class="todo-check" :aria-label="item.done ? '已完成' : '未完成'">{{ item.done ? '✅' : '⭕' }}</span>
                 <span :class="{ done: item.done }">{{ item.text }}</span>
               </div>
             </div>
           </div>
 
-          <!-- Time Progress -->
-          <div class="card hover">
+          <div class="card hover" role="region" aria-label="时间进度">
             <TimeGreeting />
           </div>
         </div>
 
-        <!-- Bottom bar: Typewriter + QuickLinks -->
         <div class="bottom-bar">
-          <div class="card hover typew-card">
+          <div class="card hover typew-card" role="region" aria-label="打字机文字">
             <TypewriterText
               :words="typewriterWords"
               :type-speed="80"
@@ -292,25 +287,23 @@ onMounted(async () => {
               cursor-char="|"
             />
           </div>
-          <div class="card hover soc-card">
+          <div class="card hover soc-card" role="region" aria-label="快捷链接">
             <QuickLinks :links="links" layout="row" size="lg" />
           </div>
         </div>
-      </div>
+      </section>
 
-      <!-- Footer -->
-      <div class="footer">
-        <p>© 2026 homepage</p>
-      </div>
-    </div>
+      <footer class="footer" role="contentinfo">
+        <p>© 2026 鹊楠的个人主页</p>
+      </footer>
+    </article>
   </main>
 </template>
 
 <style scoped>
-/* ====== Entrance Animation ====== */
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .main.loaded .header { animation: fadeUp 0.5s ease both; }
@@ -319,7 +312,6 @@ onMounted(async () => {
 .main.loaded .bottom-bar { animation: fadeUp 0.5s ease 0.3s both; }
 .main.loaded .footer { animation: fadeUp 0.5s ease 0.4s both; }
 
-/* ====== Layout ====== */
 main {
   width: 90%;
   max-width: 1000px;
@@ -328,7 +320,6 @@ main {
   position: relative;
 }
 
-/* ====== Header ====== */
 .mainCard .header {
   display: flex;
   align-items: center;
@@ -380,7 +371,6 @@ main {
   font-weight: 600;
 }
 
-/* Name with scroll-highlight */
 .hl-name {
   position: relative;
   color: rgba(0, 0, 0, 0.12);
@@ -406,12 +396,11 @@ main {
 }
 
 @keyframes showName {
-  0%   { width: 0; }
-  50%  { width: 105%; }
+  0% { width: 0; }
+  50% { width: 105%; }
   100% { width: 0; }
 }
 
-/* Tags */
 .infoTags {
   display: flex;
   flex-wrap: wrap;
@@ -423,13 +412,11 @@ main {
   background: var(--card-background);
   border-radius: 8px;
   font-size: 0.85rem;
-  cursor: default;
 }
 
 .infoTags .tag .boy { color: #33a9dc; }
 .infoTags .tag .girl { color: #ff5e7e; }
 
-/* ====== Content ====== */
 .mainCard .content {
   display: flex;
   flex-direction: column;
@@ -437,7 +424,6 @@ main {
   margin-top: 2rem;
 }
 
-/* ====== Intro Card (full-width) ====== */
 .intro-card {
   display: flex;
   flex-direction: row;
@@ -447,7 +433,6 @@ main {
   padding: 1rem 1.3rem;
 }
 
-/* ====== 3-Column Grid ====== */
 .card-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -458,7 +443,6 @@ main {
   min-height: 200px;
 }
 
-/* ====== Bottom Bar (Typewriter + QuickLinks side by side) ====== */
 .bottom-bar {
   display: flex;
   gap: 1rem;
@@ -483,7 +467,6 @@ main {
   flex-wrap: nowrap;
 }
 
-/* ====== Cards ====== */
 .mainCard .card {
   background: var(--card-background);
   border: 3px solid var(--card-border-color);
@@ -506,7 +489,6 @@ main {
   border-color: var(--theme-color);
 }
 
-/* ====== Todo ====== */
 .todoList {
   margin-top: 0.3rem;
   overflow-y: auto;
@@ -549,7 +531,6 @@ main {
 .todo-check { font-size: 0.9rem; flex-shrink: 0; }
 .todoItem .done { text-decoration: line-through; opacity: 0.5; }
 
-/* ====== Intro Lines ====== */
 .intro-line {
   margin: 0;
   font-size: 0.95rem;
@@ -557,7 +538,6 @@ main {
   white-space: nowrap;
 }
 
-/* Bold highlight in intro */
 .intro-card b,
 .mainCard .card-grid b {
   position: relative;
@@ -584,7 +564,6 @@ main {
 .intro-card b:hover::before,
 .mainCard .card-grid b:hover::before { height: 70%; }
 
-/* ====== Tech Stack ====== */
 .techStack {
   display: flex;
   flex-wrap: wrap;
@@ -639,14 +618,12 @@ main {
   transform: translateX(-50%) translateY(0);
 }
 
-/* ====== Typewriter ====== */
 .typew-card :deep(.typewriter) {
   font-family: monospace;
   font-size: 15px;
   text-align: center;
 }
 
-/* ====== Footer ====== */
 .mainCard .footer {
   text-align: center;
   margin-top: 2rem;
@@ -656,9 +633,6 @@ main {
 
 .mainCard .footer p { margin: 0; }
 
-/* ====== Responsive ====== */
-
-/* Tablet (iPad) */
 @media (max-width: 1024px) {
   main {
     width: 95%;
@@ -686,14 +660,12 @@ main {
   }
 }
 
-/* Mobile */
 @media (max-width: 768px) {
   main {
     width: 92%;
     padding: 1rem 0 2rem;
   }
 
-  /* Header stacks vertically */
   .mainCard .header {
     flex-direction: column;
     text-align: center;
@@ -728,19 +700,16 @@ main {
     padding: 0.2rem 0.4rem;
   }
 
-  /* Intro: allow wrapping */
   .intro-line {
     white-space: normal;
     font-size: 0.88rem;
   }
 
-  /* Card grid → single column */
   .card-grid {
     grid-template-columns: 1fr;
     gap: 0.7rem;
   }
 
-  /* Bottom bar → stack vertically */
   .bottom-bar {
     flex-direction: column;
     gap: 0.7rem;
@@ -768,7 +737,6 @@ main {
     margin-top: 1rem;
   }
 
-  /* Disable hover lift on mobile (avoids sticky-hover) */
   .mainCard .hover:hover {
     transform: none;
     box-shadow: none;
@@ -776,7 +744,6 @@ main {
   }
 }
 
-/* Small phones */
 @media (max-width: 420px) {
   main {
     width: 96%;
