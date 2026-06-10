@@ -33,7 +33,7 @@ RUN pnpm install --frozen-lockfile
 # Copy source code and build all three apps
 COPY apps/ apps/
 
-# ✅ 关键修复：允许 TypeScript 6 的 deprecation warning 不中断构建
+# 允许 TypeScript 6 的 deprecation warning 不中断构建
 RUN pnpm --filter homepage-backend build
 RUN TSC_COMPILE_ON_ERROR=true pnpm --filter homepage-frontend build
 RUN TSC_COMPILE_ON_ERROR=true pnpm --filter homepage-admin build
