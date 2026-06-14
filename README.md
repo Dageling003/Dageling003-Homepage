@@ -280,6 +280,7 @@ homepage/
 │           ├── audit/       # 审计日志
 │           └── users/       # 用户实体
 ├── docs/                    # 文档
+│   ├── deployment.md        # 部署指南
 │   ├── architecture.md      # 架构设计
 │   ├── api.md               # API 接口文档
 │   ├── dev-guide.md         # 开发指南
@@ -369,9 +370,10 @@ gunzip -c ./backups/homepage_YYYYMMDD_HHMMSS.sql.gz | \
 
 | 文档 | 说明 |
 |------|------|
+| [部署指南](./docs/deployment.md) | Docker 一键部署、手动部署、本地开发、环境变量配置 |
 | [架构设计](./docs/architecture.md) | 整体架构、数据流与模块划分 |
 | [API 文档](./docs/api.md) | 接口清单（也支持开发环境 Swagger UI） |
-| [开发指南](./docs/dev-guide.md) | 本地开发流程、Docker 部署、常见问题 |
+| [开发指南](./docs/dev-guide.md) | 本地开发流程、常见问题 |
 | [技术选型](./docs/technology-selection.md) | 技术栈清单与选择理由 |
 
 ---
