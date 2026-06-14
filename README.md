@@ -325,6 +325,12 @@ docker compose --env-file .env.docker ps     # 查看服务状态
 docker compose --env-file .env.docker logs -f caddy  # 查看 Caddy 日志
 docker compose --env-file .env.docker logs -f app    # 查看后端日志
 docker compose --env-file .env.docker down   # 停止所有服务
+
+# ---- 冒烟测试 & 健康检查 ----
+bash scripts/smoke-test.sh              # 运行冒烟测试（默认 localhost）
+bash scripts/smoke-test.sh your-domain  # 指定域名测试
+bash scripts/docker-health.sh           # 检查 Docker 服务健康状态
+bash scripts/domain-check.sh            # 验证域名访问和性能
 ```
 
 ---
@@ -340,6 +346,32 @@ docker compose --env-file .env.docker down   # 停止所有服务
 - **Swagger 生产禁用**：API 文档仅开发环境可用
 - 头像上传：MIME + sharp metadata 双重验证，仅 `jpg/png/gif/webp`，≤5MB，统一转 200×200 WebP
 - `.env` / `.env.docker` 排除在版本控制之外
+
+---
+
+## 🔧 Docker 故障排查
+
+### 常见问题
+
+| 问题 | 原因 | 解决方案 |
+|------|------|----------|
+| Caddy 启动失败 | 端口 80/443 被占用 | `netstat -tlnp \| grep :80` 检查占用进程 |
+| 构建 OOM (exit 137) | 内存不足（<2GB） | Dockerfile 已优化低内存构建参数 |
+| 数据库连接失败 | MariaDB 未就绪 | 等待 healthcheck 通过后再访问 API |
+| HTTPS 证书申请失败 | 域名未解析 / ACME 限制 | 检查 DNS A 记录，等待几分钟重试 |
+| 静态文件 404 | Caddy 镜像未包含前端 | 必须先 `docker compose build app` 再 `build caddy` |
+
+### 重新部署
+
+```bash
+# 完全重新部署（保留数据）
+bash update.sh
+
+# 清除所有数据重新部署
+docker compose --env-file .env.docker down -v
+rm -f .env.docker
+bash deploy.sh
+```
 
 ---
 
