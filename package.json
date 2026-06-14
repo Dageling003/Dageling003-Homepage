@@ -17,7 +17,7 @@
     "migrate:revert": "pnpm --filter homepage-backend migrate:revert"
   },
   "engines": {
-    "node": ">=20.19.0",
+    "node": ">=22.13.0",
     "pnpm": ">=11.0.0"
   },
   "devDependencies": {
