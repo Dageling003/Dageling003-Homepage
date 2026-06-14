@@ -176,6 +176,35 @@
 | v0.6.0 | 2026/06/07 | 初始化向导 + 安全加固 + 文档更新 |
 | v0.7.0 | 2026/06/08 | 生产环境全面安全加固 + Docker 架构重构 |
 | v0.7.1 | 2026/06/08 | 部署完成输出结构化：分块列出网站主页/后台/初始化/管理员账号/重要提示/基本路由 |
+| v0.8.0 | 2026/06/14 | 安全增强：密码重置Token 15分钟过期、ValidationPipe白名单、TypeORM Migration、Caddy缓存+防御、Magic Bytes校验 |
+
+---
+
+## 第九阶段：安全增强 + 架构优化 ✅
+
+### 安全加固
+
+- [x] 密码重置 Token 有效期从 1 小时缩短至 15 分钟
+- [x] `@Body()` 全部使用 class-validator DTO，消除 inline 类型
+- [x] `UpdateProfileDto` 白名单：仅允许修改 `avatarUrl`，防 Mass Assignment
+- [x] 头像上传 Magic Bytes 校验（file-type 库），MIME + sharp + Magic Bytes 三重验证
+- [x] 头像上传改为内存存储，不在磁盘写入原始文件
+- [x] Caddy 禁止 `/files/*` 目录执行 `.php/.sh/.py` 等脚本
+
+### 架构优化
+
+- [x] TypeORM Migration 机制：新增 `data-source.ts` + 初始 Migration
+- [x] `DB_SYNCHRONIZE` Docker 默认值从 `true` 改为 `false`
+- [x] 新增 `DB_MIGRATIONS_RUN` 环境变量（启动时自动执行迁移）
+- [x] Caddy 缓存策略：`/assets/*` 长期缓存（immutable 1年），SPA `no-cache`，API `no-store`
+- [x] 数据库备份脚本 `scripts/backup-db.sh`（mysqldump + gzip）
+- [x] README 补充：数据备份章节、Bash 环境要求、SEO 说明
+
+### 测试与 CI
+
+- [x] Auth Service 单元测试（login、validateUser、changePassword、resetPassword）
+- [x] E2E 测试更新（health、config、auth、ValidationPipe、JWT 保护）
+- [x] GitHub Actions CI 工作流：lint + build（Node 20/22 矩阵）、单元测试、安全审计
 
 ## 第七阶段：生产环境安全加固 + Docker 架构重构 ✅
 

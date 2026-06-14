@@ -22,19 +22,37 @@
     # 使用 handle 而非 handle_path：NestJS 设了 globalPrefix 'api'，
     # 需要保留 /api 前缀转发给后端。
     handle /api/* {
+        header Cache-Control "no-store, no-cache, must-revalidate"
         reverse_proxy localhost:8000
+    }
+
+    # ====== 静态资源长期缓存（Vite 哈希文件名） ======
+    handle /assets/* {
+        header Cache-Control "public, max-age=31536000, immutable"
+        root * /var/www/homepage/frontend
+        file_server
     }
 
     # ====== 管理后台 SPA ======
     handle_path /admin* {
+        header Cache-Control "no-cache"
         root * /var/www/homepage/admin
         try_files {path} /index.html
+        file_server
+    }
+
+    # ====== 上传文件（禁止执行脚本） ======
+    handle_path /files/* {
+        root * /var/www/homepage
+        @blocked ext .php .phtml .pht .php5 .php7 .phps .cgi .pl .py .sh .asp .aspx .jsp .jspx
+        respond @blocked 403
         file_server
     }
 
     # ====== 前台主页 SPA（根路径默认入口） ======
     # 未初始化时只显示布局/默认内容
     handle {
+        header Cache-Control "no-cache"
         root * /var/www/homepage/frontend
         try_files {path} /index.html
         file_server

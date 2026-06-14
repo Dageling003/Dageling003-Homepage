@@ -1,10 +1,11 @@
-﻿import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, Res, Request, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common'
+import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, Res, Request, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiConsumes } from '@nestjs/swagger'
-import { diskStorage } from 'multer'
+import { memoryStorage } from 'multer'
 import { join } from 'path'
 import { existsSync, mkdirSync, promises as fsPromises } from 'fs'
 import sharp from 'sharp'
+import { fileTypeFromBuffer } from 'file-type'
 import type { Response } from 'express'
 import { SiteConfigService } from './config.service'
 import { CreateConfigDto } from './dto/create-config.dto'
@@ -95,20 +96,11 @@ export class SiteConfigController {
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
     FileInterceptor('file', {
-      storage: diskStorage({
-        destination: (_req: any, _file: any, cb: any) => {
-          const uploadPath = join(__dirname, '..', '..', 'public', 'uploads', 'avatar')
-          if (!existsSync(uploadPath)) mkdirSync(uploadPath, { recursive: true })
-          cb(null, uploadPath)
-        },
-        filename: (_req: any, _file: any, cb: any) => {
-          const unique = Date.now() + '-' + Math.round(Math.random() * 1e9)
-          cb(null, `avatar-${unique}.webp`)
-        },
-      }),
+      storage: memoryStorage(),
       limits: { fileSize: 5 * 1024 * 1024 },
       fileFilter: (_req: any, file: any, cb: any) => {
-        if (!file.mimetype.match(/^image\/(jpeg|png|gif|webp)$/)) {
+        const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+        if (!allowedMimes.includes(file.mimetype)) {
           cb(new BadRequestException('仅支持 jpg/png/gif/webp 格式'), false)
           return
         }
@@ -119,10 +111,17 @@ export class SiteConfigController {
   async uploadAvatar(@UploadedFile() file: any) {
     if (!file) throw new BadRequestException('请选择图片文件')
 
-    // Verify file content via sharp metadata (not just MIME type)
+    // Magic Bytes 校验 — 识别真实文件类型，防伪造扩展名
+    const type = await fileTypeFromBuffer(file.buffer)
+    const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+    if (!type || !allowedMimes.includes(type.mime)) {
+      throw new BadRequestException('仅支持 jpg/png/gif/webp 格式（Magic Bytes 校验失败）')
+    }
+
+    // 额外验证：sharp 能正确解析文件
     let format: string | undefined
     try {
-      const meta = await sharp(file.path).metadata()
+      const meta = await sharp(file.buffer).metadata()
       format = meta.format
     } catch {
       throw new BadRequestException('无效的图片文件')
@@ -131,14 +130,18 @@ export class SiteConfigController {
       throw new BadRequestException('仅支持 jpg/png/gif/webp 格式')
     }
 
-    // Compress with sharp — re-read from disk after verification
-    const filePath = file.path
-    const buffer = await sharp(filePath)
+    // Compress with sharp — 重新从 buffer 处理（不在磁盘写原始文件）
+    const buffer = await sharp(file.buffer)
       .resize(200, 200, { fit: 'inside', withoutEnlargement: true })
       .webp({ quality: 70 })
       .toBuffer()
-    await fsPromises.writeFile(filePath, buffer)
-    const url = `/files/uploads/avatar/${file.filename}`
+
+    // 写入磁盘（已压缩为安全的 WebP）
+    const uploadPath = join(__dirname, '..', '..', 'public', 'uploads', 'avatar')
+    if (!existsSync(uploadPath)) mkdirSync(uploadPath, { recursive: true })
+    const filename = `avatar-${Date.now()}-${Math.round(Math.random() * 1e9)}.webp`
+    await fsPromises.writeFile(join(uploadPath, filename), buffer)
+    const url = `/files/uploads/avatar/${filename}`
     return { data: { url } }
   }
 }

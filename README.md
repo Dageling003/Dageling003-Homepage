@@ -157,8 +157,21 @@ mysql -u root -p -e "CREATE DATABASE \`homepage\` DEFAULT CHARACTER SET utf8mb4 
 cp apps/backend/.env.example apps/backend/.env
 # 编辑 .env，务必修改 JWT_SECRET（长度 ≥ 20）和 DEFAULT_ADMIN_PASSWORD（≥ 12 位）
 
-# 5. 一键启动
+# 5. 运行数据库迁移
+pnpm migrate:run
+
+# 6. 一键启动
 pnpm dev
+```
+
+> **首次部署**：需先运行 `pnpm migrate:run` 初始化数据库表结构。
+> 后续更新：如果 Schema 有变更，需生成新 migration 并执行。
+
+#### 生成新 Migration（开发者）
+
+```bash
+cd apps/backend
+npx ts-node -r tsconfig-paths/register node_modules/.bin/typeorm migration:generate -d data-source.ts src/migrations/$(date +%s)-MigrationName
 ```
 
 访问地址：
@@ -170,6 +183,8 @@ pnpm dev
 | 📡 API 文档 (Swagger) | http://localhost:8000/api/docs |
 
 ### Docker 一键部署
+
+> **Windows 用户注意**：部署脚本 `deploy.sh` 需要 Bash 环境。推荐使用 [WSL2](https://learn.microsoft.com/windows/wsl/install) 或 [Git Bash](https://git-scm.com/downloads)。
 
 ```bash
 # 向导模式 — 逐项询问关键配置，其余自动生成
@@ -212,7 +227,13 @@ cp .env.docker.example .env.docker
 docker compose --env-file .env.docker build app
 docker compose --env-file .env.docker build caddy
 
-# 3. 启动
+# 3. 首次启动（含数据库迁移）
+docker compose --env-file .env.docker up -d homepage-db
+sleep 10  # 等待数据库就绪
+docker compose --env-file .env.docker run --rm app npx ts-node -r tsconfig-paths/register node_modules/.bin/typeorm migration:run -d data-source.ts
+docker compose --env-file .env.docker up -d
+
+# 4. 后续启动
 docker compose --env-file .env.docker up -d
 ```
 
@@ -317,6 +338,33 @@ docker compose --env-file .env.docker down   # 停止所有服务
 
 ---
 
+## 💾 数据备份
+
+数据库使用 Docker Named Volume `mariadb_data` 持久化，容器重建不会丢失数据。
+
+### 手动备份
+
+```bash
+bash scripts/backup-db.sh           # 备份到 ./backups/ 目录
+bash scripts/backup-db.sh /tmp      # 指定输出目录
+```
+
+### 自动备份（Cron）
+
+```bash
+# 每天凌晨 2 点自动备份，保留最近 7 天
+0 2 * * * cd /path/to/homepage && bash scripts/backup-db.sh >> /var/log/homepage-backup.log 2>&1
+```
+
+### 恢复数据
+
+```bash
+gunzip -c ./backups/homepage_YYYYMMDD_HHMMSS.sql.gz | \
+  docker exec -i homepage-db mariadb -u homepage -p'***' homepage
+```
+
+---
+
 ## 📖 文档
 
 | 文档 | 说明 |
@@ -325,6 +373,19 @@ docker compose --env-file .env.docker down   # 停止所有服务
 | [API 文档](./docs/api.md) | 接口清单（也支持开发环境 Swagger UI） |
 | [开发指南](./docs/dev-guide.md) | 本地开发流程、Docker 部署、常见问题 |
 | [技术选型](./docs/technology-selection.md) | 技术栈清单与选择理由 |
+
+---
+
+## 🔍 SEO 说明
+
+当前为 **CSR（客户端渲染）** SPA，基础 SEO 元标签已内置：
+
+- `<meta name="description">` / `<meta name="keywords">`
+- Open Graph（og:title, og:description, og:type）
+- Twitter Cards
+- JSON-LD 结构化数据（Person schema）
+
+> **限制**：由于是 CSR，搜索引擎爬虫只能读取 `index.html` 中的静态 meta 标签，无法获取 Vue 动态渲染的内容。如需完整 SEO 支持，可考虑引入 Nuxt/Next 做 SSR 或使用 Prerender 方案。
 
 ---
 

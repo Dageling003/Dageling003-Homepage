@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler'
 import { APP_GUARD } from '@nestjs/core'
+import { join } from 'path'
 import { AuthModule } from './auth/auth.module'
 import { SiteConfigModule } from './config/config.module'
 import { AuditModule } from './audit/audit.module'
@@ -30,6 +31,8 @@ import { PasswordResetToken } from './auth/entities/password-reset-token.entity'
       database: process.env.DB_DATABASE || 'homepage',
       entities: [User, SiteConfig, AuditLog, PasswordResetToken],
       synchronize: process.env.DB_SYNCHRONIZE === 'true',
+      migrations: [join(__dirname, 'migrations', '*{.ts,.js}')],
+      migrationsRun: process.env.DB_MIGRATIONS_RUN === 'true',
       // Production connection pool settings
       extra: {
         connectionLimit: 20,

@@ -4,6 +4,7 @@ import { Throttle } from '@nestjs/throttler'
 import { AuthService } from './auth.service'
 import { LoginDto } from './dto/login.dto'
 import { ChangePasswordDto } from './dto/change-password.dto'
+import { UpdateProfileDto } from './dto/update-profile.dto'
 import { ForgotPasswordDto, ResetPasswordDto, CreateFirstAdminDto } from './dto/password-recovery.dto'
 import { JwtAuthGuard } from './jwt-auth.guard'
 
@@ -87,8 +88,8 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: '更新个人资料（需登录）' })
-  async updateProfile(@Request() req: AuthenticatedRequest, @Body() data: { avatarUrl?: string }) {
-    return { data: await this.authService.updateProfile(req.user.sub, data) }
+  async updateProfile(@Request() req: AuthenticatedRequest, @Body() dto: UpdateProfileDto) {
+    return { data: await this.authService.updateProfile(req.user.sub, dto) }
   }
 
   @Put('change-password')

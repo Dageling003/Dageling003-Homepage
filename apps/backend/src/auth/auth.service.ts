@@ -10,8 +10,8 @@ import { ChangePasswordDto } from './dto/change-password.dto'
 import { PasswordResetToken } from './entities/password-reset-token.entity'
 import { MailService } from '../common/mail.service'
 
-/** 密码重置 token 有效期（毫秒） */
-const RESET_TOKEN_TTL_MS = 60 * 60 * 1000 // 1 小时
+/** 密码重置 token 有效期（毫秒）：15 分钟 */
+const RESET_TOKEN_TTL_MS = 15 * 60 * 1000
 
 @Injectable()
 export class AuthService {

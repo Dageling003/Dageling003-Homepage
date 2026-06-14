@@ -10,7 +10,10 @@
     "dev:backend": "pnpm --filter homepage-backend start:dev",
     "build": "pnpm -r run build",
     "lint": "pnpm -r run lint",
-    "format": "prettier --write \"**/*.{ts,vue,json,md}\""
+    "format": "prettier --write \"**/*.{ts,vue,json,md}\"",
+    "migrate:run": "pnpm --filter homepage-backend migrate:run",
+    "migrate:generate": "pnpm --filter homepage-backend migrate:generate",
+    "migrate:revert": "pnpm --filter homepage-backend migrate:revert"
   },
   "engines": {
     "node": ">=20.19.0",

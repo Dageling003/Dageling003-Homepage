@@ -19,20 +19,38 @@
 	# 使用 handle 而非 handle_path：NestJS 设了 globalPrefix 'api'，
 	# 需要保留 /api 前缀转发给后端，否则后端匹配不到路由返回 404。
 	handle /api/* {
+		header Cache-Control "no-store, no-cache, must-revalidate"
 		reverse_proxy app:8000
+	}
+
+	# ====== Static assets long-term cache (Vite hashed filenames) ======
+	handle /assets/* {
+		header Cache-Control "public, max-age=31536000, immutable"
+		root * /var/www/frontend
+		file_server
 	}
 
 	# ====== Admin backend SPA ======
 	# Served directly by Caddy — no intermediate Node process
 	handle_path /admin* {
+		header Cache-Control "no-cache"
 		root * /var/www/admin
 		try_files {path} /index.html
+		file_server
+	}
+
+	# ====== Uploads (block script execution) ======
+	handle_path /files/* {
+		root * /var/www
+		@blocked ext .php .phtml .pht .php5 .php7 .phps .cgi .pl .py .sh .asp .aspx .jsp .jspx
+		respond @blocked 403
 		file_server
 	}
 
 	# ====== Frontend homepage SPA (default landing) ======
 	# 根路径直接服务公开主页，未初始化时只显示布局/默认内容
 	handle {
+		header Cache-Control "no-cache"
 		root * /var/www/frontend
 		try_files {path} /index.html
 		file_server
