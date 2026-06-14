@@ -239,6 +239,8 @@ docker compose --env-file .env.docker up -d
 
 #### 镜像说明
 
+> ⚠️ 本项目镜像仅用于自托管部署，未发布到 Docker Hub。需自行构建。
+
 | 镜像 | Dockerfile | 内容 | 大小 |
 |------|-----------|------|------|
 | `homepage-app` | `Dockerfile.app` | NestJS 后端（`pnpm deploy --prod` 仅生产依赖） | ~80-120MB |
