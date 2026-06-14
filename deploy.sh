@@ -444,6 +444,27 @@ print_summary() {
     echo ""
 }
 
+# ====== 5. 冒烟测试 ======
+run_smoke_test() {
+    echo ""
+    echo -e "${BOLD}==> 5/6 冒烟测试${NC}"
+
+    local proto
+    proto=$(derive_proto "${DOMAIN:-localhost}")
+    local target="${DOMAIN:-localhost}"
+
+    echo -e "  ${BLUE}→${NC} 正在验证部署..."
+    if [ -f scripts/smoke-test.sh ]; then
+        if bash scripts/smoke-test.sh "$target"; then
+            ok "冒烟测试通过"
+        else
+            warn "冒烟测试部分失败，请检查服务状态"
+        fi
+    else
+        warn "smoke-test.sh 不存在，跳过冒烟测试"
+    fi
+}
+
 # ====== 主流程 ======
 main() {
     banner
@@ -478,6 +499,7 @@ main() {
     fi
     build_app
     start_services
+    run_smoke_test
     print_summary
 }
 
