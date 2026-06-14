@@ -1,5 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common'
-import * as nodemailer from 'nodemailer'
+import { Injectable, Logger } from '@nestjs/common';
+import * as nodemailer from 'nodemailer';
 
 /**
  * 邮件发送服务
@@ -11,36 +11,39 @@ import * as nodemailer from 'nodemailer'
  */
 @Injectable()
 export class MailService {
-  private readonly logger = new Logger(MailService.name)
-  private transporter: nodemailer.Transporter | null = null
-  private smtpEnabled = false
-  private fromAddress = 'no-reply@homepage.local'
+  private readonly logger = new Logger(MailService.name);
+  private transporter: nodemailer.Transporter | null = null;
+  private smtpEnabled = false;
+  private fromAddress = 'no-reply@homepage.local';
 
   constructor() {
-    this.init()
+    this.init();
   }
 
   private init() {
-    const host = process.env.SMTP_HOST
-    const port = Number(process.env.SMTP_PORT || 465)
-    const user = process.env.SMTP_USER
-    const pass = process.env.SMTP_PASS
-    const from = process.env.SMTP_FROM
-    const secureEnv = process.env.SMTP_SECURE
+    const host = process.env.SMTP_HOST;
+    const port = Number(process.env.SMTP_PORT || 465);
+    const user = process.env.SMTP_USER;
+    const pass = process.env.SMTP_PASS;
+    const from = process.env.SMTP_FROM;
+    const secureEnv = process.env.SMTP_SECURE;
 
-    if (from) this.fromAddress = from
-    else if (user) this.fromAddress = user
+    if (from) this.fromAddress = from;
+    else if (user) this.fromAddress = user;
 
     if (!host || !user || !pass) {
       this.logger.warn(
         '[MailService] SMTP not configured (SMTP_HOST/SMTP_USER/SMTP_PASS missing). ' +
           'Password reset tokens will be printed to logs as a fallback.',
-      )
-      this.smtpEnabled = false
-      return
+      );
+      this.smtpEnabled = false;
+      return;
     }
 
-    const secure = secureEnv === undefined ? port === 465 : secureEnv === 'true' || secureEnv === '1'
+    const secure =
+      secureEnv === undefined
+        ? port === 465
+        : secureEnv === 'true' || secureEnv === '1';
 
     try {
       this.transporter = nodemailer.createTransport({
@@ -49,43 +52,81 @@ export class MailService {
         secure,
         auth: { user, pass },
         // 主流邮箱对未签发证书或自签证书较敏感，给个宽松兜底（生产仍建议用真实证书）
-        tls: { rejectUnauthorized: process.env.SMTP_REJECT_UNAUTHORIZED !== 'false' },
-      })
-      this.smtpEnabled = true
-      this.logger.log(`[MailService] SMTP configured host=${host}:${port} secure=${secure} from=${this.fromAddress}`)
-    } catch (err: any) {
-      this.logger.error(`[MailService] Failed to create transporter: ${err?.message}`)
-      this.smtpEnabled = false
+        tls: {
+          rejectUnauthorized: process.env.SMTP_REJECT_UNAUTHORIZED !== 'false',
+        },
+      });
+      this.smtpEnabled = true;
+      this.logger.log(
+        `[MailService] SMTP configured host=${host}:${port} secure=${secure} from=${this.fromAddress}`,
+      );
+    } catch (err: unknown) {
+      this.logger.error(
+        `[MailService] Failed to create transporter: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      this.smtpEnabled = false;
     }
   }
 
   isSmtpEnabled(): boolean {
-    return this.smtpEnabled
+    return this.smtpEnabled;
   }
 
   /**
    * 发送密码重置邮件。失败时降级到日志输出，绝不抛错。
    */
-  async sendPasswordResetEmail(to: string, username: string, resetUrl: string, rawToken: string): Promise<void> {
-    const subject = '【homepage】密码重置请求'
-    const html = this.renderResetHtml(username, resetUrl)
-    const text = this.renderResetText(username, resetUrl)
+  async sendPasswordResetEmail(
+    to: string,
+    username: string,
+    resetUrl: string,
+    rawToken: string,
+  ): Promise<void> {
+    const subject = '【homepage】密码重置请求';
+    const html = this.renderResetHtml(username, resetUrl);
+    const text = this.renderResetText(username, resetUrl);
 
     if (!this.smtpEnabled || !this.transporter) {
-      this.logFallback({ to, username, resetUrl, rawToken, reason: 'SMTP 未配置' })
-      return
+      this.logFallback({
+        to,
+        username,
+        resetUrl,
+        rawToken,
+        reason: 'SMTP 未配置',
+      });
+      return;
     }
 
     try {
-      await this.transporter.sendMail({ from: this.fromAddress, to, subject, text, html })
-      this.logger.log(`[MailService] Password reset email sent to ${this.maskEmail(to)}`)
-    } catch (err: any) {
-      this.logger.error(`[MailService] SMTP send failed: ${err?.message}`)
-      this.logFallback({ to, username, resetUrl, rawToken, reason: `SMTP 发送失败: ${err?.message}` })
+      await this.transporter.sendMail({
+        from: this.fromAddress,
+        to,
+        subject,
+        text,
+        html,
+      });
+      this.logger.log(
+        `[MailService] Password reset email sent to ${this.maskEmail(to)}`,
+      );
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.error(`[MailService] SMTP send failed: ${msg}`);
+      this.logFallback({
+        to,
+        username,
+        resetUrl,
+        rawToken,
+        reason: `SMTP 发送失败: ${msg}`,
+      });
     }
   }
 
-  private logFallback(params: { to: string; username: string; resetUrl: string; rawToken: string; reason: string }) {
+  private logFallback(params: {
+    to: string;
+    username: string;
+    resetUrl: string;
+    rawToken: string;
+    reason: string;
+  }) {
     const banner = [
       '',
       '═══════════════════════════════════════════════════════════════',
@@ -99,16 +140,16 @@ export class MailService {
       '  过期时间        : 1 小时',
       '═══════════════════════════════════════════════════════════════',
       '',
-    ].join('\n')
+    ].join('\n');
     // 走 console.log 才能保证 docker logs 立即可见且不被 JSON driver 吞掉
-    console.log(banner)
+    console.log(banner);
   }
 
   private maskEmail(email: string): string {
-    if (!email || !email.includes('@')) return '***'
-    const [name, domain] = email.split('@')
-    if (name.length <= 2) return `${name[0] || '*'}***@${domain}`
-    return `${name.slice(0, 2)}***@${domain}`
+    if (!email || !email.includes('@')) return '***';
+    const [name, domain] = email.split('@');
+    if (name.length <= 2) return `${name[0] || '*'}***@${domain}`;
+    return `${name.slice(0, 2)}***@${domain}`;
   }
 
   private renderResetText(username: string, url: string): string {
@@ -120,7 +161,7 @@ export class MailService {
       '',
       '如果不是你本人操作，请忽略此邮件。',
       '— homepage 管理后台',
-    ].join('\n')
+    ].join('\n');
   }
 
   private renderResetHtml(username: string, url: string): string {
@@ -140,6 +181,6 @@ export class MailService {
     <hr style="border:none;border-top:1px solid #eee;margin:24px 0;">
     <p style="margin:0;font-size:12px;color:#999;">如果不是你本人操作，请忽略此邮件。你的账号仍然安全。</p>
   </div>
-</body></html>`
+</body></html>`;
   }
 }

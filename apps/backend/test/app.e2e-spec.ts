@@ -1,32 +1,32 @@
-import { Test, TestingModule } from '@nestjs/testing'
-import { INestApplication, ValidationPipe } from '@nestjs/common'
-import request from 'supertest'
-import { App } from 'supertest/types'
-import { AppModule } from './../src/app.module'
+import { Test, TestingModule } from '@nestjs/testing';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
+import request from 'supertest';
+import { App } from 'supertest/types';
+import { AppModule } from './../src/app.module';
 
 describe('Homepage API (e2e)', () => {
-  let app: INestApplication<App>
+  let app: INestApplication<App>;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile()
+    }).compile();
 
-    app = moduleFixture.createNestApplication()
-    app.setGlobalPrefix('api')
+    app = moduleFixture.createNestApplication();
+    app.setGlobalPrefix('api');
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
         forbidNonWhitelisted: true,
         transform: true,
       }),
-    )
-    await app.init()
-  })
+    );
+    await app.init();
+  });
 
   afterAll(async () => {
-    await app.close()
-  })
+    await app.close();
+  });
 
   // ============================================================
   //  Health check
@@ -37,11 +37,11 @@ describe('Homepage API (e2e)', () => {
         .get('/health')
         .expect(200)
         .expect((res) => {
-          expect(res.body).toHaveProperty('status', 'ok')
-          expect(res.body).toHaveProperty('timestamp')
-        })
-    })
-  })
+          expect(res.body).toHaveProperty('status', 'ok');
+          expect(res.body).toHaveProperty('timestamp');
+        });
+    });
+  });
 
   // ============================================================
   //  Config public endpoints
@@ -52,10 +52,10 @@ describe('Homepage API (e2e)', () => {
         .get('/api/config')
         .expect(200)
         .expect((res) => {
-          expect(res.body).toHaveProperty('data')
-        })
-    })
-  })
+          expect(res.body).toHaveProperty('data');
+        });
+    });
+  });
 
   describe('GET /api/config/initialized', () => {
     it('should return initialized status', () => {
@@ -63,11 +63,13 @@ describe('Homepage API (e2e)', () => {
         .get('/api/config/initialized')
         .expect(200)
         .expect((res) => {
-          expect(res.body).toHaveProperty('data')
-          expect(res.body.data).toHaveProperty('initialized')
-        })
-    })
-  })
+          const body = res.body as Record<string, unknown>;
+          expect(body).toHaveProperty('data');
+          const data = body.data as Record<string, unknown>;
+          expect(data).toHaveProperty('initialized');
+        });
+    });
+  });
 
   describe('GET /api/auth/has-users', () => {
     it('should return hasUsers status', () => {
@@ -75,11 +77,13 @@ describe('Homepage API (e2e)', () => {
         .get('/api/auth/has-users')
         .expect(200)
         .expect((res) => {
-          expect(res.body).toHaveProperty('data')
-          expect(res.body.data).toHaveProperty('hasUsers')
-        })
-    })
-  })
+          const body = res.body as Record<string, unknown>;
+          expect(body).toHaveProperty('data');
+          const data = body.data as Record<string, unknown>;
+          expect(data).toHaveProperty('hasUsers');
+        });
+    });
+  });
 
   // ============================================================
   //  ValidationPipe — reject non-whitelisted fields
@@ -89,16 +93,16 @@ describe('Homepage API (e2e)', () => {
       return request(app.getHttpServer())
         .post('/api/auth/login')
         .send({ username: 'admin', password: 'pass', extra: 'injected' })
-        .expect(400)
-    })
+        .expect(400);
+    });
 
     it('should reject request with missing required fields', () => {
       return request(app.getHttpServer())
         .post('/api/auth/login')
         .send({})
-        .expect(400)
-    })
-  })
+        .expect(400);
+    });
+  });
 
   // ============================================================
   //  Forgot password — public endpoint
@@ -110,25 +114,24 @@ describe('Homepage API (e2e)', () => {
         .send({ username: 'nonexistent-user' })
         .expect(200)
         .expect((res) => {
-          expect(res.body.message).toContain('重置链接已发送')
-        })
-    })
-  })
+          const body = res.body as Record<string, unknown>;
+          expect(body.message).toContain('重置链接已发送');
+        });
+    });
+  });
 
   // ============================================================
   //  Protected endpoints — require JWT
   // ============================================================
   describe('Protected endpoints', () => {
     it('GET /api/auth/profile should return 401 without token', () => {
-      return request(app.getHttpServer())
-        .get('/api/auth/profile')
-        .expect(401)
-    })
+      return request(app.getHttpServer()).get('/api/auth/profile').expect(401);
+    });
 
     it('GET /api/config/export/json should return 401 without token', () => {
       return request(app.getHttpServer())
         .get('/api/config/export/json')
-        .expect(401)
-    })
-  })
-})
+        .expect(401);
+    });
+  });
+});

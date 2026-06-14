@@ -1,91 +1,110 @@
-import { NestFactory } from '@nestjs/core'
-import { ValidationPipe } from '@nestjs/common'
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger'
-import { NestExpressApplication } from '@nestjs/platform-express'
-import helmet from 'helmet'
-import { json, urlencoded } from 'express'
-import { join } from 'path'
-import { existsSync, mkdirSync } from 'fs'
-import { AppModule } from './app.module'
+import { NestFactory } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import helmet from 'helmet';
+import { json, urlencoded } from 'express';
+import { join } from 'path';
+import { existsSync, mkdirSync } from 'fs';
+import { AppModule } from './app.module';
 
 async function bootstrap() {
   // Security check: JWT_SECRET must be set and not the default
-  if (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'replace-with-a-strong-random-secret' || process.env.JWT_SECRET.length < 20) {
-    console.error('')
-    console.error('  ⛔  SECURITY ERROR: JWT_SECRET is not properly configured.')
-    console.error('  ')
-    console.error('     Please set a strong JWT_SECRET in apps/backend/.env:')
-    console.error('     JWT_SECRET=$(openssl rand -base64 32)')
-    console.error('')
-    process.exit(1)
+  if (
+    !process.env.JWT_SECRET ||
+    process.env.JWT_SECRET === 'replace-with-a-strong-random-secret' ||
+    process.env.JWT_SECRET.length < 20
+  ) {
+    console.error('');
+    console.error(
+      '  ⛔  SECURITY ERROR: JWT_SECRET is not properly configured.',
+    );
+    console.error('  ');
+    console.error('     Please set a strong JWT_SECRET in apps/backend/.env:');
+    console.error('     JWT_SECRET=$(openssl rand -base64 32)');
+    console.error('');
+    process.exit(1);
   }
 
   // Warn if DB_SYNCHRONIZE is enabled in production
-  if (process.env.NODE_ENV === 'production' && process.env.DB_SYNCHRONIZE === 'true') {
-    console.warn('')
-    console.warn('  ⚠️  WARNING: DB_SYNCHRONIZE=true in production mode.')
-    console.warn('     This may cause data loss. Set DB_SYNCHRONIZE=false for production.')
-    console.warn('')
+  if (
+    process.env.NODE_ENV === 'production' &&
+    process.env.DB_SYNCHRONIZE === 'true'
+  ) {
+    console.warn('');
+    console.warn('  ⚠️  WARNING: DB_SYNCHRONIZE=true in production mode.');
+    console.warn(
+      '     This may cause data loss. Set DB_SYNCHRONIZE=false for production.',
+    );
+    console.warn('');
   }
 
-  const app = await NestFactory.create<NestExpressApplication>(AppModule)
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   // Security headers — hardened for production
-  app.use(helmet({
-    contentSecurityPolicy: process.env.NODE_ENV === 'production' ? {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", 'data:', 'https:'],
-        connectSrc: ["'self'"],
-        fontSrc: ["'self'"],
-        objectSrc: ["'none'"],
-        mediaSrc: ["'self'"],
-        frameSrc: ["'none'"],
+  app.use(
+    helmet({
+      contentSecurityPolicy:
+        process.env.NODE_ENV === 'production'
+          ? {
+              directives: {
+                defaultSrc: ["'self'"],
+                scriptSrc: ["'self'", "'unsafe-inline'"],
+                styleSrc: ["'self'", "'unsafe-inline'"],
+                imgSrc: ["'self'", 'data:', 'https:'],
+                connectSrc: ["'self'"],
+                fontSrc: ["'self'"],
+                objectSrc: ["'none'"],
+                mediaSrc: ["'self'"],
+                frameSrc: ["'none'"],
+              },
+            }
+          : false,
+      crossOriginEmbedderPolicy: true,
+      crossOriginOpenerPolicy: { policy: 'same-origin' },
+      crossOriginResourcePolicy: { policy: 'same-origin' },
+      hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true,
       },
-    } : false,
-    crossOriginEmbedderPolicy: true,
-    crossOriginOpenerPolicy: { policy: 'same-origin' },
-    crossOriginResourcePolicy: { policy: 'same-origin' },
-    hsts: {
-      maxAge: 31536000,
-      includeSubDomains: true,
-      preload: true,
-    },
-  }))
+    }),
+  );
 
   // Global body size limits to prevent large payload attacks
-  app.use(json({ limit: '1mb' }))
-  app.use(urlencoded({ extended: true, limit: '1mb' }))
+  app.use(json({ limit: '1mb' }));
+  app.use(urlencoded({ extended: true, limit: '1mb' }));
 
   // Auto-create public directories
-  const publicDir = join(__dirname, '..', 'public')
-  ;['', 'uploads', 'uploads/avatar'].forEach((dir) => {
-    const p = join(publicDir, dir)
-    if (!existsSync(p)) mkdirSync(p, { recursive: true })
-  })
+  const publicDir = join(__dirname, '..', 'public');
+  ['', 'uploads', 'uploads/avatar'].forEach((dir) => {
+    const p = join(publicDir, dir);
+    if (!existsSync(p)) mkdirSync(p, { recursive: true });
+  });
 
   // Static files for uploads
-  app.useStaticAssets(publicDir, { prefix: '/files/' })
+  app.useStaticAssets(publicDir, { prefix: '/files/' });
 
-  const corsOriginEnv = process.env.CORS_ORIGIN
+  const corsOriginEnv = process.env.CORS_ORIGIN;
   const allowedOrigins: string[] = corsOriginEnv
-    ? corsOriginEnv.split(',').flatMap(s => {
-        const origin = s.trim()
-        if (!origin || origin === '*') return []
+    ? corsOriginEnv.split(',').flatMap((s) => {
+        const origin = s.trim();
+        if (!origin || origin === '*') return [];
         // If already a full URL (has scheme), use as-is
-        if (origin.startsWith('http://') || origin.startsWith('https://')) return [origin]
+        if (origin.startsWith('http://') || origin.startsWith('https://'))
+          return [origin];
         // Bare domain/IP → allow both http and https
-        return [`http://${origin}`, `https://${origin}`]
+        return [`http://${origin}`, `https://${origin}`];
       })
-    : ['http://localhost:3000', 'http://localhost:3001']
+    : ['http://localhost:3000', 'http://localhost:3001'];
   app.enableCors({
-    origin: allowedOrigins.length ? allowedOrigins : ['http://localhost:3000', 'http://localhost:3001'],
+    origin: allowedOrigins.length
+      ? allowedOrigins
+      : ['http://localhost:3000', 'http://localhost:3001'],
     credentials: true,
-  })
+  });
 
-  app.setGlobalPrefix('api')
+  app.setGlobalPrefix('api');
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -93,7 +112,7 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
       transform: true,
     }),
-  )
+  );
 
   // Swagger — disabled in production
   if (process.env.NODE_ENV !== 'production') {
@@ -102,29 +121,35 @@ async function bootstrap() {
       .setDescription('homepage 前后端管理系统 API 文档')
       .setVersion('0.1.0')
       .addBearerAuth()
-      .build()
+      .build();
 
-    const document = SwaggerModule.createDocument(app, config)
-    SwaggerModule.setup('api/docs', app, document)
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api/docs', app, document);
 
     // Root redirect to Swagger docs (development only)
-    const httpAdapter = app.getHttpAdapter()
-    httpAdapter.get('/', (_req: any, res: any) => {
-      res.redirect('/api/docs')
-    })
+    const httpAdapter = app.getHttpAdapter();
+    httpAdapter.get(
+      '/',
+      (_req: unknown, res: { redirect: (url: string) => void }) => {
+        res.redirect('/api/docs');
+      },
+    );
   }
 
   // Health check endpoint (always available)
-  const httpAdapter = app.getHttpAdapter()
-  httpAdapter.get('/health', (_req: any, res: any) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() })
-  })
+  const httpAdapter = app.getHttpAdapter();
+  httpAdapter.get(
+    '/health',
+    (_req: unknown, res: { json: (body: unknown) => void }) => {
+      res.json({ status: 'ok', timestamp: new Date().toISOString() });
+    },
+  );
 
-  const port = process.env.PORT || 8000
-  await app.listen(port)
-  console.log(`Server is running on http://localhost:${port}`)
+  const port = process.env.PORT || 8000;
+  await app.listen(port);
+  console.log(`Server is running on http://localhost:${port}`);
   if (process.env.NODE_ENV !== 'production') {
-    console.log(`API docs at http://localhost:${port}/api/docs`)
+    console.log(`API docs at http://localhost:${port}/api/docs`);
   }
 }
-bootstrap()
+void bootstrap();
