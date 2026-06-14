@@ -24,7 +24,6 @@ import { memoryStorage } from 'multer';
 import { join } from 'path';
 import { existsSync, mkdirSync, promises as fsPromises } from 'fs';
 import sharp from 'sharp';
-import { fileTypeFromBuffer } from 'file-type';
 import type { Response } from 'express';
 import { SiteConfigService } from './config.service';
 import { CreateConfigDto } from './dto/create-config.dto';
@@ -135,7 +134,7 @@ export class SiteConfigController {
       fileFilter: (
         _req: Express.Request,
         file: Express.Multer.File,
-        cb: (error: Error | null, accept?: boolean) => void,
+        cb: (error: Error | null, acceptFile: boolean) => void,
       ) => {
         const allowedMimes = [
           'image/jpeg',
@@ -155,11 +154,8 @@ export class SiteConfigController {
     if (!file) throw new BadRequestException('请选择图片文件');
 
     // Magic Bytes 校验 — 识别真实文件类型，防伪造扩展名
-    const type = await (
-      fileTypeFromBuffer as (
-        buf: Buffer,
-      ) => Promise<{ mime: string } | undefined>
-    )(file.buffer);
+    const { fileTypeFromBuffer } = await import('file-type');
+    const type = await fileTypeFromBuffer(file.buffer);
     const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
     if (!type || !allowedMimes.includes(type.mime)) {
       throw new BadRequestException(
