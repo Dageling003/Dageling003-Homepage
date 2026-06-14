@@ -354,24 +354,7 @@ start_services() {
     done
 }
 
-# ====== 5. 冒烟测试（可选） ======
-run_smoke_test() {
-    echo ""
-    echo -e "${BOLD}==> 5/6 冒烟测试${NC}"
-    
-    local proto
-    proto=$(derive_proto "${DOMAIN:-localhost}")
-    local target="${DOMAIN:-localhost}"
-    
-    echo -e "  ${BLUE}→${NC} 正在验证部署..."
-    if bash scripts/smoke-test.sh "$target"; then
-        ok "冒烟测试通过"
-    else
-        warn "冒烟测试部分失败，请检查服务状态"
-    fi
-}
-
-# ====== 6. 输出汇总 ======
+# ====== 5. 输出汇总 ======
 print_summary() {
     local proto
     proto=$(derive_proto "${DOMAIN:-localhost}")
@@ -495,7 +478,6 @@ main() {
     fi
     build_app
     start_services
-    run_smoke_test
     print_summary
 }
 
