@@ -83,7 +83,7 @@ jobs:
           DB_DATABASE: homepage_test
           JWT_SECRET: test-jwt-secret-for-ci-minimum-20
           NODE_ENV: test
-        run: pnpm test -- --passWithNoTests
+        run: pnpm test --passWithNoTests
 
   security-audit:
     name: Security Audit
