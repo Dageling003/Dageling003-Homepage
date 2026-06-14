@@ -224,6 +224,8 @@ cp .env.docker.example .env.docker
 # 编辑 .env.docker，填入你的域名、密钥、密码（所有密码必填，无弱默认值兜底）
 
 # 2. 构建镜像（必须先 app 后 caddy — caddy 从 app 镜像提取静态文件）
+#    ⚠️ 不能用 docker compose build 一次性构建，caddy 依赖 app 镜像中的静态文件，
+#    并行构建会导致 caddy 找不到 homepage-app:latest 而失败。
 docker compose --env-file .env.docker build app
 docker compose --env-file .env.docker build caddy
 
