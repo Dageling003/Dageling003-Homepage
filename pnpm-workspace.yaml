@@ -1,6 +1,13 @@
 packages:
   - 'apps/*'
 
+overrides:
+  tar-fs: '>=2.1.4'
+  ini: '>=1.3.6'
+  tmp: '>=0.2.6'
+  glob: '>=11.1.0'
+  esbuild: '>=0.28.1'
+
 # Only allow build scripts for packages that need native compilation
 allowBuilds:
   '@nestjs/core': true
