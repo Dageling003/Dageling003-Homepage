@@ -1,28 +1,34 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm'
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn()
-  id: number
+  id: number;
 
   @Column({ length: 50, unique: true })
-  username: string
+  username: string;
 
   @Column()
-  password: string
+  password: string;
 
   @Column({ length: 10, default: 'admin' })
-  role: string
+  role: string;
 
   @Column({ length: 255, nullable: true })
-  avatarUrl: string
+  avatarUrl: string;
 
   @Column({ length: 10, default: 'light' })
-  theme: string
+  theme: string;
 
   @CreateDateColumn()
-  createdAt: Date
+  createdAt: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date
+  updatedAt: Date;
 }

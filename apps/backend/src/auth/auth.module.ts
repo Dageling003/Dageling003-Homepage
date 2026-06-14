@@ -1,13 +1,13 @@
-import { Module, OnModuleInit, Global } from '@nestjs/common'
-import { JwtModule } from '@nestjs/jwt'
-import { PassportModule } from '@nestjs/passport'
-import { TypeOrmModule } from '@nestjs/typeorm'
-import { AuthController } from './auth.controller'
-import { AuthService } from './auth.service'
-import { JwtStrategy } from './jwt.strategy'
-import { User } from '../users/user.entity'
-import { PasswordResetToken } from './entities/password-reset-token.entity'
-import { MailService } from '../common/mail.service'
+import { Module, OnModuleInit, Global } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
+import { PassportModule } from '@nestjs/passport';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { AuthController } from './auth.controller';
+import { AuthService } from './auth.service';
+import { JwtStrategy } from './jwt.strategy';
+import { User } from '../users/user.entity';
+import { PasswordResetToken } from './entities/password-reset-token.entity';
+import { MailService } from '../common/mail.service';
 
 @Global()
 @Module({
@@ -29,6 +29,6 @@ export class AuthModule implements OnModuleInit {
   constructor(private authService: AuthService) {}
 
   async onModuleInit() {
-    await this.authService.ensureAdminExists()
+    await this.authService.ensureAdminExists();
   }
 }

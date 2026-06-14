@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index } from 'typeorm'
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  Index,
+} from 'typeorm';
 
 /**
  * 密码重置 token 表
@@ -9,22 +15,22 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index } from 
 @Entity('password_reset_tokens')
 export class PasswordResetToken {
   @PrimaryGeneratedColumn()
-  id: number
+  id: number;
 
   @Index()
   @Column({ name: 'user_id' })
-  userId: number
+  userId: number;
 
   @Index({ unique: true })
   @Column({ name: 'token_hash', length: 64 })
-  tokenHash: string
+  tokenHash: string;
 
   @Column({ name: 'expires_at', type: 'datetime' })
-  expiresAt: Date
+  expiresAt: Date;
 
   @Column({ name: 'used_at', type: 'datetime', nullable: true })
-  usedAt: Date | null
+  usedAt: Date | null;
 
   @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date
+  createdAt: Date;
 }

@@ -1,25 +1,30 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm'
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+} from 'typeorm';
 
 @Entity('audit_logs')
 export class AuditLog {
   @PrimaryGeneratedColumn()
-  id: number
+  id: number;
 
   @Column({ length: 20 })
-  action: string // 'CREATE' | 'UPDATE' | 'DELETE'
+  action: string; // 'CREATE' | 'UPDATE' | 'DELETE'
 
   @Column({ length: 30 })
-  entity: string // 'config' | 'user'
+  entity: string; // 'config' | 'user'
 
   @Column({ name: 'entity_key', length: 100, nullable: true })
-  entityKey: string
+  entityKey: string;
 
   @Column({ type: 'text', nullable: true })
-  detail: string
+  detail: string;
 
   @Column({ length: 50, nullable: true })
-  operator: string
+  operator: string;
 
   @CreateDateColumn()
-  createdAt: Date
+  createdAt: Date;
 }

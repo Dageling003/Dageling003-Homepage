@@ -1,7 +1,19 @@
-import { Controller, Get, UseGuards, Query, DefaultValuePipe, ParseIntPipe } from '@nestjs/common'
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger'
-import { AuditService } from './audit.service'
-import { JwtAuthGuard } from '../auth/jwt-auth.guard'
+import {
+  Controller,
+  Get,
+  UseGuards,
+  Query,
+  DefaultValuePipe,
+  ParseIntPipe,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+} from '@nestjs/swagger';
+import { AuditService } from './audit.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @ApiTags('Audit Log')
 @Controller('audit')
@@ -26,8 +38,13 @@ export class AuditController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    const p = Math.max(1, page)
-    const l = Math.max(1, Math.min(100, limit))
-    return this.auditService.findAll(p, l, { action, operator, startDate, endDate })
+    const p = Math.max(1, page);
+    const l = Math.max(1, Math.min(100, limit));
+    return this.auditService.findAll(p, l, {
+      action,
+      operator,
+      startDate,
+      endDate,
+    });
   }
 }

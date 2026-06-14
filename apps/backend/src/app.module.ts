@@ -1,23 +1,25 @@
-import { Module } from '@nestjs/common'
-import { ConfigModule } from '@nestjs/config'
-import { TypeOrmModule } from '@nestjs/typeorm'
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler'
-import { APP_GUARD } from '@nestjs/core'
-import { join } from 'path'
-import { AuthModule } from './auth/auth.module'
-import { SiteConfigModule } from './config/config.module'
-import { AuditModule } from './audit/audit.module'
-import { User } from './users/user.entity'
-import { SiteConfig } from './config/entities/config.entity'
-import { AuditLog } from './audit/audit.entity'
-import { PasswordResetToken } from './auth/entities/password-reset-token.entity'
+import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+import { join } from 'path';
+import { AuthModule } from './auth/auth.module';
+import { SiteConfigModule } from './config/config.module';
+import { AuditModule } from './audit/audit.module';
+import { User } from './users/user.entity';
+import { SiteConfig } from './config/entities/config.entity';
+import { AuditLog } from './audit/audit.entity';
+import { PasswordResetToken } from './auth/entities/password-reset-token.entity';
 
 @Module({
   imports: [
-    ThrottlerModule.forRoot([{
-      ttl: 60000,
-      limit: 120,
-    }]),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 120,
+      },
+    ]),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',

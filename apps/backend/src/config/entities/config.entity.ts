@@ -1,22 +1,28 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm'
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 @Entity('site_config')
 export class SiteConfig {
   @PrimaryGeneratedColumn()
-  id: number
+  id: number;
 
   @Column({ name: 'config_key', length: 50, unique: true })
-  configKey: string
+  configKey: string;
 
   @Column({ name: 'config_value', type: 'text' })
-  configValue: string
+  configValue: string;
 
   @Column({ name: 'category', length: 50, default: 'general' })
-  category: string
+  category: string;
 
   @CreateDateColumn()
-  createdAt: Date
+  createdAt: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date
+  updatedAt: Date;
 }

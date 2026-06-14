@@ -1,15 +1,29 @@
-import { Controller, Post, Get, Put, Body, UseGuards, Request, HttpCode, HttpStatus } from '@nestjs/common'
-import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger'
-import { Throttle } from '@nestjs/throttler'
-import { AuthService } from './auth.service'
-import { LoginDto } from './dto/login.dto'
-import { ChangePasswordDto } from './dto/change-password.dto'
-import { UpdateProfileDto } from './dto/update-profile.dto'
-import { ForgotPasswordDto, ResetPasswordDto, CreateFirstAdminDto } from './dto/password-recovery.dto'
-import { JwtAuthGuard } from './jwt-auth.guard'
+import {
+  Controller,
+  Post,
+  Get,
+  Put,
+  Body,
+  UseGuards,
+  Request,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
+import { AuthService } from './auth.service';
+import { LoginDto } from './dto/login.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import {
+  ForgotPasswordDto,
+  ResetPasswordDto,
+  CreateFirstAdminDto,
+} from './dto/password-recovery.dto';
+import { JwtAuthGuard } from './jwt-auth.guard';
 
 interface AuthenticatedRequest {
-  user: { sub: number; username: string; role: string }
+  user: { sub: number; username: string; role: string };
 }
 
 @ApiTags('Auth')
@@ -22,7 +36,7 @@ export class AuthController {
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @ApiOperation({ summary: '管理员登录' })
   async login(@Body() dto: LoginDto) {
-    return this.authService.login(dto)
+    return this.authService.login(dto);
   }
 
   // ============================================================
@@ -34,10 +48,11 @@ export class AuthController {
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @ApiOperation({
     summary: '申请密码重置（公开）',
-    description: '提交用户名，系统生成一次性 token。若配置了 SMTP 则发送邮件，否则写入服务器日志。',
+    description:
+      '提交用户名，系统生成一次性 token。若配置了 SMTP 则发送邮件，否则写入服务器日志。',
   })
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
-    return this.authService.requestPasswordReset(dto.username)
+    return this.authService.requestPasswordReset(dto.username);
   }
 
   @Post('reset-password')
@@ -45,7 +60,7 @@ export class AuthController {
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @ApiOperation({ summary: '使用重置 token 设置新密码（公开）' })
   async resetPassword(@Body() dto: ResetPasswordDto) {
-    return this.authService.resetPassword(dto.token, dto.newPassword)
+    return this.authService.resetPassword(dto.token, dto.newPassword);
   }
 
   // ============================================================
@@ -58,7 +73,7 @@ export class AuthController {
     description: '前端用此判断是否进入「首次设置」流程。',
   })
   async hasUsers() {
-    return { data: { hasUsers: await this.authService.hasAnyUser() } }
+    return { data: { hasUsers: await this.authService.hasAnyUser() } };
   }
 
   @Post('create-first-admin')
@@ -66,10 +81,11 @@ export class AuthController {
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @ApiOperation({
     summary: '创建第一个管理员账号（仅 users 表为空时可用）',
-    description: '首次部署时由 /admin/setup 调用，创建完成后请用该账号登录并继续配置。',
+    description:
+      '首次部署时由 /admin/setup 调用，创建完成后请用该账号登录并继续配置。',
   })
   async createFirstAdmin(@Body() dto: CreateFirstAdminDto) {
-    return this.authService.createFirstAdmin(dto.username, dto.password)
+    return this.authService.createFirstAdmin(dto.username, dto.password);
   }
 
   // ============================================================
@@ -81,22 +97,28 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({ summary: '获取当前用户信息' })
   async getProfile(@Request() req: AuthenticatedRequest) {
-    return this.authService.getProfile(req.user.sub)
+    return this.authService.getProfile(req.user.sub);
   }
 
   @Put('profile')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: '更新个人资料（需登录）' })
-  async updateProfile(@Request() req: AuthenticatedRequest, @Body() dto: UpdateProfileDto) {
-    return { data: await this.authService.updateProfile(req.user.sub, dto) }
+  async updateProfile(
+    @Request() req: AuthenticatedRequest,
+    @Body() dto: UpdateProfileDto,
+  ) {
+    return { data: await this.authService.updateProfile(req.user.sub, dto) };
   }
 
   @Put('change-password')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: '修改密码（需登录）' })
-  async changePassword(@Request() req: AuthenticatedRequest, @Body() dto: ChangePasswordDto) {
-    return this.authService.changePassword(req.user.sub, dto)
+  async changePassword(
+    @Request() req: AuthenticatedRequest,
+    @Body() dto: ChangePasswordDto,
+  ) {
+    return this.authService.changePassword(req.user.sub, dto);
   }
 }
