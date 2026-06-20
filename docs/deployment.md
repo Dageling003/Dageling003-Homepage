@@ -51,14 +51,14 @@
 
 ## Docker 一键部署
 
-项目提供 `deploy.sh` 脚本，支持三种部署模式。
+项目提供 `scripts/deploy.sh` 脚本，支持三种部署模式。
 
 ### 向导模式
 
 交互式引导，逐一询问关键配置：
 
 ```bash
-bash deploy.sh
+bash scripts/deploy.sh
 ```
 
 脚本将引导你完成以下步骤：
@@ -74,7 +74,7 @@ bash deploy.sh
 零交互部署，适用于 CI/CD 环境：
 
 ```bash
-CI=true bash deploy.sh
+CI=true bash scripts/deploy.sh
 ```
 
 所有配置使用默认值或环境变量，无需手动输入。
@@ -84,7 +84,7 @@ CI=true bash deploy.sh
 如果已通过环境变量设置域名，可跳过域名交互：
 
 ```bash
-DOMAIN=your-domain.com bash deploy.sh
+DOMAIN=your-domain.com bash scripts/deploy.sh
 ```
 
 其余配置仍以交互方式询问。

@@ -139,15 +139,23 @@ homepage/
 │           ├── audit/             # 审计日志模块
 │           └── users/             # 用户实体
 │
+├── scripts/                       # 部署和运维脚本
+│   ├── deploy.sh                  # 一键部署
+│   ├── build.sh                   # 构建脚本
+│   ├── update.sh                  # 更新脚本
+│   ├── smoke-test.sh              # 冒烟测试
+│   ├── docker-health.sh           # Docker 健康检查
+│   ├── domain-check.sh            # 域名验证
+│   └── backup-db.sh               # 数据库备份
+├── config/                        # 配置文件
+│   └── ecosystem.config.cjs       # PM2 配置
 ├── docs/                          # 项目文档
 ├── Caddyfile                      # 反向代理（开发/内网部署）
 ├── Caddyfile.docker               # Caddy 配置（Docker 部署，内置到 Caddy 镜像）
 ├── Dockerfile.app                 # 后端 API 镜像构建
 ├── Dockerfile.caddy               # Caddy + 静态文件镜像构建
 ├── docker-compose.yml             # Docker 编排（app + mariadb + caddy）
-├── deploy.sh                      # 一键部署脚本
 ├── .dockerignore                  # Docker 构建忽略清单
-├── ecosystem.config.cjs           # PM2 配置
 ├── package.json                   # workspace 根
 └── pnpm-workspace.yaml
 ```

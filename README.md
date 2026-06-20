@@ -294,6 +294,16 @@ homepage/
 │           ├── config/      # 站点配置 CRUD + 头像上传
 │           ├── audit/       # 审计日志
 │           └── users/       # 用户实体
+├── scripts/                 # 部署和运维脚本
+│   ├── deploy.sh            # 一键部署脚本
+│   ├── build.sh             # 构建脚本
+│   ├── update.sh            # 更新脚本
+│   ├── smoke-test.sh        # 冒烟测试
+│   ├── docker-health.sh     # Docker 健康检查
+│   ├── domain-check.sh      # 域名验证
+│   └── backup-db.sh         # 数据库备份
+├── config/                  # 配置文件
+│   └── ecosystem.config.cjs # PM2 生产部署
 ├── docs/                    # 文档
 │   ├── deployment.md        # 部署指南
 │   ├── architecture.md      # 架构设计
@@ -301,15 +311,14 @@ homepage/
 │   ├── dev-guide.md         # 开发指南
 │   ├── progress.md          # 开发进度
 │   └── technology-selection.md  # 技术选型
+├── image/                   # 项目图片资源
 ├── Caddyfile                # 反向代理配置（开发/内网）
 ├── Caddyfile.docker         # Caddy 配置（Docker，内置到 Caddy 镜像）
 ├── caddy-entrypoint.sh      # Caddy 入口脚本（处理空 ACME_EMAIL）
 ├── Dockerfile.app           # 后端 API 镜像
 ├── Dockerfile.caddy         # Caddy + 静态文件镜像
 ├── docker-compose.yml       # Docker 编排（app + mariadb + caddy）
-├── deploy.sh                # 一键部署脚本
 ├── .env.docker.example      # Docker 环境变量模板
-├── ecosystem.config.cjs     # PM2 生产部署
 └── pnpm-workspace.yaml
 ```
 
@@ -330,8 +339,8 @@ pnpm lint             # 代码检查
 pnpm format           # 格式化全部文件
 
 # ---- Docker 部署 ----
-bash deploy.sh        # 一键部署（向导模式）
-CI=true bash deploy.sh  # 一键部署（全自动）
+bash scripts/deploy.sh        # 一键部署（向导模式）
+CI=true bash scripts/deploy.sh  # 一键部署（全自动）
 docker compose --env-file .env.docker ps     # 查看服务状态
 docker compose --env-file .env.docker logs -f caddy  # 查看 Caddy 日志
 docker compose --env-file .env.docker logs -f app    # 查看后端日志
