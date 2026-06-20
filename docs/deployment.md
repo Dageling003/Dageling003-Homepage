@@ -134,6 +134,31 @@ docker compose --env-file .env.docker build app
 docker compose --env-file .env.docker build caddy
 ```
 
+### 网络架构
+
+Docker Compose 使用两个隔离网络增强安全性：
+
+| 网络 | 连接的服务 | 说明 |
+|------|-----------|------|
+| `frontend` | caddy, app | Caddy 反向代理 API 请求到 App |
+| `backend` | app, mariadb | App 连接数据库 |
+
+> **安全优势**：MariaDB 仅在 `backend` 网络中，不直接暴露到 `frontend`，即使 Caddy 被攻破也无法直接访问数据库。
+
+### 健康检查
+
+所有服务均配置了健康检查，确保依赖服务就绪后才启动：
+
+| 服务 | 健康检查方式 | 间隔 |
+|------|-------------|------|
+| `mariadb` | `mariadb-admin ping` | 10s |
+| `app` | HTTP 请求 `/health` 端点 | 30s |
+| `caddy` | `caddy validate --config` | 30s |
+
+`depends_on` 使用 `condition: service_healthy` 确保启动顺序：
+1. MariaDB 就绪 → App 启动
+2. App 就绪 → Caddy 启动
+
 ### 首次启动
 
 首次启动需要执行数据库迁移：
@@ -469,6 +494,31 @@ gunzip -c ./backups/homepage_YYYYMMDD_HHMMSS.sql.gz | \
 ACME_CA=https://acme.zerossl.com/v2/DV90          # ZeroSSL（默认）
 ACME_CA=https://acme-v02.api.letsencrypt.org/directory  # Let's Encrypt
 ```
+
+---
+
+## 安全加固
+
+### 依赖安全
+
+项目定期审计并修复高危漏洞：
+
+| 依赖 | 漏洞 | 修复方式 |
+|------|------|----------|
+| `form-data` | CRLF injection | override → >=4.0.6 |
+| `multer` | DoS via nested field names | override → >=2.2.0 |
+| `nodemailer` | SSRF/file read | 升级 → ^9.0.1 |
+
+运行 `pnpm audit --registry https://registry.npmjs.org` 可检查当前安全状态。
+
+### 网络隔离
+
+Docker Compose 使用两个独立网络：
+
+- **frontend**：Caddy 和 App 通信
+- **backend**：App 和 MariaDB 通信
+
+MariaDB 不暴露到 frontend 网络，即使 Caddy 被攻破也无法直接访问数据库。
 
 ---
 
