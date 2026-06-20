@@ -8,6 +8,7 @@ export const FIELD_DEFS: Record<string, {
   frontendLocation: string
   configKey?: string
 }> = {
+  siteTitle:      { label: '网站标题',   section: 'info',  desc: '浏览器标签页显示的网站标题',            example: '鹊楠的个人主页', frontendLocation: '浏览器标签页' },
   name:           { label: '昵称',       section: 'info',  desc: '头部大标题 "Hi, I\'m ___"',          example: '鹊楠',          frontendLocation: '头部标题' },
   infoSex:        { label: '性别',       section: 'info',  desc: '标签栏第一项，选择 男♂ 或 女♀',          example: '♂',           frontendLocation: '标签栏' },
   infoSexDisplay: { label: '性别展示',   section: 'info',  desc: '前台标签栏显示格式：symbol(仅符号) / text(仅文字) / both(符号+文字)', example: 'symbol', frontendLocation: '标签栏' },

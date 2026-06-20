@@ -17,6 +17,7 @@ const done = ref(false)
 
 // ==================== Data ====================
 const form = ref<Record<string, string>>({})
+const siteTitle = ref('')
 const professionTags = ref<string[]>([])
 const linkItems = ref<Array<{ text: string; url: string; color: string }>>([])
 const techItems = ref<Array<{ name: string }>>([])
@@ -84,6 +85,7 @@ const STEPS = computed(() => {
   const base = [
     { title: '欢迎', icon: '👋' },
     { title: '管理员', icon: '👑' },
+    { title: '网站标题', icon: '🏷️' },
     { title: '个人信息', icon: '👤' },
     { title: '快捷链接', icon: '🔗' },
     { title: '技术栈', icon: '🛠️' },
@@ -107,6 +109,9 @@ async function loadExisting() {
     const all: Array<{ configKey: string; configValue: string; category?: string }> = (res.data as any)?.data || []
     const map: Record<string, string> = {}
     for (const c of all) map[c.configKey] = c.configValue
+
+    // Load site title
+    if (map.siteTitle) siteTitle.value = map.siteTitle
 
     // Load personal info
     const infoKeys = ['name', 'infoSex', 'infoProvince', 'infoSchool', 'avatarUrl', 'infoBirth', 'infoAgeDisplay']
@@ -192,6 +197,11 @@ async function handleNext() {
     // 步骤下标因 bootstrap 偏移 0/1，需按 STEPS 名称定位
     const currentTitle = STEPS.value[step.value]?.title
     switch (currentTitle) {
+      case '网站标题':
+        if (siteTitle.value.trim()) {
+          await saveConfig('siteTitle', siteTitle.value.trim())
+        }
+        break
       case '个人信息': {
         for (const [k, v] of Object.entries(form.value)) {
           if (v) await saveConfig(k, v)
@@ -289,6 +299,28 @@ async function handleFinish() {
           <a-form-item label="确认密码" required class="sw-form-full">
             <a-input-password v-model:value="adminPasswordConfirm" placeholder="再输入一次" size="middle" />
           </a-form-item>
+        </div>
+      </div>
+
+      <!-- Step: Site Title -->
+      <div v-else-if="STEPS[step]?.title === '网站标题'" class="sw-step-content">
+        <h3 class="sw-section-title">🏷️ 设置网站标题</h3>
+        <p class="sw-section-desc">浏览器标签页显示的标题，也是分享链接时的默认标题。</p>
+        <div class="sw-form">
+          <div class="sw-form-full">
+            <a-input
+              v-model:value="siteTitle"
+              placeholder="例如：鹊楠的个人主页"
+              size="middle"
+              :maxlength="50"
+              show-count
+            />
+            <div class="sw-title-preview" v-if="siteTitle">
+              <span class="sw-title-preview-label">预览：</span>
+              <span class="sw-title-preview-tab">🔒 {{ siteTitle }}</span>
+            </div>
+            <div class="sw-title-hint" v-else>留空则使用默认标题「个人主页」</div>
+          </div>
         </div>
       </div>
 
@@ -479,6 +511,28 @@ async function handleFinish() {
 .sw-date-input:focus { border-color: #1677ff; box-shadow: 0 0 0 2px rgba(22,119,255,0.1); }
 .sw-birth-preview { font-size: 0.82rem; color: #1677ff; background: #f0f5ff; padding: 4px 10px; border-radius: 6px; }
 .sw-birth-preview b { font-weight: 700; }
+
+.sw-title-preview {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+}
+.sw-title-preview-label { color: #8c8c8c; }
+.sw-title-preview-tab {
+  background: #f5f5f5;
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: 1px solid #d9d9d9;
+  color: #262626;
+  font-size: 0.82rem;
+}
+.sw-title-hint {
+  margin-top: 6px;
+  font-size: 0.78rem;
+  color: #bfbfbf;
+}
 
 .sw-strength { margin-top: 6px; display: flex; align-items: center; gap: 8px; }
 .sw-strength-bar { flex: 1; height: 4px; background: #f0f0f0; border-radius: 2px; overflow: hidden; }

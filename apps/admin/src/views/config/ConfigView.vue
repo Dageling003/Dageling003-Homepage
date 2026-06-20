@@ -85,6 +85,7 @@ async function handleAvatarUpload(file: File) {
 
 // ==================== Info field groups ====================
 const INFO_GROUPS = [
+  { label: '网站标题', keys: ['siteTitle'] },
   { label: '姓名', keys: ['name'] },
   { label: '性别', keys: ['infoSex', 'infoSexDisplay'] },
   { label: '年龄', keys: ['infoBirth', 'infoAgeDisplay'] },

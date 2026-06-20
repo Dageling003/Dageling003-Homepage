@@ -156,6 +156,10 @@ function genderLabel(): string {
 }
 
 const configHandlers: Record<string, (val: string) => void> = {
+  siteTitle: (v) => {
+    const title = v || '个人主页'
+    document.title = title
+  },
   name: (v) => { name.value = v },
   infoSex: (v) => { infoSex.value = v },
   infoSexDisplay: (v) => { infoSexDisplay.value = v || 'symbol' },
