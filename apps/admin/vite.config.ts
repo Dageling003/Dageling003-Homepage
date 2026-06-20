@@ -42,5 +42,6 @@ export default defineConfig({
     },
     assetsDir: 'assets',
     assetsInlineLimit: 4096,
+    chunkSizeWarningLimit: 2000,
   },
 })
