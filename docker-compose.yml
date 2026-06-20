@@ -21,6 +21,8 @@ services:
         limits:
           memory: 512M
           cpus: "1"
+    networks:
+      - backend
 
   app:
     build:
@@ -55,11 +57,20 @@ services:
     # Ports are NOT exposed to host — all traffic goes through Caddy (80/443)
     volumes:
       - app_uploads:/app/public/uploads
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:8000/health',r=>{r.on('data',()=>{});r.on('end',()=>process.exit(r.statusCode===200?0:1))})"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
     deploy:
       resources:
         limits:
           memory: 512M
           cpus: "1"
+    networks:
+      - backend
+      - frontend
     logging:
       driver: json-file
       options:
@@ -85,11 +96,25 @@ services:
     depends_on:
       app:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "caddy", "validate", "--config", "/etc/caddy/Caddyfile"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    networks:
+      - frontend
     logging:
       driver: json-file
       options:
         max-size: "20m"
         max-file: "3"
+
+networks:
+  backend:
+    driver: bridge
+  frontend:
+    driver: bridge
 
 volumes:
   mariadb_data:

@@ -15,6 +15,11 @@
 }
 
 {$DOMAIN} {
+	# ====== Health check (for Caddy healthcheck in docker-compose) ======
+	handle /health {
+		reverse_proxy app:8000
+	}
+
 	# ====== API reverse proxy (backend only) ======
 	# 使用 handle 而非 handle_path：NestJS 设了 globalPrefix 'api'，
 	# 需要保留 /api 前缀转发给后端，否则后端匹配不到路由返回 404。

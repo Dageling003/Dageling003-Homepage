@@ -21,4 +21,26 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id: string) {
+          if (id.includes('node_modules/vue') || id.includes('node_modules/vue-router') || id.includes('node_modules/pinia')) {
+            return 'vue'
+          }
+          if (id.includes('node_modules/ant-design-vue') || id.includes('node_modules/@ant-design')) {
+            return 'antd'
+          }
+          if (id.includes('node_modules/echarts')) {
+            return 'echarts'
+          }
+          if (id.includes('node_modules/axios') || id.includes('node_modules/dayjs')) {
+            return 'vendor'
+          }
+        },
+      },
+    },
+    assetsDir: 'assets',
+    assetsInlineLimit: 4096,
+  },
 })

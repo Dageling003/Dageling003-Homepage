@@ -18,6 +18,11 @@
 }
 
 {host} {
+    # ====== 健康检查 ======
+    handle /health {
+        reverse_proxy localhost:8000
+    }
+
     # ====== API 反向代理 ======
     # 使用 handle 而非 handle_path：NestJS 设了 globalPrefix 'api'，
     # 需要保留 /api 前缀转发给后端。
