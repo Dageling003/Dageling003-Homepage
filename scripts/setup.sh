@@ -148,6 +148,9 @@ DB_USERNAME="homepage"
 DB_PASSWORD=$(rand 20)
 DB_DATABASE="homepage"
 
+# MariaDB 镜像源（默认使用阿里云中国镜像）
+MARIADB_IMAGE="registry.cn-hangzhou.aliyuncs.com/library/mariadb:11.4"
+
 # 写入配置文件
 cat > "$ENV_FILE" <<EOF
 # homepage Docker 部署环境变量 — $(date '+%Y-%m-%d %H:%M:%S') 自动生成
@@ -169,6 +172,9 @@ DB_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
 DB_USERNAME=${DB_USERNAME}
 DB_PASSWORD=${DB_PASSWORD}
 DB_DATABASE=${DB_DATABASE}
+
+# MariaDB 镜像源（可选，默认使用阿里云中国镜像）
+MARIADB_IMAGE=${MARIADB_IMAGE}
 
 # 首次部署自动建表
 DB_SYNCHRONIZE=true
