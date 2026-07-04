@@ -440,7 +440,41 @@ docker compose --env-file .env.docker build app
 docker compose --env-file .env.docker build caddy
 ```
 
-### 2. 数据库连接失败
+### 2. MariaDB 镜像拉取失败
+
+**问题**：`pull access denied for mariadb:11.4` 或 `failed to resolve reference`
+
+**原因**：Docker Hub 在国内访问受限
+
+**解决方案**：
+
+项目默认使用 `docker.1ms.run` 镜像加速器。如果仍然失败，可手动配置：
+
+```bash
+# 方案1: 配置 Docker 镜像加速器（推荐）
+sudo tee /etc/docker/daemon.json <<-'EOF'
+{
+  "registry-mirrors": [
+    "https://docker.1ms.run",
+    "https://docker.xuanyuan.me"
+  ]
+}
+EOF
+sudo systemctl daemon-reload
+sudo systemctl restart docker
+
+# 方案2: 在 .env.docker 中切换镜像源
+# 清华大学镜像
+MARIADB_IMAGE=mirrors.tuna.tsinghua.edu.cn/library/mariadb:11.4
+
+# 中科大镜像
+MARIADB_IMAGE=mirrors.ustc.edu.cn/library/mariadb:11.4
+
+# Docker Hub 官方（需网络通畅）
+MARIADB_IMAGE=mariadb:11.4
+```
+
+### 3. 数据库连接失败
 
 **问题**：后端无法连接数据库
 
@@ -449,7 +483,7 @@ docker compose --env-file .env.docker build caddy
 - 查看数据库日志：`docker compose --env-file .env.docker logs homepage-db`
 - 确认环境变量配置正确：`DB_ROOT_PASSWORD`、`DB_USERNAME`、`DB_PASSWORD`
 
-### 3. 端口被占用
+### 4. 端口被占用
 
 **问题**：端口 80 或 443 已被占用
 
@@ -461,7 +495,7 @@ netstat -tlnp | grep -E ':(80|443)'
 # 停止占用端口的服务，或修改 docker-compose.yml 中的端口映射
 ```
 
-### 4. Caddy 证书申请失败
+### 5. Caddy 证书申请失败
 
 **问题**：HTTPS 证书申请失败
 
@@ -470,7 +504,7 @@ netstat -tlnp | grep -E ':(80|443)'
 - 检查 `ACME_EMAIL` 是否配置
 - 尝试切换证书颁发机构：在 `.env.docker` 中设置 `ACME_CA=https://acme-v02.api.letsencrypt.org/directory`
 
-### 5. Windows 用户无法运行 deploy.sh
+### 6. Windows 用户无法运行 deploy.sh
 
 **问题**：提示找不到 bash 或脚本执行失败
 
@@ -478,7 +512,7 @@ netstat -tlnp | grep -E ':(80|443)'
 - 安装 [WSL2](https://learn.microsoft.com/windows/wsl/install) 并使用 WSL 终端
 - 或安装 [Git Bash](https://git-scm.com/downloads) 并使用 Git Bash 终端
 
-### 6. 首次部署后无法访问管理后台
+### 7. 首次部署后无法访问管理后台
 
 **问题**：访问管理后台显示空白页
 
