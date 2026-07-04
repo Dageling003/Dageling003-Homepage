@@ -148,8 +148,8 @@ DB_USERNAME="homepage"
 DB_PASSWORD=$(rand 20)
 DB_DATABASE="homepage"
 
-# MariaDB 镜像源（默认使用阿里云中国镜像）
-MARIADB_IMAGE="registry.cn-hangzhou.aliyuncs.com/library/mariadb:11.4"
+# MariaDB 镜像源（默认使用 Docker Hub 镜像加速器）
+MARIADB_IMAGE="docker.1ms.run/library/mariadb:11.4"
 
 # 写入配置文件
 cat > "$ENV_FILE" <<EOF
