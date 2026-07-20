@@ -137,7 +137,7 @@
 |--------|--------|----------|----------|
 | `apps/frontend` 前台主页 | Vue 3.5 + Vite 8 + UnoCSS + Pinia | `3000` | `/` (Caddy 直接 serve) |
 | `apps/admin` 管理后台 | Vue 3.5 + Ant Design Vue 4 + ECharts + Vite 8 | `3001` | `/admin` (Caddy 直接 serve) |
-| `apps/backend` API 服务 | NestJS 11 + TypeORM + MariaDB + JWT | `8000` | `/api/*` (Caddy 反向代理) |
+| `apps/backend` API 服务 | NestJS 11 + TypeORM + MariaDB/SQLite + JWT | `8000` | `/api/*` (Caddy 反向代理) |
 
 > **Caddy 直接提供静态文件**：前端/后台的 HTML/JS/CSS 由 Caddy 内置文件服务器直接响应，不经过 Node.js 进程，零额外开销。仅 API 请求到达后端容器。
 
@@ -149,9 +149,32 @@
 
 - **Node.js** ≥ 20.19.0
 - **pnpm** ≥ 11.0.0
-- **MariaDB** ≥ 10.5
 
 ### 本地开发
+
+#### 方式一：SQLite 快速试用（无需安装数据库）
+
+```bash
+# 1. 克隆仓库
+git clone https://github.com/Dageling003/Dageling003-Homepage.git
+cd homepage
+
+# 2. 安装依赖
+pnpm install
+
+# 3. 配置环境变量
+cp apps/backend/.env.example apps/backend/.env
+# 编辑 .env，设置：
+#   DB_TYPE=sqlite —— 使用 SQLite，无需安装数据库
+#   务必修改 JWT_SECRET（长度 ≥ 20）和 DEFAULT_ADMIN_PASSWORD（≥ 12 位）
+
+# 4. 一键启动（SQLite 自动建表，无需迁移）
+pnpm dev
+```
+
+#### 方式二：MariaDB 生产部署
+
+- **MariaDB** ≥ 10.5
 
 ```bash
 # 1. 克隆仓库

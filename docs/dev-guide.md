@@ -14,7 +14,9 @@
 |------|------|---------|
 | Node.js | >=20.19.0 | `node -v` |
 | pnpm | >=11.0.0 | `pnpm -v` |
-| MariaDB | >=10.5 | `mysql -V` |
+| MariaDB（可选） | >=10.5 | `mysql -V` |
+
+> 使用 `DB_TYPE=sqlite` 可免安装 MariaDB，详见下方说明。
 
 ### 1. 安装依赖
 
@@ -24,23 +26,19 @@ cd homepage
 pnpm install
 ```
 
-### 2. 创建数据库
-
-```sql
-CREATE DATABASE `homepage` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
-
-### 3. 配置环境变量
+### 2. 配置环境变量
 
 ```bash
 cd apps/backend
 cp .env.example .env
-# 修改 JWT_SECRET、DB_* 等
+# 编辑 .env：
+# - 务必修改 JWT_SECRET 为强随机字符串（openssl rand -base64 32）
+# - 设置 DB_TYPE=sqlite 使用 SQLite（无需安装数据库），或保持 DB_TYPE=mariadb 使用 MariaDB
 ```
 
 > ⚠️ **务必**修改 `JWT_SECRET` 为强随机字符串（`openssl rand -base64 32`），否则有安全风险。
 
-### 4. 启动开发服务
+### 3. 启动开发服务
 
 ```bash
 # 根目录一键启动全部（推荐）
@@ -54,7 +52,7 @@ pnpm dev:admin      # http://localhost:3001
 
 > ⚠️ **必须先启动后端**，前/后台依赖 `/api` 反向代理到 `localhost:8000`。
 
-### 5. 访问
+### 4. 访问
 
 | 入口 | 地址 |
 |------|------|
@@ -155,12 +153,25 @@ docker logs homepage-app 2>&1 | grep -A 6 '密码重置请求'
 
 ## 🗄️ 数据库说明
 
-- **类型**：MariaDB（`mariadb` 驱动）
-- **配置**：`apps/backend/.env` → `DB_*` 变量
-- **同步**：`DB_SYNCHRONIZE=true`（`.env` 中设置）开启 TypeORM 自动同步，改 Entity 后重启自动更新表结构
-- **初始化**：首次启动自动建表 + 种子数据（20 条配置 + `_initialized = '0'` + 1 个管理员）
-- **重置**：删表重启即可（或 `DROP DATABASE` 重建）
-- **初始化标记**：`site_config` 表中的 `_initialized` 记录控制首次设置流程，值为 `'0'` 时跳转设置向导
+通过 `apps/backend/.env` 中的 `DB_TYPE` 选择数据库：
+
+| `DB_TYPE` | 驱动 | 用途 | 初始化方式 |
+|-----------|------|------|-----------|
+| `sqlite` | TypeORM `sqljs` | 快速试用、本地开发，无需安装数据库 | 启动时自动建表 |
+| `mariadb`（默认） | `mariadb` | 生产部署 | `pnpm migrate:run` |
+
+SQLite 模式只需设置：
+
+```bash
+DB_TYPE=sqlite
+DB_SQLITE_PATH=data/homepage.sqlite
+```
+
+- SQLite 数据文件默认保存在 `apps/backend/data/homepage.sqlite`（可通过 `DB_SQLITE_PATH` 修改）
+- MariaDB 使用 `DB_HOST`、`DB_PORT`、`DB_USERNAME`、`DB_PASSWORD`、`DB_DATABASE`
+- `DB_SYNCHRONIZE` 仅 MariaDB 模式生效；SQLite 模式始终自动同步 Schema
+- 首次启动会写入种子数据（20 条配置 + `_initialized = '0'`），并可按配置创建管理员
+- 初始化标记：`site_config` 表中的 `_initialized` 记录控制首次设置流程，值为 `'0'` 时跳转设置向导
 
 ---
 

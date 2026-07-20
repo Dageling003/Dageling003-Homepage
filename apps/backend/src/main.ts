@@ -26,8 +26,9 @@ async function bootstrap() {
     process.exit(1);
   }
 
-  // Warn if DB_SYNCHRONIZE is enabled in production
+  // Warn if DB_SYNCHRONIZE is enabled in production (MariaDB only)
   if (
+    process.env.DB_TYPE !== 'sqlite' &&
     process.env.NODE_ENV === 'production' &&
     process.env.DB_SYNCHRONIZE === 'true'
   ) {

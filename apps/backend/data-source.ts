@@ -11,14 +11,26 @@ import { PasswordResetToken } from './src/auth/entities/password-reset-token.ent
  *   npx ts-node -r tsconfig-paths/register node_modules/.bin/typeorm migration:generate -d data-source.ts src/migrations/Initial
  *   npx ts-node -r tsconfig-paths/register node_modules/.bin/typeorm migration:run -d data-source.ts
  */
-export default new DataSource({
-  type: 'mariadb',
-  host: process.env.DB_HOST || 'localhost',
-  port: Number(process.env.DB_PORT) || 3306,
-  username: process.env.DB_USERNAME || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_DATABASE || 'homepage',
-  entities: [User, SiteConfig, AuditLog, PasswordResetToken],
-  migrations: [join(__dirname, 'src', 'migrations', '*{.ts,.js}')],
-  synchronize: false,
-})
+const isSqlite = process.env.DB_TYPE === 'sqlite';
+
+export default new DataSource(
+  isSqlite
+    ? {
+        type: 'sqljs',
+        location: process.env.DB_SQLITE_PATH || 'data/homepage.sqlite',
+        autoSave: true,
+        entities: [User, SiteConfig, AuditLog, PasswordResetToken],
+        synchronize: true,
+      }
+    : {
+        type: 'mariadb',
+        host: process.env.DB_HOST || 'localhost',
+        port: Number(process.env.DB_PORT) || 3306,
+        username: process.env.DB_USERNAME || 'root',
+        password: process.env.DB_PASSWORD || '',
+        database: process.env.DB_DATABASE || 'homepage',
+        entities: [User, SiteConfig, AuditLog, PasswordResetToken],
+        migrations: [join(__dirname, 'src', 'migrations', '*{.ts,.js}')],
+        synchronize: false,
+      },
+)
