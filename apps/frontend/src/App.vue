@@ -10,6 +10,7 @@ onBeforeMount(() => {
 })
 
 onMounted(() => {
+  document.getElementById('app')?.classList.add('loaded')
   requestAnimationFrame(() => {
     loaded.value = true
   })

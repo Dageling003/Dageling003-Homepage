@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import {
-  SettingOutlined, UserOutlined, AuditOutlined, RocketOutlined,
+  SettingOutlined, UserOutlined, AuditOutlined, RocketOutlined, EyeOutlined,
 } from '@ant-design/icons-vue'
 
 defineOptions({ name: 'DashboardQuickActions' })
@@ -10,11 +10,21 @@ defineOptions({ name: 'DashboardQuickActions' })
 const router = useRouter()
 
 const actions = computed(() => [
-  { label: '管理配置', icon: SettingOutlined, to: '/config/personal', type: 'primary' as const },
-  { label: '账号设置', icon: UserOutlined, to: '/account' },
-  { label: '操作日志', icon: AuditOutlined, to: '/audit' },
-  { label: '初始设置', icon: RocketOutlined, to: '/setup' },
+  { label: '查看站点', icon: EyeOutlined, to: '', type: 'primary' as const, external: true },
+  { label: '管理配置', icon: SettingOutlined, to: '/config/personal', type: 'primary' as const, external: false },
+  { label: '账号设置', icon: UserOutlined, to: '/account', external: false },
+  { label: '操作日志', icon: AuditOutlined, to: '/audit', external: false },
+  { label: '初始设置', icon: RocketOutlined, to: '/setup', external: false },
 ])
+
+function handleAction(to: string, external: boolean) {
+  if (external) {
+    const url = import.meta.env.VITE_FRONTEND_URL || (import.meta.env.DEV ? 'http://localhost:3000' : '/site/')
+    window.open(url, '_blank', 'noopener,noreferrer')
+    return
+  }
+  router.push(to)
+}
 </script>
 
 <template>
@@ -27,7 +37,7 @@ const actions = computed(() => [
         :type="a.type || 'default'"
         size="middle"
         block
-        @click="router.push(a.to)"
+        @click="handleAction(a.to, a.external)"
       >
         <template #icon><component :is="a.icon" /></template>
         {{ a.label }}

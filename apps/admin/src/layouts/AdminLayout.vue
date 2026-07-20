@@ -19,6 +19,7 @@ import {
   CodeOutlined,
   CheckSquareOutlined,
   MessageOutlined,
+  ExportOutlined,
 } from '@ant-design/icons-vue'
 import AppBreadcrumb from '@/components/AppBreadcrumb.vue'
 import AppTab from '@/components/AppTab.vue'
@@ -94,9 +95,23 @@ const menuItems = [
     icon: () => h(AuditOutlined),
     label: '操作日志',
   },
+  {
+    key: 'visit-site',
+    icon: () => h(ExportOutlined),
+    label: '访问站点',
+  },
 ]
 
+function visitSite() {
+  const url = import.meta.env.VITE_FRONTEND_URL || (import.meta.env.DEV ? 'http://localhost:3000' : '/site/')
+  window.open(url, '_blank', 'noopener,noreferrer')
+}
+
 function handleMenuClick({ key }: { key: string }) {
+  if (key === 'visit-site') {
+    visitSite()
+    return
+  }
   router.push(key)
 }
 

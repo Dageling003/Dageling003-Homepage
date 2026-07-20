@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   getConfigsApi, updateConfigApi, createConfigApi,
-  hasUsersApi, createFirstAdminApi,
+  hasUsersApi, createFirstAdminApi, loginApi,
 } from '@/api'
 import { message } from 'ant-design-vue'
 import {
@@ -155,17 +155,30 @@ onMounted(async () => {
   await loadExisting()
 })
 
+const CATEGORY_MAP: Record<string, string> = {
+  siteTitle: 'info', name: 'info', infoSex: 'info', infoSexDisplay: 'info',
+  infoBirth: 'info', infoProvince: 'info', infoSchool: 'info', avatarUrl: 'info',
+  professions: 'info', infoShowName: 'info', infoShowZodiac: 'info',
+  infoAgeDisplay: 'info', infoShowBirth: 'info',
+  links: 'links', techs: 'techs', todos: 'todos', typewriterWords: 'todos',
+  _initialized: 'system',
+}
+
 async function saveConfig(key: string, value: string) {
+  const category = CATEGORY_MAP[key] || 'general'
   try {
     const res = await getConfigsApi()
     const all: Array<{ configKey: string; id: number }> = (res.data as any)?.data || []
     const existing = all.find(c => c.configKey === key)
     if (existing) {
-      await updateConfigApi(key, value)
+      await updateConfigApi(key, value, category)
     } else {
-      await createConfigApi(key, value)
+      await createConfigApi(key, value, category)
     }
-  } catch { /* ignore */ }
+  } catch (e: any) {
+    console.error(`[SetupWizard] saveConfig failed for ${key}:`, e)
+    throw e
+  }
 }
 
 async function createFirstAdmin() {
@@ -176,8 +189,9 @@ async function createFirstAdmin() {
   creatingAdmin.value = true
   try {
     await createFirstAdminApi(adminUsername.value, adminPassword.value)
+    const loginRes = await loginApi(adminUsername.value, adminPassword.value)
+    localStorage.setItem('token', loginRes.data.accessToken)
     message.success('管理员账号已创建')
-    // 创建成功后清理临时输入，避免停留在内存
     adminPassword.value = ''
     adminPasswordConfirm.value = ''
     step.value++
@@ -329,7 +343,10 @@ async function handleFinish() {
         <h3 class="sw-section-title">👤 填写个人信息</h3>
         <div class="sw-form">
           <a-input v-model:value="form['name']" placeholder="昵称" size="middle" class="sw-input" />
-          <a-input v-model:value="form['infoSex']" placeholder="性别（♂ 或 ♀）" size="middle" class="sw-input" />
+          <a-radio-group v-model:value="form['infoSex']" size="middle">
+            <a-radio-button value="♂">♂ 男</a-radio-button>
+            <a-radio-button value="♀">♀ 女</a-radio-button>
+          </a-radio-group>
           <div class="sw-form-full">
             <label class="sw-birth-label">出生日期（自动计算年龄和星座）</label>
             <div class="sw-birth-row">

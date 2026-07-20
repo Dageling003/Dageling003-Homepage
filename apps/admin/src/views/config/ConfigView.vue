@@ -3194,7 +3194,11 @@ async function saveSimpleField(key: string) {
     if (existing && existing.id) {
       await updateConfigApi(key, val, filterCategory.value)
     } else {
-      await createConfigApi(key, val, filterCategory.value)
+      try {
+        await updateConfigApi(key, val, filterCategory.value)
+      } catch {
+        await createConfigApi(key, val, filterCategory.value)
+      }
     }
     message.success(`「${FIELD_DEFS[key]?.label || key}」已保存`)
     await fetchData()
@@ -3215,7 +3219,11 @@ async function saveList(key: string, data: any[]) {
     if (existing && existing.id) {
       await updateConfigApi(key, val, filterCategory.value)
     } else {
-      await createConfigApi(key, val, filterCategory.value)
+      try {
+        await updateConfigApi(key, val, filterCategory.value)
+      } catch {
+        await createConfigApi(key, val, filterCategory.value)
+      }
     }
     message.success(`「${FIELD_DEFS[key]?.label || key}」已保存`)
     await fetchData()
