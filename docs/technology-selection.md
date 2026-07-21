@@ -1,5 +1,9 @@
 ﻿# homepage全栈技术栈详细清单
 
+<p align="right">
+  <strong>简体中文</strong> · <a href="./technology-selection.en.md">English</a>
+</p>
+
 ***
 
 ## 一、环境基线（必须严格匹配）

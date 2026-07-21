@@ -532,16 +532,16 @@ gunzip -c ./backups/homepage_YYYYMMDD_HHMMSS.sql.gz | \
 
 ## 📖 Documentation
 
-> 📁 Full index in [`docs/README.md`](./docs/README.md). Individual docs are currently written in Chinese.
+> 📁 Full index in [`docs/README.en.md`](./docs/README.en.md).
 
 | Doc | About |
 |------|------|
-| [Deployment guide](./docs/deployment.md) | Docker one-command deploy, manual deploy, local dev, env vars |
-| [Architecture](./docs/architecture.md) | Overall architecture, data flow, module split |
-| [API](./docs/api.md) | Endpoint reference (Swagger UI also available in dev) |
-| [Dev guide](./docs/dev-guide.md) | Local dev workflow, FAQ |
-| [Tech choices](./docs/technology-selection.md) | Stack list and rationale |
-| [Progress](./docs/progress.md) | Version milestones and feature history |
+| [Deployment guide](./docs/deployment.en.md) | Docker one-command deploy, manual deploy, local dev, env vars |
+| [Architecture](./docs/architecture.en.md) | Overall architecture, data flow, module split |
+| [API](./docs/api.en.md) | Endpoint reference (Swagger UI also available in dev) |
+| [Dev guide](./docs/dev-guide.en.md) | Local dev workflow, FAQ |
+| [Tech choices](./docs/technology-selection.en.md) | Stack list and rationale |
+| [Progress](./docs/progress.en.md) | Version milestones and feature history |
 
 ---
 

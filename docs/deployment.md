@@ -1,5 +1,9 @@
 # 部署指南
 
+<p align="right">
+  <strong>简体中文</strong> · <a href="./deployment.en.md">English</a>
+</p>
+
 本文档详细介绍 Homepage 项目的部署方式，包括 Docker 快速部署、一键部署、手动部署和本地开发部署。
 
 ## 目录

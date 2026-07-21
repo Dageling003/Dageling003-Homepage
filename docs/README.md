@@ -1,5 +1,9 @@
 # 📖 Homepage 项目文档
 
+<p align="right">
+  <strong>简体中文</strong> · <a href="./README.en.md">English</a>
+</p>
+
 > 本目录汇总 Homepage 项目的全部书面文档。若你是第一次接触本项目，建议先看仓库根目录的 [README.md](../README.md)，再回到这里按主题深入。
 
 ---

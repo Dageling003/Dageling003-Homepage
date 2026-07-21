@@ -1,5 +1,9 @@
 # API 接口文档
 
+<p align="right">
+  <strong>简体中文</strong> · <a href="./api.en.md">English</a>
+</p>
+
 > 运行时可通过 Swagger UI 交互查看（仅非生产环境）：http://localhost:8000/api/docs
 >
 > 最后更新：2026/06/08 v0.7.0

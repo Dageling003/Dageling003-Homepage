@@ -1,5 +1,9 @@
 # homepage 技术架构文档
 
+<p align="right">
+  <strong>简体中文</strong> · <a href="./architecture.en.md">English</a>
+</p>
+
 > 最后更新：2026/06/08 v0.7.0
 
 ---

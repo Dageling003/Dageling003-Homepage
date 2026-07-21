@@ -1,5 +1,9 @@
 # 开发指南
 
+<p align="right">
+  <strong>简体中文</strong> · <a href="./dev-guide.en.md">English</a>
+</p>
+
 > 如何启动、开发和维护 homepage 项目
 >
 > 最后更新：2026/06/08 v0.7.0
