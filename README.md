@@ -11,12 +11,16 @@
 </p>
 
 <p align="center">
+  <a href="https://dageling003.top/"><img src="https://img.shields.io/website?url=https%3A%2F%2Fdageling003.top%2F&up_message=online&down_message=offline&label=Live%20Demo" alt="Live Demo" /></a>
   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-%3E%3D20.19.0-339933?logo=nodedotjs&logoColor=white" alt="Node.js" /></a>
   <a href="https://pnpm.io"><img src="https://img.shields.io/badge/pnpm-%3E%3D11.0.0-F69220?logo=pnpm&logoColor=white" alt="pnpm" /></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License" /></a>
   <a href="https://nestjs.com"><img src="https://img.shields.io/badge/nestjs-11-E0234E?logo=nestjs&logoColor=white" alt="NestJS" /></a>
   <a href="https://vuejs.org"><img src="https://img.shields.io/badge/vue-3.5-4FC08D?logo=vuedotjs&logoColor=white" alt="Vue" /></a>
+  <a href="./docker-compose.yml"><img src="https://img.shields.io/badge/Docker-3--service-2496ED?logo=docker&logoColor=white" alt="Docker" /></a>
 </p>
+
+> 🔒 本 README 所有截图均经过隐私脱敏处理：姓名、地区、学校、生日、职业、学习计划、邮箱等已替换为示例占位符。
 
 ---
 
@@ -24,7 +28,60 @@
 
 **Homepage** 是一套开箱即用的全栈个人主页系统——包含面向访客的前台展示页、面向站长的可视化管理后台，以及驱动这一切的 RESTful API。
 
+- 🌐 **在线预览**：<https://dageling003.top/> _(徽章会自动探活；若某天服务器/域名到期，徽章会显示 offline，此时请以本仓库截图与本地体验为准)_
+- 🎯 **一句话定位**：告别硬编码 JSON，用表单驱动你的个人主页 · 全栈前后端分离 + 可视化后台 + 自动 HTTPS
+- 📦 **交付形态**：pnpm monorepo（前台 / 后台 / API 三包）+ Docker Compose 三服务（app / caddy / mariadb）
+- 🖼 **无 Demo 也能体验**：所有效果截图已提交到 `image/screenshots/`，clone 仓库即可离线预览；想跑一遍完整交互只需 `pnpm install && pnpm dev`（SQLite 模式，无需数据库）
+
 你不再需要手动编辑 JSON 配置文件。登录管理后台，在表单里填写个人信息、拖拽排序快捷链接、增删技术栈，前台自动生效。审计日志会记录每一次变更，让你随时知道"谁在什么时候改了什么"。
+
+---
+
+## 📸 效果展示
+
+> 截图均从真实部署站点 `https://dageling003.top` 截取，姓名、地区、学校、生日、职业、学习计划、邮箱等隐私信息已替换为示例占位符。
+>
+> 💡 **关于 Demo 长期可用性**：仓库内截图与线上站点完全解耦，即便未来云服务器 / 域名到期下线，本 README 的效果展示依然有效；届时顶部徽章会自动切换为 `offline`，并请优先参考截图或本地 `pnpm dev` 复现。
+
+<table>
+  <tr>
+    <td width="50%" align="center">
+      <strong>🖥 桌面端 · 亮色主题</strong><br />
+      <img src="image/screenshots/01-homepage.png" alt="Homepage Light" />
+    </td>
+    <td width="50%" align="center">
+      <strong>🌙 桌面端 · 暗色主题</strong><br />
+      <img src="image/screenshots/06-homepage-dark.png" alt="Homepage Dark" />
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <strong>📱 移动端 · 亮色主题</strong><br />
+      <img src="image/screenshots/02-homepage-mobile.png" alt="Homepage Mobile" width="280" />
+    </td>
+    <td align="center">
+      <strong>📱 移动端 · 暗色主题</strong><br />
+      <img src="image/screenshots/07-homepage-mobile-dark.png" alt="Homepage Mobile Dark" width="280" />
+    </td>
+  </tr>
+</table>
+
+### 🎨 UI 设计亮点
+
+整套界面采用 **极简 + 圆角卡片 + 柔和阴影** 的设计语言，所有元素 8px 圆角，整体观感干净治愈。
+
+| 区域 | 特点 | 视觉元素 |
+|------|------|----------|
+| **顶部 Hero** | 头像 + 姓名 + 多维标签 | 圆角头像胶囊、性别/生日/地区/学校四联标签 |
+| **自我介绍** | 一句话人设 | 单卡片，强调"我是谁" |
+| **技术栈** | N 枚可拖拽排序 | 彩色技术图标，圆角徽章风格 |
+| **鸽子计划** | 待办打卡清单 | 圆圈未完成 / 勾选已完成 / 划线回顾 |
+| **时间进度** | 4 条进度条 | 今日 / 本周 / 本月 / 今年，自带 emoji |
+| **快捷链接** | 自定义社交卡片 | 大圆角按钮，4 种主题色 |
+| **生活寄语** | 心情/座右铭 | 居中显示，光标闪烁动画 |
+| **🌗 主题切换** | 右上角一键 | 太阳 ⇄ 月亮图标，CSS 变量驱动 |
+
+**动效与微交互**：⌨️ 打字机欢迎语逐字显示 · 📊 进度条进入视口时平滑增长 · 🎯 主题切换 / 卡片悬停 200ms ease 过渡 · 📐 ≥1024px 三栏、<1024px 单栏响应式 · 🌓 暗色模式采用纯黑背景避免刺眼。
 
 ---
 
@@ -470,6 +527,8 @@ gunzip -c ./backups/homepage_YYYYMMDD_HHMMSS.sql.gz | \
 
 ## 📖 文档
 
+> 📁 完整文档索引见 [`docs/README.md`](./docs/README.md)。
+
 | 文档 | 说明 |
 |------|------|
 | [部署指南](./docs/deployment.md) | Docker 一键部署、手动部署、本地开发、环境变量配置 |
@@ -477,6 +536,23 @@ gunzip -c ./backups/homepage_YYYYMMDD_HHMMSS.sql.gz | \
 | [API 文档](./docs/api.md) | 接口清单（也支持开发环境 Swagger UI） |
 | [开发指南](./docs/dev-guide.md) | 本地开发流程、常见问题 |
 | [技术选型](./docs/technology-selection.md) | 技术栈清单与选择理由 |
+| [开发进度](./docs/progress.md) | 版本节点与功能演进历史 |
+
+---
+
+## 🗺 路由清单
+
+| URL | 用途 | 是否需要登录 |
+|-----|------|--------------|
+| `/` | 访客主页 | ❌ |
+| `/admin/setup` | 首次初始化向导（创建管理员） | ❌ |
+| `/admin/` | 管理后台登录页 | ❌ |
+| `/admin/dashboard` | 后台仪表盘 | ✅ |
+| `/admin/config` | 站点配置（个人信息 / 快捷链接 / 技术栈 / 计划） | ✅ |
+| `/admin/audit` | 审计日志 | ✅ |
+| `/admin/account` | 账号设置（改密码 / 邮箱） | ✅ |
+| `/api/*` | 后端 RESTful API | 部分 |
+| `/health` | 健康检查端点 | ❌ |
 
 ---
 
@@ -516,3 +592,12 @@ gunzip -c ./backups/homepage_YYYYMMDD_HHMMSS.sql.gz | \
 ## 📄 许可证
 
 本项目基于 [MIT License](./LICENSE) 开源。
+
+---
+
+## 🙏 致谢
+
+- [Vue 3](https://vuejs.org) · [Vite](https://vitejs.dev) · [UnoCSS](https://unocss.dev) · [Pinia](https://pinia.vuejs.org)
+- [NestJS](https://nestjs.com) · [TypeORM](https://typeorm.io) · [MariaDB](https://mariadb.org)
+- [Ant Design Vue](https://antdv.com) · [ECharts](https://echarts.apache.org)
+- [Caddy](https://caddyserver.com) · [ZeroSSL](https://zerossl.com) · [Let's Encrypt](https://letsencrypt.org)
