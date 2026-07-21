@@ -106,3 +106,42 @@ jobs:
 
       - name: Run pnpm audit
         run: pnpm audit --audit-level=high --registry https://registry.npmjs.org
+
+  docker-build:
+    name: Docker Build (app + caddy)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build app image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile.app
+          push: false
+          load: true
+          tags: homepage-app:latest
+          cache-from: type=gha,scope=homepage-app
+          cache-to: type=gha,scope=homepage-app,mode=max
+
+      - name: Build caddy image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile.caddy
+          push: false
+          load: true
+          tags: homepage-caddy:latest
+          build-args: |
+            APP_IMAGE=homepage-app:latest
+          cache-from: type=gha,scope=homepage-caddy
+          cache-to: type=gha,scope=homepage-caddy,mode=max
+
+      - name: Verify images
+        run: |
+          docker image inspect homepage-app:latest --format 'app  : {{.Size}} bytes'
+          docker image inspect homepage-caddy:latest --format 'caddy: {{.Size}} bytes'
