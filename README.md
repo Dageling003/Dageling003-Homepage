@@ -11,6 +11,8 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/Dageling003/Dageling003-Homepage/releases/tag/v1.0.0"><img src="https://img.shields.io/badge/release-v1.0.0-blue?logo=github" alt="Release v1.0.0" /></a>
+  <a href="https://github.com/Dageling003/Dageling003-Homepage/releases"><img src="https://img.shields.io/github/v/release/Dageling003/Dageling003-Homepage?display_name=tag&sort=semver&label=latest" alt="Latest Release" /></a>
   <a href="https://dageling003.top/"><img src="https://img.shields.io/website?url=https%3A%2F%2Fdageling003.top%2F&up_message=online&down_message=offline&label=Live%20Demo" alt="Live Demo" /></a>
   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-%3E%3D20.19.0-339933?logo=nodedotjs&logoColor=white" alt="Node.js" /></a>
   <a href="https://pnpm.io"><img src="https://img.shields.io/badge/pnpm-%3E%3D11.0.0-F69220?logo=pnpm&logoColor=white" alt="pnpm" /></a>
