@@ -11,6 +11,10 @@
 </p>
 
 <p align="center">
+  <strong>简体中文</strong> · <a href="./README.en.md">English</a>
+</p>
+
+<p align="center">
   <a href="https://github.com/Dageling003/Dageling003-Homepage/releases/tag/v1.0.0"><img src="https://img.shields.io/badge/release-v1.0.0-blue?logo=github" alt="Release v1.0.0" /></a>
   <a href="https://github.com/Dageling003/Dageling003-Homepage/releases"><img src="https://img.shields.io/github/v/release/Dageling003/Dageling003-Homepage?display_name=tag&sort=semver&label=latest" alt="Latest Release" /></a>
   <a href="https://dageling003.top/"><img src="https://img.shields.io/website?url=https%3A%2F%2Fdageling003.top%2F&up_message=online&down_message=offline&label=Live%20Demo" alt="Live Demo" /></a>
