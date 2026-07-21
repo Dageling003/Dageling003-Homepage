@@ -152,7 +152,7 @@
 
 ### 本地开发
 
-#### 方式一：SQLite 快速试用（无需安装数据库）
+#### 方式一：SQLite 日常开发（无需安装数据库）
 
 ```bash
 # 1. 克隆仓库
@@ -171,6 +171,19 @@ cp apps/backend/.env.example apps/backend/.env
 # 4. 一键启动（SQLite 自动建表，无需迁移）
 pnpm dev
 ```
+
+> **💡 三 tab 日常开发流程**
+>
+> 打开三个终端窗口（或 VS Code 分屏）：
+>
+> | 窗口 | 命令 | 对应服务 | 说明 |
+> |------|------|----------|------|
+> | Tab 1 | `pnpm dev:backend` | NestJS API `:8000` | 后端逻辑，热重载 |
+> | Tab 2 | `pnpm dev:frontend` | 前台主页 `:3000` | Vite HMR |
+> | Tab 3 | `pnpm dev:admin` | 管理后台 `:3001` | Vite HMR |
+>
+> 三个窗口分别跑，日志互不干扰。某个服务报错只需重启对应窗口，不影响其它两个。
+> 前端调后端 API 时，Vite 代理会自动转发 `/api/*` 到 `localhost:8000`。
 
 #### 方式二：MariaDB 生产部署
 
@@ -217,6 +230,16 @@ npx ts-node -r tsconfig-paths/register node_modules/.bin/typeorm migration:gener
 | 📡 API 文档 (Swagger) | http://localhost:8000/api/docs |
 
 ### Docker 一键部署
+
+> ⚠️ **Docker 部署暂不可用，敬请期待**
+>
+> 当前 `Dockerfile.app` / `Dockerfile.caddy` / `docker-compose.yml` / `deploy.sh` 仍在打磨中，尚未通过完整的部署验证，暂时**不建议**在生产或个人服务器上使用。
+>
+> - CI（`.github/workflows/ci.yml` 的 `docker-build` job）目前只保证 **镜像可以构建成功**，不代表容器起来后功能完整可用。
+> - 已知的坑点仍在收敛中（构建顺序依赖、静态文件注入、ACME 证书、健康检查等），细节可参考 [Docker 故障排查](#-docker-故障排查) 一节。
+> - 需要自托管的朋友，**当前请优先使用 [方式二：MariaDB 生产部署](#方式二mariadb-生产部署)**，用 PM2 或 systemd 直接跑 Node 进程即可。
+>
+> 下方 Docker 相关文档保留作为设计参考，稳定后会在此处移除该提示。
 
 > **Windows 用户注意**：部署脚本 `deploy.sh` 需要 Bash 环境。推荐使用 [WSL2](https://learn.microsoft.com/windows/wsl/install) 或 [Git Bash](https://git-scm.com/downloads)。
 
