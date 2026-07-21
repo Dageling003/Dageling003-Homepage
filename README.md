@@ -246,7 +246,7 @@ pnpm dev
 > | Tab 3 | `pnpm dev:admin` | 管理后台 `:3001` | Vite HMR |
 >
 > 三个窗口分别跑，日志互不干扰。某个服务报错只需重启对应窗口，不影响其它两个。
-> 前端调后端 API 时，Vite 代理会自动把 `/api/*` 转发到后端服务（默认 `127.0.0.1:8000`）。
+> 前端调后端 API 时，Vite 代理会自动转发 `/api/*` 到 `localhost:8000`。
 
 #### 方式二：MariaDB 生产部署
 
@@ -286,17 +286,11 @@ npx ts-node -r tsconfig-paths/register node_modules/.bin/typeorm migration:gener
 
 访问地址：
 
-本地开发默认监听在 `127.0.0.1` 上，三个服务分别独立监听不同端口。请将下表中的 `<host>` 替换为实际访问地址（本机开发用 `127.0.0.1`，若在局域网/远程服务器则替换为对应 IP 或域名，并确保端口已放行）。
-
-| 服务 | 端口 | 路径 | 访问地址示例 |
-|------|------|------|--------------|
-| 🖥 网站主页 (Vite dev server) | `3000` | `/` | `http://<host>:3000` |
-| ⚙️ 管理后台 (Vite dev server) | `3001` | `/` | `http://<host>:3001` |
-| 📡 API 文档 (Swagger UI，仅开发环境) | `8000` | `/api/docs` | `http://<host>:8000/api/docs` |
-| 📡 后端 API 根路径 | `8000` | `/api/*` | `http://<host>:8000/api/*` |
-| ❤️ 健康检查端点 | `8000` | `/health` | `http://<host>:8000/health` |
-
-> 💡 **端口路由说明**：前台 (`3000`) 与后台 (`3001`) 由 Vite dev server 各自独立提供；两者对后端 API 的调用会通过 Vite 代理透明转发到 `8000`。生产环境下这些端口全部收敛到 Caddy 的 `80/443`，由反向代理按路径分发（详见「架构总览」）。
+| 服务 | 地址 |
+|------|------|
+| 🖥 网站主页 | http://localhost:3000 |
+| ⚙️ 管理后台 | http://localhost:3001 |
+| 📡 API 文档 (Swagger) | http://localhost:8000/api/docs |
 
 ### Docker 一键部署
 
