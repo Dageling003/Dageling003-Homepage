@@ -2,7 +2,7 @@
   <img src="image/logo.png" alt="Homepage" width="240" height="240" test-align="center" />
 </p>
 
-<h1 align="center">Homepage</h1>
+<h1 align="center">Dageling003-Homepage</h1>
 
 <p align="center">
   <strong>轻量、可自托管的个人主页与可视化管理后台</strong>
@@ -246,7 +246,7 @@ pnpm dev
 > | Tab 3 | `pnpm dev:admin` | 管理后台 `:3001` | Vite HMR |
 >
 > 三个窗口分别跑，日志互不干扰。某个服务报错只需重启对应窗口，不影响其它两个。
-> 前端调后端 API 时，Vite 代理会自动转发 `/api/*` 到 `localhost:8000`。
+> 前端调后端 API 时，Vite 代理会自动把 `/api/*` 转发到后端服务（默认 `127.0.0.1:8000`）。
 
 #### 方式二：MariaDB 生产部署
 
@@ -286,11 +286,17 @@ npx ts-node -r tsconfig-paths/register node_modules/.bin/typeorm migration:gener
 
 访问地址：
 
-| 服务 | 地址 |
-|------|------|
-| 🖥 网站主页 | http://localhost:3000 |
-| ⚙️ 管理后台 | http://localhost:3001 |
-| 📡 API 文档 (Swagger) | http://localhost:8000/api/docs |
+本地开发默认监听在 `127.0.0.1` 上，三个服务分别独立监听不同端口。请将下表中的 `<host>` 替换为实际访问地址（本机开发用 `127.0.0.1`，若在局域网/远程服务器则替换为对应 IP 或域名，并确保端口已放行）。
+
+| 服务 | 端口 | 路径 | 访问地址示例 |
+|------|------|------|--------------|
+| 🖥 网站主页 (Vite dev server) | `3000` | `/` | `http://<host>:3000` |
+| ⚙️ 管理后台 (Vite dev server) | `3001` | `/` | `http://<host>:3001` |
+| 📡 API 文档 (Swagger UI，仅开发环境) | `8000` | `/api/docs` | `http://<host>:8000/api/docs` |
+| 📡 后端 API 根路径 | `8000` | `/api/*` | `http://<host>:8000/api/*` |
+| ❤️ 健康检查端点 | `8000` | `/health` | `http://<host>:8000/health` |
+
+> 💡 **端口路由说明**：前台 (`3000`) 与后台 (`3001`) 由 Vite dev server 各自独立提供；两者对后端 API 的调用会通过 Vite 代理透明转发到 `8000`。生产环境下这些端口全部收敛到 Caddy 的 `80/443`，由反向代理按路径分发（详见「架构总览」）。
 
 ### Docker 一键部署
 
@@ -603,7 +609,52 @@ gunzip -c ./backups/homepage_YYYYMMDD_HHMMSS.sql.gz | \
 
 ## 🙏 致谢
 
-- [Vue 3](https://vuejs.org) · [Vite](https://vitejs.dev) · [UnoCSS](https://unocss.dev) · [Pinia](https://pinia.vuejs.org)
-- [NestJS](https://nestjs.com) · [TypeORM](https://typeorm.io) · [MariaDB](https://mariadb.org)
-- [Ant Design Vue](https://antdv.com) · [ECharts](https://echarts.apache.org)
-- [Caddy](https://caddyserver.com) · [ZeroSSL](https://zerossl.com) · [Let's Encrypt](https://letsencrypt.org)
+本项目站在众多优秀开源项目的肩膀上，向以下作者与社区致以最诚挚的感谢：
+
+### 前端生态
+
+- [Vue 3](https://vuejs.org) · [Vite](https://vitejs.dev) · [Vue Router](https://router.vuejs.org) · [Pinia](https://pinia.vuejs.org) — 渐进式框架与状态管理三件套
+- [UnoCSS](https://unocss.dev) — 即时按需原子化 CSS 引擎
+- [Ant Design Vue](https://antdv.com) — 后台表单/表格/弹窗组件库
+- [ECharts](https://echarts.apache.org) — 仪表盘数据可视化图表
+- [Iconify](https://iconify.design) / [@iconify/vue](https://github.com/iconify/iconify) — 20 万+ 图标统一入口
+- [VueUse](https://vueuse.org) — Composition API 工具集
+- [Axios](https://axios-http.com) — HTTP 请求封装
+- [Day.js](https://day.js.org) — 轻量时间处理
+
+### 后端生态
+
+- [NestJS](https://nestjs.com) — 渐进式 Node.js 服务端框架
+- [TypeORM](https://typeorm.io) — ORM 与迁移工具
+- [MariaDB](https://mariadb.org) / [sql.js](https://sql.js.org) — 生产 MariaDB + 开发 SQLite 双数据源
+- [Passport](https://www.passportjs.org) · [@nestjs/jwt](https://github.com/nestjs/jwt) · [bcryptjs](https://github.com/dcodeIO/bcrypt.js) — JWT 鉴权 + 密码哈希
+- [class-validator](https://github.com/typestack/class-validator) / [class-transformer](https://github.com/typestack/class-transformer) — DTO 校验与序列化
+- [helmet](https://helmetjs.github.io) · [@nestjs/throttler](https://github.com/nestjs/throttler) — 安全头与速率限制
+- [sharp](https://sharp.pixelplumbing.com) — 头像裁剪压缩为 WebP
+- [Multer](https://github.com/expressjs/multer) · [file-type](https://github.com/sindresorhus/file-type) — 文件上传与 MIME 校验
+- [Nodemailer](https://nodemailer.com) — 找回密码邮件发送
+- [Swagger / OpenAPI](https://swagger.io) · [@nestjs/swagger](https://github.com/nestjs/swagger) — 开发环境 API 文档
+
+### 部署与基础设施
+
+- [Docker](https://www.docker.com) / [Docker Compose](https://docs.docker.com/compose/) — 容器化编排
+- [Caddy](https://caddyserver.com) — 反向代理与静态文件服务，自动 HTTPS
+- [ZeroSSL](https://zerossl.com) · [Let's Encrypt](https://letsencrypt.org) — 免费 ACME 证书颁发
+- [PM2](https://pm2.keymetrics.io) — 非 Docker 模式的进程守护
+
+### 工程化
+
+- [pnpm](https://pnpm.io) — Monorepo 包管理与硬链接加速
+- [TypeScript](https://www.typescriptlang.org) — 全栈类型安全
+- [ESLint](https://eslint.org) · [Prettier](https://prettier.io) — 代码检查与格式化
+- [Jest](https://jestjs.io) · [Supertest](https://github.com/ladjs/supertest) — 单元与 E2E 测试
+- [Conventional Commits](https://www.conventionalcommits.org/) — 提交信息规范
+- [GitHub Actions](https://github.com/features/actions) — 持续集成
+- [Shields.io](https://shields.io) — README 徽章服务
+
+### 特别鸣谢
+
+- 所有提交 Issue / PR / 反馈截图与建议的朋友——每一次交流都在推动这个项目变得更好。
+- 感谢开源社区愿意把好东西免费分享出来，本项目也以 [MIT License](./LICENSE) 回馈这份善意。
+
+> 如果本项目对你有帮助，欢迎点亮一颗 ⭐ Star，这是对作者最大的鼓励。

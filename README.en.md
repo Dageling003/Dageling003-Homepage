@@ -2,7 +2,7 @@
   <img src="image/logo.png" alt="Homepage" width="240" height="240" test-align="center" />
 </p>
 
-<h1 align="center">Homepage</h1>
+<h1 align="center">Dageling003-Homepage</h1>
 
 <p align="center">
   <strong>A lightweight, self-hostable personal homepage with a visual admin dashboard</strong>
@@ -246,7 +246,7 @@ pnpm dev
 > | Tab 3 | `pnpm dev:admin` | admin dashboard `:3001` | Vite HMR |
 >
 > Each tab's logs stay separate. If one service errors out, just restart that tab — the other two stay up.
-> The frontends' Vite proxies forward `/api/*` to `localhost:8000` automatically.
+> The frontends' Vite proxies automatically forward `/api/*` to the backend service (default `127.0.0.1:8000`).
 
 #### Option B: MariaDB (production-style)
 
@@ -286,11 +286,17 @@ npx ts-node -r tsconfig-paths/register node_modules/.bin/typeorm migration:gener
 
 Access URLs:
 
-| Service | URL |
-|------|------|
-| 🖥 Public site | http://localhost:3000 |
-| ⚙️ Admin | http://localhost:3001 |
-| 📡 API docs (Swagger) | http://localhost:8000/api/docs |
+In local development each service listens on `127.0.0.1` under a dedicated port. Replace `<host>` in the table below with your actual host — use `127.0.0.1` for local dev, or the LAN IP / remote server IP / domain if you access it from elsewhere (make sure the port is reachable).
+
+| Service | Port | Path | Example URL |
+|------|------|------|--------------|
+| 🖥 Public site (Vite dev server) | `3000` | `/` | `http://<host>:3000` |
+| ⚙️ Admin (Vite dev server) | `3001` | `/` | `http://<host>:3001` |
+| 📡 API docs (Swagger UI, dev only) | `8000` | `/api/docs` | `http://<host>:8000/api/docs` |
+| 📡 Backend API root | `8000` | `/api/*` | `http://<host>:8000/api/*` |
+| ❤️ Health check endpoint | `8000` | `/health` | `http://<host>:8000/health` |
+
+> 💡 **Port & routing note**: the public site (`3000`) and the admin (`3001`) each run on their own Vite dev server; both proxy API calls transparently to the backend on `8000`. In production these ports collapse onto Caddy's `80/443`, which fans out by path (see "Architecture" section).
 
 ### Docker one-command deploy
 
@@ -602,7 +608,52 @@ All kinds of contributions are welcome — bug reports, feature ideas, code.
 
 ## 🙏 Credits
 
-- [Vue 3](https://vuejs.org) · [Vite](https://vitejs.dev) · [UnoCSS](https://unocss.dev) · [Pinia](https://pinia.vuejs.org)
-- [NestJS](https://nestjs.com) · [TypeORM](https://typeorm.io) · [MariaDB](https://mariadb.org)
-- [Ant Design Vue](https://antdv.com) · [ECharts](https://echarts.apache.org)
-- [Caddy](https://caddyserver.com) · [ZeroSSL](https://zerossl.com) · [Let's Encrypt](https://letsencrypt.org)
+This project stands on the shoulders of many outstanding open source projects. Sincere thanks to the following authors and communities:
+
+### Frontend stack
+
+- [Vue 3](https://vuejs.org) · [Vite](https://vitejs.dev) · [Vue Router](https://router.vuejs.org) · [Pinia](https://pinia.vuejs.org) — progressive framework and state management
+- [UnoCSS](https://unocss.dev) — instant on-demand atomic CSS engine
+- [Ant Design Vue](https://antdv.com) — admin forms, tables and modals
+- [ECharts](https://echarts.apache.org) — dashboard data visualization
+- [Iconify](https://iconify.design) / [@iconify/vue](https://github.com/iconify/iconify) — unified access to 200k+ icons
+- [VueUse](https://vueuse.org) — Composition API utilities
+- [Axios](https://axios-http.com) — HTTP client
+- [Day.js](https://day.js.org) — lightweight date library
+
+### Backend stack
+
+- [NestJS](https://nestjs.com) — progressive Node.js server framework
+- [TypeORM](https://typeorm.io) — ORM and migrations
+- [MariaDB](https://mariadb.org) / [sql.js](https://sql.js.org) — MariaDB in production, SQLite for dev
+- [Passport](https://www.passportjs.org) · [@nestjs/jwt](https://github.com/nestjs/jwt) · [bcryptjs](https://github.com/dcodeIO/bcrypt.js) — JWT auth and password hashing
+- [class-validator](https://github.com/typestack/class-validator) / [class-transformer](https://github.com/typestack/class-transformer) — DTO validation and serialization
+- [helmet](https://helmetjs.github.io) · [@nestjs/throttler](https://github.com/nestjs/throttler) — security headers and rate limiting
+- [sharp](https://sharp.pixelplumbing.com) — avatar cropping and WebP conversion
+- [Multer](https://github.com/expressjs/multer) · [file-type](https://github.com/sindresorhus/file-type) — file upload and MIME verification
+- [Nodemailer](https://nodemailer.com) — password reset emails
+- [Swagger / OpenAPI](https://swagger.io) · [@nestjs/swagger](https://github.com/nestjs/swagger) — API docs in development
+
+### Deployment & infrastructure
+
+- [Docker](https://www.docker.com) / [Docker Compose](https://docs.docker.com/compose/) — container orchestration
+- [Caddy](https://caddyserver.com) — reverse proxy and static file server with automatic HTTPS
+- [ZeroSSL](https://zerossl.com) · [Let's Encrypt](https://letsencrypt.org) — free ACME certificate authorities
+- [PM2](https://pm2.keymetrics.io) — process manager for non-Docker deploys
+
+### Tooling
+
+- [pnpm](https://pnpm.io) — monorepo package manager with hard-link speedups
+- [TypeScript](https://www.typescriptlang.org) — full-stack type safety
+- [ESLint](https://eslint.org) · [Prettier](https://prettier.io) — linting and formatting
+- [Jest](https://jestjs.io) · [Supertest](https://github.com/ladjs/supertest) — unit and E2E tests
+- [Conventional Commits](https://www.conventionalcommits.org/) — commit message convention
+- [GitHub Actions](https://github.com/features/actions) — continuous integration
+- [Shields.io](https://shields.io) — README badges
+
+### Special thanks
+
+- Everyone who has filed issues, opened PRs, shared screenshots or dropped feedback — every conversation makes this project a little better.
+- The open source community, for freely sharing so much good work. This project gives back under the [MIT License](./LICENSE) in the same spirit.
+
+> If this project helps you, please consider leaving a ⭐ Star — it's the best encouragement for the author.
