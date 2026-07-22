@@ -582,7 +582,7 @@ This is a **CSR (client-side rendered)** SPA. Basic SEO meta tags are baked in:
 
 All kinds of contributions are welcome — bug reports, feature ideas, code.
 
-> 📖 Full contributing guide (with Skill system & AI Agent notes) see [`docs/CONTRIBUTING.en.md`](./docs/CONTRIBUTING.en.md).
+> 📖 Full contributing guide (with Skill system & AI Agent notes) see [`CONTRIBUTING.en.md`](./CONTRIBUTING.en.md).
 
 ### Workflow
 

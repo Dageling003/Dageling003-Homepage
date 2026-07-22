@@ -18,7 +18,7 @@
 | 🚀 Deploy | [deployment.en.md](./deployment.en.md) | Self-hosters / ops | Docker / manual deploy / env var reference |
 | 📡 API | [api.en.md](./api.en.md) | Frontend integrators / third parties | When you need endpoints and payload details (Swagger UI is also available in dev) |
 | 📅 Progress | [progress.en.md](./progress.en.md) | Curious readers | To see feature history and version milestones |
-| 🤝 Contributing | [CONTRIBUTING.en.md](./CONTRIBUTING.en.md) | Human contributors / AI Agents | Dev conventions, Skill system, PR workflow |
+| 🤝 Contributing | [CONTRIBUTING.en.md](../CONTRIBUTING.en.md) | Human contributors / AI Agents | Dev conventions, Skill system, PR workflow |
 
 ---
 

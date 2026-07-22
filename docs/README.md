@@ -18,7 +18,7 @@
 | 🚀 部署 | [deployment.md](./deployment.md) | 自托管站长 / 运维 | Docker / 手动部署 / 环境变量配置时 |
 | 📡 API | [api.md](./api.md) | 前端联调 / 二次开发 | 需要接口清单和字段说明时（开发环境也可用 Swagger UI） |
 | 📅 进度 | [progress.md](./progress.md) | 好奇项目演进的读者 | 想看功能开发历史、版本节点 |
-| 🤝 贡献 | [CONTRIBUTING.md](./CONTRIBUTING.md) | 人类贡献者 / AI Agent | 了解开发规范、Skill 体系、提 PR 流程 |
+| 🤝 贡献 | [CONTRIBUTING.md](../CONTRIBUTING.md) | 人类贡献者 / AI Agent | 了解开发规范、Skill 体系、提 PR 流程 |
 
 ---
 
