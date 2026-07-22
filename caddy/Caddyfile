@@ -15,6 +15,20 @@
 }
 
 {$DOMAIN} {
+	# ====== Global security headers ======
+	# CSP 面向 SPA 静态资源。Vue/AntD 运行时会注入 inline <style>，
+	# 因此 style-src 需要 'unsafe-inline'；frontend 的 SEO JSON-LD
+	# 也是 inline <script>，因此 script-src 暂保留 'unsafe-inline'
+	# （下一步可通过 vite 生成 hash 收紧）。frame-ancestors 'none' 防点击劫持。
+	header {
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com data:; connect-src 'self' https://api.iconify.design https://fonts.googleapis.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+		X-Frame-Options "DENY"
+		-Server
+	}
+
 	# ====== Health check (for Caddy healthcheck in docker-compose) ======
 	handle /health {
 		reverse_proxy app:8000

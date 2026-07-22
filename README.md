@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Dageling003/Dageling003-Homepage/releases/tag/v1.0.0"><img src="https://img.shields.io/badge/release-v1.0.0-blue?logo=github" alt="Release v1.0.0" /></a>
+  <a href="https://github.com/Dageling003/Dageling003-Homepage/releases/tag/v1.1.0"><img src="https://img.shields.io/badge/release-v1.1.0-blue?logo=github" alt="Release v1.1.0" /></a>
   <a href="https://github.com/Dageling003/Dageling003-Homepage/releases"><img src="https://img.shields.io/github/v/release/Dageling003/Dageling003-Homepage?display_name=tag&sort=semver&label=latest" alt="Latest Release" /></a>
   <a href="https://dageling003.top/"><img src="https://img.shields.io/website?url=https%3A%2F%2Fdageling003.top%2F&up_message=online&down_message=offline&label=Live%20Demo" alt="Live Demo" /></a>
   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-%3E%3D20.19.0-339933?logo=nodedotjs&logoColor=white" alt="Node.js" /></a>
@@ -121,7 +121,7 @@
     </td>
     <td>
       <strong>🎂 智能填报</strong><br />
-      填入出生日期，系统自动计算年龄与星座；34 省选择器 + 1200+ 院校搜索。
+      填入出生日期，系统自动计算年龄与星座；34 省选择器 + 2909 所院校搜索。
     </td>
   </tr>
   <tr>
@@ -294,16 +294,6 @@ npx ts-node -r tsconfig-paths/register node_modules/.bin/typeorm migration:gener
 
 ### Docker 一键部署
 
-> ⚠️ **Docker 部署暂不可用，敬请期待**
->
-> 当前 `Dockerfile.app` / `Dockerfile.caddy` / `docker-compose.yml` / `deploy.sh` 仍在打磨中，尚未通过完整的部署验证，暂时**不建议**在生产或个人服务器上使用。
->
-> - CI（`.github/workflows/ci.yml` 的 `docker-build` job）目前只保证 **镜像可以构建成功**，不代表容器起来后功能完整可用。
-> - 已知的坑点仍在收敛中（构建顺序依赖、静态文件注入、ACME 证书、健康检查等），细节可参考 [Docker 故障排查](#-docker-故障排查) 一节。
-> - 需要自托管的朋友，**当前请优先使用 [方式二：MariaDB 生产部署](#方式二mariadb-生产部署)**，用 PM2 或 systemd 直接跑 Node 进程即可。
->
-> 下方 Docker 相关文档保留作为设计参考，稳定后会在此处移除该提示。
-
 > **Windows 用户注意**：部署脚本 `deploy.sh` 需要 Bash 环境。推荐使用 [WSL2](https://learn.microsoft.com/windows/wsl/install) 或 [Git Bash](https://git-scm.com/downloads)。
 
 ```bash
@@ -340,7 +330,7 @@ CI=true bash deploy.sh
 
 ```bash
 # 1. 创建环境变量文件
-cp .env.docker.example .env.docker
+cp docker/.env.example .env.docker
 # 编辑 .env.docker，填入你的域名、密钥、密码（所有密码必填，无弱默认值兜底）
 
 # 2. 构建镜像（必须先 app 后 caddy — caddy 从 app 镜像提取静态文件）
@@ -365,8 +355,8 @@ docker compose --env-file .env.docker up -d
 
 | 镜像 | Dockerfile | 内容 | 大小 |
 |------|-----------|------|------|
-| `homepage-app` | `Dockerfile.app` | NestJS 后端（`pnpm deploy --prod` 仅生产依赖） | ~80-120MB |
-| `homepage-caddy` | `Dockerfile.caddy` | Caddy 2 + 内置前端/后台静态文件 | ~50MB |
+| `homepage-app` | `docker/Dockerfile.app` | NestJS 后端（`pnpm deploy --prod` 仅生产依赖） | ~80-120MB |
+| `homepage-caddy` | `docker/Dockerfile.caddy` | Caddy 2 + 内置前端/后台静态文件 | ~50MB |
 
 #### ZeroSSL vs Let's Encrypt
 
@@ -413,21 +403,24 @@ homepage/
 │   └── backup-db.sh         # 数据库备份
 ├── config/                  # 配置文件
 │   └── ecosystem.config.cjs # PM2 生产部署
+├── docker/                  # Docker 构建文件
+│   ├── Dockerfile.app       # 后端 API 镜像
+│   ├── Dockerfile.caddy     # Caddy + 静态文件镜像
+│   └── .env.example         # Docker 环境变量模板
+├── caddy/                   # Caddy 配置
+│   ├── Caddyfile            # Caddy 配置（Docker，内置到 Caddy 镜像）
+│   ├── Caddyfile.dev        # 反向代理配置（开发/内网）
+│   └── entrypoint.sh        # Caddy 入口脚本（处理空 ACME_EMAIL）
 ├── docs/                    # 文档
 │   ├── deployment.md        # 部署指南
 │   ├── architecture.md      # 架构设计
 │   ├── api.md               # API 接口文档
 │   ├── dev-guide.md         # 开发指南
 │   ├── progress.md          # 开发进度
-│   └── technology-selection.md  # 技术选型
+│   ├── technology-selection.md  # 技术选型
+│   └── log/                 # 本地联调测试报告
 ├── image/                   # 项目图片资源
-├── Caddyfile                # 反向代理配置（开发/内网）
-├── Caddyfile.docker         # Caddy 配置（Docker，内置到 Caddy 镜像）
-├── caddy-entrypoint.sh      # Caddy 入口脚本（处理空 ACME_EMAIL）
-├── Dockerfile.app           # 后端 API 镜像
-├── Dockerfile.caddy         # Caddy + 静态文件镜像
 ├── docker-compose.yml       # Docker 编排（app + mariadb + caddy）
-├── .env.docker.example      # Docker 环境变量模板
 └── pnpm-workspace.yaml
 ```
 
@@ -533,7 +526,7 @@ gunzip -c ./backups/homepage_YYYYMMDD_HHMMSS.sql.gz | \
 
 ## 📖 文档
 
-> 📁 完整文档索引见 [`docs/README.md`](./docs/README.md)。
+> 📁 完整文档索引见 [`docs/README.md`](./docs/README.md)（英文版 [`docs/README.en.md`](./docs/README.en.md)）。
 
 | 文档 | 说明 |
 |------|------|
@@ -543,6 +536,12 @@ gunzip -c ./backups/homepage_YYYYMMDD_HHMMSS.sql.gz | \
 | [开发指南](./docs/dev-guide.md) | 本地开发流程、常见问题 |
 | [技术选型](./docs/technology-selection.md) | 技术栈清单与选择理由 |
 | [开发进度](./docs/progress.md) | 版本节点与功能演进历史 |
+
+每份文档均有中英文双语版本（`.md` / `.en.md`），内容同步维护。
+
+### 📋 测试日志（`docs/log/`）
+
+`docs/log/` 目录保存本地联调与问题修复的测试报告（如 Windows 11 SQLite 联调记录），按时间戳命名，记录特定场景下的测试过程与修复结果，供后续排查类似问题时参考。
 
 ---
 

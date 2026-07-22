@@ -44,7 +44,7 @@ function humanRead(raw: string): string {
     if (typeof parsed === 'object' && parsed !== null) {
       return Object.values(parsed).join(' / ')
     }
-  } catch { /* plain text */ }
+  } catch { /* not JSON — treat as plain text */ }
   return raw
 }
 
@@ -124,25 +124,57 @@ function formatDate(dateStr: string) {
 /* ====== Grid ====== */
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
 }
 
-/* ====== Card ====== */
+/* ====== Card — glass with hairline ====== */
 .config-card {
-  background: #fff;
-  border: 1px solid #f0f0f0;
-  border-radius: 10px;
-  padding: 14px 16px;
+  position: relative;
+  background: var(--admin-material-regular);
+  backdrop-filter: blur(20px) saturate(var(--admin-saturation));
+  -webkit-backdrop-filter: blur(20px) saturate(var(--admin-saturation));
+  border: 1px solid var(--admin-hairline);
+  border-radius: var(--admin-radius-md);
+  padding: 14px 16px 10px;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  transition: all 0.2s ease;
+  transition:
+    transform var(--admin-duration-medium) var(--admin-ease-spring),
+    box-shadow var(--admin-duration-medium) var(--admin-ease-out),
+    border-color var(--admin-duration-fast) var(--admin-ease-out),
+    background-color var(--admin-duration-fast) var(--admin-ease-out);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.config-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(255, 255, 255, 0.6),
+    transparent);
+  pointer-events: none;
+}
+
+[theme='dark'] .config-card::before {
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(255, 255, 255, 0.16),
+    transparent);
 }
 
 .config-card:hover {
-  border-color: #d9d9d9;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transform: translate3d(0, -2px, 0);
+  border-color: var(--admin-hairline-strong);
+  box-shadow: var(--admin-shadow-2);
+  background: var(--admin-material-thick);
 }
 
 /* ====== Top row ====== */
@@ -150,29 +182,40 @@ function formatDate(dateStr: string) {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.5rem;
 }
 
 .card-key {
+  font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', 'Fira Code', Consolas, monospace;
   font-weight: 600;
-  font-size: 15px;
-  color: #1a1a1a;
+  font-size: 14px;
+  color: var(--admin-text);
+  letter-spacing: -0.005em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
 }
 
 .card-tag {
-  font-size: 11px;
-  line-height: 1;
+  font-size: 11px !important;
+  line-height: 1.4 !important;
+  padding: 1px 8px !important;
+  flex-shrink: 0;
 }
 
 /* ====== Value ====== */
 .card-value {
   font-size: 13px;
-  color: #4a4a4a;
+  color: var(--admin-text-secondary);
   line-height: 1.55;
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
   min-height: 2.5em;
+  letter-spacing: -0.005em;
 }
 
 /* ====== Bottom row ====== */
@@ -180,16 +223,25 @@ function formatDate(dateStr: string) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 2px;
+  margin-top: 4px;
+  border-top: 1px solid var(--admin-hairline);
+  padding-top: 8px;
 }
 
 .card-time {
   font-size: 11px;
-  color: #bbb;
+  color: var(--admin-text-tertiary);
+  font-variant-numeric: tabular-nums;
 }
 
 .card-actions {
   display: flex;
-  gap: 0;
+  gap: 4px;
+}
+
+.card-actions :deep(.ant-btn) {
+  height: 24px !important;
+  padding: 0 8px !important;
+  font-size: 12px !important;
 }
 </style>

@@ -144,7 +144,7 @@ For finer control.
 1. Copy the template:
 
 ```bash
-cp .env.docker.example .env.docker
+cp docker/.env.example .env.docker
 ```
 
 2. Edit `.env.docker` — the essentials:

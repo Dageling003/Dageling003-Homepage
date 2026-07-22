@@ -16,7 +16,7 @@ BACKUP_FILE="${OUTPUT_DIR}/homepage_${TIMESTAMP}.sql.gz"
 # 检查 .env.docker 是否存在
 if [[ ! -f .env.docker ]]; then
   echo -e "${RED}错误：未找到 .env.docker 文件${NC}"
-  echo "请先创建环境变量文件：cp .env.docker.example .env.docker"
+  echo "请先创建环境变量文件：cp docker/.env.example .env.docker"
   exit 1
 fi
 

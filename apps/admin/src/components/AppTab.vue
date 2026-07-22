@@ -98,10 +98,15 @@ function closeClickOutside() {
 </template>
 
 <style scoped>
+/* ============================================================
+   AppTab — Apple pill tabs, hairline strip, glass context menu
+   ============================================================ */
 .at-wrap {
   position: relative;
-  background: var(--admin-bg-card, #fff);
-  border-bottom: 1px solid var(--admin-border, #f0f0f0);
+  background: var(--admin-material-thin);
+  backdrop-filter: blur(20px) saturate(var(--admin-saturation));
+  -webkit-backdrop-filter: blur(20px) saturate(var(--admin-saturation));
+  border-bottom: 1px solid var(--admin-hairline);
   user-select: none;
 }
 
@@ -109,91 +114,105 @@ function closeClickOutside() {
   display: flex;
   overflow-x: auto;
   scrollbar-width: none;
-  padding: 0;
+  padding: 6px 10px;
+  gap: 4px;
 }
 
-.at-scroll::-webkit-scrollbar {
-  display: none;
-}
+.at-scroll::-webkit-scrollbar { display: none; }
 
 .at-tab {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.5rem 0.8rem;
+  padding: 0.35rem 0.8rem;
   font-size: 0.82rem;
-  color: var(--admin-text-secondary, #595959);
-  border-right: 1px solid var(--admin-border, #f0f0f0);
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  color: var(--admin-text-secondary);
+  border-radius: 999px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition:
+    background-color var(--admin-duration-fast) var(--admin-ease-out),
+    color var(--admin-duration-fast) var(--admin-ease-out),
+    transform var(--admin-duration-medium) var(--admin-ease-spring);
   white-space: nowrap;
   position: relative;
+  border: 1px solid transparent;
 }
 
 .at-tab:hover {
-  background: var(--admin-hover, #fafafa);
-  color: #1677ff;
+  color: var(--admin-text);
+  background: var(--admin-material-thin);
 }
 
 .at-tab.active {
-  color: #1677ff;
-  background: var(--admin-bg-card, #fff);
-}
-
-.at-tab.active::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: #1677ff;
+  color: var(--admin-primary);
+  background: var(--admin-primary-soft);
+  border-color: color-mix(in srgb, var(--admin-primary) 22%, transparent);
+  font-weight: 600;
 }
 
 .at-close {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.1rem;
-  height: 1.1rem;
-  font-size: 0.6rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  font-size: 0.62rem;
   border-radius: 50%;
   opacity: 0;
-  transition: all 0.2s;
+  transition:
+    opacity var(--admin-duration-fast) var(--admin-ease-out),
+    background-color var(--admin-duration-fast) var(--admin-ease-out);
   line-height: 1;
+  color: var(--admin-text-tertiary);
 }
 
-.at-tab:hover .at-close {
-  opacity: 0.6;
-}
+.at-tab:hover .at-close { opacity: 0.75; }
 
 .at-close:hover {
   opacity: 1 !important;
-  background: rgba(0, 0, 0, 0.06);
+  background: var(--admin-hairline-strong);
+  color: var(--admin-text);
 }
 
-/* Context menu */
+.at-tab.active .at-close { opacity: 0.85; color: var(--admin-primary); }
+
+/* ---------- Context menu — glass with hairline ---------- */
 .at-context {
   position: fixed;
   z-index: 1050;
-  background: #fff;
-  border: 1px solid #f0f0f0;
-  border-radius: 8px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
-  padding: 0.3rem 0;
-  min-width: 120px;
+  background: var(--admin-material-thick);
+  backdrop-filter: blur(var(--admin-blur)) saturate(var(--admin-saturation));
+  -webkit-backdrop-filter: blur(var(--admin-blur)) saturate(var(--admin-saturation));
+  border: 1px solid var(--admin-hairline);
+  border-radius: var(--admin-radius-md);
+  box-shadow: var(--admin-shadow-2);
+  padding: 4px;
+  min-width: 130px;
+  color: var(--admin-text);
+  animation: at-ctx-in var(--admin-duration-medium) var(--admin-ease-spring);
+  transform-origin: top left;
+}
+
+@keyframes at-ctx-in {
+  from { opacity: 0; transform: translate3d(0, -4px, 0) scale(0.96); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0)      scale(1); }
 }
 
 .at-context-item {
-  padding: 0.4rem 1rem;
+  padding: 0.4rem 0.75rem;
   font-size: 0.82rem;
   cursor: pointer;
-  transition: background 0.15s;
+  border-radius: var(--admin-radius-sm);
+  transition: background-color var(--admin-duration-fast) var(--admin-ease-out),
+              color var(--admin-duration-fast) var(--admin-ease-out);
+  color: var(--admin-text);
 }
 
 .at-context-item:hover {
-  background: #f5f5f5;
-  color: #1677ff;
+  background: var(--admin-primary-softer);
+  color: var(--admin-primary);
 }
 
 .at-context-overlay {

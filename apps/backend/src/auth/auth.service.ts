@@ -3,6 +3,7 @@ import {
   UnauthorizedException,
   BadRequestException,
   ConflictException,
+  Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Repository } from 'typeorm';
@@ -20,6 +21,7 @@ const RESET_TOKEN_TTL_MS = 15 * 60 * 1000;
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
@@ -84,6 +86,7 @@ export class AuthService {
     }
 
     user.password = await bcrypt.hash(dto.newPassword, 12);
+    user.passwordChangedAt = new Date();
     await this.usersRepository.save(user);
     return { message: '密码修改成功' };
   }
@@ -163,6 +166,7 @@ export class AuthService {
     if (!user) throw new BadRequestException('用户不存在');
 
     user.password = await bcrypt.hash(newPassword, 12);
+    user.passwordChangedAt = new Date();
     await this.usersRepository.save(user);
     record.usedAt = new Date();
     await this.resetTokenRepository.save(record);
@@ -235,15 +239,15 @@ export class AuthService {
           role: 'admin',
         }),
       );
-      console.log(
-        '[AuthService] Default admin user "admin" has been created from DEFAULT_ADMIN_PASSWORD. Rotate the password immediately.',
+      this.logger.warn(
+        'Default admin user "admin" has been created from DEFAULT_ADMIN_PASSWORD. Rotate the password immediately.',
       );
       return;
     }
 
     // 无环境变量 / 长度不足：不自动创建。让 /admin/setup 走「创建管理员」流程。
-    console.log(
-      '[AuthService] No admin user exists and DEFAULT_ADMIN_PASSWORD is not set (or too short). ' +
+    this.logger.log(
+      'No admin user exists and DEFAULT_ADMIN_PASSWORD is not set (or too short). ' +
         'The first admin must be created via /admin/setup.',
     );
   }

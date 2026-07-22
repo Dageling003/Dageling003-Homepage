@@ -171,11 +171,11 @@ const configHandlers: Record<string, (val: string) => void> = {
   infoProvince: (v) => { infoProvince.value = v },
   infoSchool: (v) => { infoSchool.value = v },
   avatarUrl: (v) => { avatarUrl.value = v },
-  professions: (v) => { try { professions.value = JSON.parse(v) } catch {} },
-  links: (v) => { try { links.value = JSON.parse(v) } catch {} },
-  techs: (v) => { try { techs.value = JSON.parse(v) } catch {} },
-  todos: (v) => { try { todos.value = JSON.parse(v) } catch {} },
-  typewriterWords: (v) => { try { typewriterWords.value = JSON.parse(v) } catch {} },
+  professions: (v) => { try { professions.value = JSON.parse(v) } catch (e) { console.error('[HomeView] professions parse failed:', e) } },
+  links: (v) => { try { links.value = JSON.parse(v) } catch (e) { console.error('[HomeView] links parse failed:', e) } },
+  techs: (v) => { try { techs.value = JSON.parse(v) } catch (e) { console.error('[HomeView] techs parse failed:', e) } },
+  todos: (v) => { try { todos.value = JSON.parse(v) } catch (e) { console.error('[HomeView] todos parse failed:', e) } },
+  typewriterWords: (v) => { try { typewriterWords.value = JSON.parse(v) } catch (e) { console.error('[HomeView] typewriterWords parse failed:', e) } },
 }
 
 onMounted(async () => {
@@ -185,8 +185,8 @@ onMounted(async () => {
     for (const c of arr) {
       configHandlers[c.configKey]?.(c.configValue)
     }
-  } catch {
-    // API unavailable — keep defaults
+  } catch (e) {
+    console.error('[HomeView] fetchAllConfigs failed:', e)
   }
   logoRef.value?.finish()
 })
@@ -239,7 +239,7 @@ onMounted(async () => {
           </p>
           <p class="intro-line">
             是一名
-            <template v-for="(p, i) in professions" :key="i">
+            <template v-for="(p, i) in professions" :key="`prof-${i}-${p}`">
               <b>{{ p }}</b><span v-if="i < professions.length - 1">、</span>
             </template>
           </p>
@@ -251,7 +251,7 @@ onMounted(async () => {
             <div class="techStack" role="list">
               <div
                 v-for="(t, i) in techs"
-                :key="i"
+                :key="`tech-${i}-${t.name}`"
                 class="techItem"
                 :data-name="t.name"
                 role="listitem"
@@ -267,7 +267,7 @@ onMounted(async () => {
             <div class="todoList" role="list">
               <div
                 v-for="(item, i) in todos"
-                :key="i"
+                :key="`todo-${i}-${item.text}`"
                 class="todoItem"
                 role="listitem"
               >
@@ -305,38 +305,69 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+/* ============================================================
+   HomeView — Apple-style materials, restrained motion, hairlines
+   ============================================================ */
+
+/* ---------- Entrance: soft, critically damped, staggered ---------- */
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
 }
 
-.main.loaded .header { animation: fadeUp 0.5s ease both; }
-.main.loaded .intro-card { animation: fadeUp 0.5s ease 0.1s both; }
-.main.loaded .card-grid { animation: fadeUp 0.5s ease 0.2s both; }
-.main.loaded .bottom-bar { animation: fadeUp 0.5s ease 0.3s both; }
-.main.loaded .footer { animation: fadeUp 0.5s ease 0.4s both; }
+.main.loaded .header      { animation: fadeUp 620ms var(--ease-out) 40ms both; }
+.main.loaded .intro-card  { animation: fadeUp 620ms var(--ease-out) 120ms both; }
+.main.loaded .card-grid   { animation: fadeUp 620ms var(--ease-out) 200ms both; }
+.main.loaded .bottom-bar  { animation: fadeUp 620ms var(--ease-out) 280ms both; }
+.main.loaded .footer      { animation: fadeUp 620ms var(--ease-out) 360ms both; }
 
+/* ---------- Layout ---------- */
 main {
-  width: 90%;
-  max-width: 1000px;
+  width: min(1040px, 92%);
   margin: 0 auto;
-  padding: 5rem 0 3rem;
+  padding: 5.5rem 0 3rem;
   position: relative;
+  z-index: 1;
 }
 
+/* ---------- Header / Hero ---------- */
 .mainCard .header {
   display: flex;
   align-items: center;
+  gap: 1.4rem;
+  padding: 0 0.25rem;
 }
 
 .mainCard .header .avatar {
-  width: 9rem;
-  height: 9rem;
+  width: 8.5rem;
+  height: 8.5rem;
   border-radius: 50%;
-  border: 0.5rem solid var(--card-border-color);
-  margin-right: 1rem;
   position: relative;
   flex-shrink: 0;
+  padding: 4px;
+  background:
+    linear-gradient(135deg,
+      rgba(255, 255, 255, 0.9),
+      rgba(255, 255, 255, 0.4) 40%,
+      rgba(255, 255, 255, 0.15));
+  box-shadow:
+    var(--shadow-2),
+    0 0 0 1px var(--hairline) inset;
+  isolation: isolate;
+}
+
+[theme='dark'] .mainCard .header .avatar {
+  background:
+    linear-gradient(135deg,
+      rgba(255, 255, 255, 0.16),
+      rgba(255, 255, 255, 0.04) 40%,
+      rgba(255, 255, 255, 0.02));
 }
 
 .mainCard .header .avatar img {
@@ -344,88 +375,97 @@ main {
   height: 100%;
   border-radius: 50%;
   display: block;
+  background: var(--surface);
 }
 
 .avatar-emoji {
   position: absolute;
-  bottom: 0;
-  right: 0;
-  background: var(--card-border-color);
+  bottom: 2px;
+  right: 2px;
+  background: var(--material-thick);
+  backdrop-filter: blur(var(--material-blur)) saturate(var(--material-saturation));
+  -webkit-backdrop-filter: blur(var(--material-blur)) saturate(var(--material-saturation));
   border-radius: 50%;
-  border: 0.3rem solid var(--card-border-color);
-  font-size: 1.2rem;
+  border: 1px solid var(--hairline);
+  font-size: 1.1rem;
   line-height: 1;
-  width: 1.8rem;
-  height: 1.8rem;
+  width: 1.9rem;
+  height: 1.9rem;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: var(--shadow-1);
 }
 
 .mainCard .header .sayHi {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.7rem;
+  min-width: 0;
 }
 
 .mainCard .header .sayHi h1 {
-  font-size: 2.2rem;
+  font-size: clamp(1.75rem, 3.4vw, 2.4rem);
   margin: 0;
   color: var(--text-color);
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: -0.022em; /* tightening for large display type */
+  line-height: 1.08;
+  font-optical-sizing: auto;
 }
 
+/* Sweep-of-color highlight over the name — subtler, no glow */
 .hl-name {
   position: relative;
-  color: rgba(0, 0, 0, 0.12);
+  display: inline-block;
+  color: var(--text-color);
   font-weight: 700;
+  background:
+    linear-gradient(90deg,
+      var(--theme-color) 0%,
+      color-mix(in srgb, var(--theme-color) 55%, #ff64d2) 50%,
+      var(--theme-color) 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: nameFlow 6s ease-in-out infinite;
 }
 
-[theme='dark'] .hl-name {
-  color: rgba(255, 255, 255, 0.12);
-}
-
-.hl-name::before {
-  content: attr(data-text);
-  position: absolute;
-  top: 0;
-  left: 0;
-  color: var(--theme-color);
-  width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  animation: showName 3s ease-in-out infinite;
-  border-right: 3px solid var(--theme-color);
-  filter: drop-shadow(0 0 6px var(--theme-color));
-}
-
-@keyframes showName {
-  0% { width: 0; }
-  50% { width: 105%; }
-  100% { width: 0; }
+@keyframes nameFlow {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
 }
 
 .infoTags {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: 0.35rem;
 }
 
 .infoTags .tag {
-  padding: 0.3rem 0.5rem;
-  background: var(--card-background);
-  border-radius: 8px;
-  font-size: 0.85rem;
+  padding: 0.28rem 0.65rem;
+  background: var(--material-thin);
+  backdrop-filter: blur(20px) saturate(var(--material-saturation));
+  -webkit-backdrop-filter: blur(20px) saturate(var(--material-saturation));
+  border: 1px solid var(--hairline);
+  border-radius: 999px; /* Apple-style capsule tags */
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  letter-spacing: 0.005em;
+  line-height: 1.35;
 }
 
-.infoTags .tag .boy { color: #33a9dc; }
-.infoTags .tag .girl { color: #ff5e7e; }
+.infoTags .tag .boy  { color: #0a84ff; font-weight: 600; }
+.infoTags .tag .girl { color: #ff375f; font-weight: 600; }
 
+/* ---------- Content grid ---------- */
 .mainCard .content {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  margin-top: 2rem;
+  margin-top: 2.2rem;
 }
 
 .intro-card {
@@ -433,8 +473,8 @@ main {
   flex-direction: row;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 0.4rem 0.8rem;
-  padding: 1rem 1.3rem;
+  gap: 0.35rem 0.9rem;
+  padding: 1.15rem 1.4rem;
 }
 
 .card-grid {
@@ -444,7 +484,7 @@ main {
 }
 
 .card-grid > .card {
-  min-height: 200px;
+  min-height: 208px;
 }
 
 .bottom-bar {
@@ -458,7 +498,7 @@ main {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 0.7rem 1rem;
+  padding: 0.9rem 1.15rem;
 }
 
 .bottom-bar .soc-card {
@@ -467,232 +507,278 @@ main {
   flex-direction: row;
   align-items: center;
   justify-content: center;
-  padding: 0.7rem 1.2rem;
+  padding: 0.9rem 1.25rem;
   flex-wrap: nowrap;
 }
 
+/* ---------- The Card material ---------- */
 .mainCard .card {
-  background: var(--card-background);
-  border: 3px solid var(--card-border-color);
-  border-radius: 16px;
-  padding: 1rem;
+  position: relative;
+  background: var(--material-regular);
+  backdrop-filter: blur(var(--material-blur)) saturate(var(--material-saturation));
+  -webkit-backdrop-filter: blur(var(--material-blur)) saturate(var(--material-saturation));
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  padding: 1.15rem 1.25rem;
   display: flex;
   flex-direction: column;
+  box-shadow: var(--shadow-1);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* Bright top edge — light catching a physical material */
+.mainCard .card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 8%;
+  right: 8%;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(255, 255, 255, 0.7),
+    transparent);
+  pointer-events: none;
+  z-index: 2;
+}
+
+[theme='dark'] .mainCard .card::before {
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(255, 255, 255, 0.18),
+    transparent);
 }
 
 .mainCard .card .cardHeader {
-  font-size: 1rem;
-  font-weight: 700;
-  margin: 0 0 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
-.mainCard .hover { transition: all 0.3s ease-in-out; }
-.mainCard .hover:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-  border-color: var(--theme-color);
+/* ---------- Hover: subtle lift, no color change on border ---------- */
+.mainCard .hover {
+  transition:
+    transform var(--duration-med) var(--ease-spring),
+    box-shadow var(--duration-med) var(--ease-out),
+    background-color var(--duration-med) var(--ease-out);
+  will-change: transform;
 }
 
+@media (hover: hover) {
+  .mainCard .hover:hover {
+    transform: translate3d(0, -3px, 0);
+    box-shadow: var(--shadow-2);
+    background: var(--material-thick);
+  }
+}
+
+/* ---------- Todo list ---------- */
 .todoList {
-  margin-top: 0.3rem;
+  margin-top: 0.15rem;
   overflow-y: auto;
   flex: 1;
   max-height: 240px;
   scrollbar-width: thin;
-  scrollbar-color: var(--card-border-color) transparent;
+  scrollbar-color: var(--hairline-strong) transparent;
   padding-right: 0.3rem;
 }
 
-.todoList::-webkit-scrollbar {
-  width: 5px;
-}
-
-.todoList::-webkit-scrollbar-track {
-  background: transparent;
-  border-radius: 4px;
-}
-
+.todoList::-webkit-scrollbar { width: 4px; }
+.todoList::-webkit-scrollbar-track { background: transparent; }
 .todoList::-webkit-scrollbar-thumb {
-  background: var(--card-border-color);
+  background: var(--hairline-strong);
   border-radius: 4px;
 }
-
-.todoList::-webkit-scrollbar-thumb:hover {
-  background: var(--theme-color);
-}
+.todoList::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
 
 .todoItem {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  margin: 0.5rem 0;
-  padding-bottom: 0.3rem;
-  border-bottom: 2px dashed var(--text-color);
-  font-size: 0.88rem;
+  gap: 0.55rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--hairline);
+  font-size: 0.9rem;
+  color: var(--text-color);
 }
 
 .todoItem:last-child { border-bottom: none; }
-.todo-check { font-size: 0.9rem; flex-shrink: 0; }
-.todoItem .done { text-decoration: line-through; opacity: 0.5; }
-
-.intro-line {
-  margin: 0;
+.todo-check {
   font-size: 0.95rem;
-  line-height: 1.6;
-  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.todoItem .done {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  color: var(--text-tertiary);
 }
 
+/* ---------- Intro text ---------- */
+.intro-line {
+  margin: 0;
+  font-size: 0.98rem;
+  line-height: 1.6;
+  white-space: nowrap;
+  color: var(--text-color);
+}
+
+/* Understated tint behind highlighted terms — replaces underline swatch */
 .intro-card b,
 .mainCard .card-grid b {
   position: relative;
   display: inline-block;
-  margin: 0 0.15rem;
-  z-index: 1;
+  font-weight: 600;
+  color: var(--theme-color);
+  background: var(--theme-color-soft);
+  padding: 0.06em 0.42em;
+  border-radius: 6px;
+  transition: background-color var(--duration-med) var(--ease-out);
+  margin: 0 0.05em;
 }
 
-.intro-card b::before,
-.mainCard .card-grid b::before {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 30%;
-  background: var(--theme-color);
-  opacity: 0.7;
-  border-radius: 4px;
-  z-index: -1;
-  transition: height 0.3s;
+.intro-card b:hover,
+.mainCard .card-grid b:hover {
+  background: color-mix(in srgb, var(--theme-color) 22%, transparent);
 }
 
-.intro-card b:hover::before,
-.mainCard .card-grid b:hover::before { height: 70%; }
-
+/* ---------- Tech stack ---------- */
 .techStack {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.3rem;
+  gap: 0.45rem;
 }
 
 .techItem {
-  width: 48px;
-  height: 48px;
+  width: 46px;
+  height: 46px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 14px;
-  background: var(--techItem-background);
-  border: 2px solid var(--card-border-color);
+  border-radius: 13px;
+  background: var(--material-thin);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  border: 1px solid var(--hairline);
   position: relative;
   cursor: default;
-  transition: all 0.25s ease;
+  transition:
+    transform var(--duration-med) var(--ease-spring),
+    box-shadow var(--duration-med) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
 }
 
-.techItem:hover {
-  transform: translateY(-3px) scale(1.06);
-  border-color: #d0d0d0;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+@media (hover: hover) {
+  .techItem:hover {
+    transform: translate3d(0, -3px, 0) scale(1.05);
+    box-shadow: var(--shadow-2);
+    background: var(--material-thick);
+    z-index: 2;
+  }
 }
 
 .techIconSvg {
-  font-size: 1.7rem;
+  font-size: 1.55rem;
   line-height: 1;
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.06));
 }
 
+/* Tooltip — floating capsule, matches system tooltips */
 .techItem::before {
   content: attr(data-name);
   position: absolute;
-  top: -1.8rem;
+  top: -2rem;
   left: 50%;
-  transform: translateX(-50%) translateY(10px);
-  background: #2d2d2d;
+  transform: translateX(-50%) translateY(6px) scale(0.94);
+  transform-origin: center bottom;
+  background: rgba(28, 28, 30, 0.94);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   color: #fff;
-  font-size: 13px;
-  padding: 2px 8px;
-  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 9px;
+  border-radius: 8px;
   white-space: nowrap;
   opacity: 0;
-  transition: all 0.25s;
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    transform var(--duration-med) var(--ease-spring);
   pointer-events: none;
+  letter-spacing: 0.01em;
+  box-shadow: var(--shadow-2);
 }
 
 .techItem:hover::before {
   opacity: 1;
-  transform: translateX(-50%) translateY(0);
+  transform: translateX(-50%) translateY(0) scale(1);
 }
 
+/* ---------- Typewriter card ---------- */
 .typew-card :deep(.typewriter) {
-  font-family: monospace;
+  font-family:
+    ui-monospace, 'SF Mono', 'JetBrains Mono', 'Fira Code',
+    'Cascadia Code', 'Menlo', Consolas, monospace;
   font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.005em;
   text-align: center;
+  color: var(--text-color);
 }
 
+/* ---------- Footer ---------- */
 .mainCard .footer {
   text-align: center;
-  margin-top: 2rem;
-  font-size: 0.82rem;
-  opacity: 0.5;
+  margin-top: 2.2rem;
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+  letter-spacing: 0.02em;
 }
 
 .mainCard .footer p { margin: 0; }
 
+/* ---------- Responsive ---------- */
 @media (max-width: 1024px) {
   main {
-    width: 95%;
+    width: 94%;
     padding: 4rem 0 2rem;
   }
 
   .mainCard .header .avatar {
-    width: 7rem;
-    height: 7rem;
-    border-width: 0.4rem;
+    width: 6.8rem;
+    height: 6.8rem;
+    padding: 3px;
   }
 
-  .mainCard .header .sayHi h1 {
-    font-size: 1.8rem;
-  }
-
-  .mainCard .content { gap: 0.8rem; }
-
-  .card-grid {
-    gap: 0.8rem;
-  }
-
-  .bottom-bar {
-    gap: 0.8rem;
-  }
+  .mainCard .content { gap: 0.85rem; }
+  .card-grid { gap: 0.85rem; }
+  .bottom-bar { gap: 0.85rem; }
 }
 
 @media (max-width: 768px) {
   main {
     width: 92%;
-    padding: 1rem 0 2rem;
+    padding: 1.5rem 0 2rem;
   }
 
   .mainCard .header {
     flex-direction: column;
     text-align: center;
+    gap: 0.9rem;
   }
 
   .mainCard .header .avatar {
-    width: 5rem;
-    height: 5rem;
-    border-width: 0.3rem;
-    margin-right: 0;
-    margin-bottom: 0.6rem;
+    width: 5.2rem;
+    height: 5.2rem;
+    padding: 3px;
   }
 
   .avatar-emoji {
-    width: 1.4rem;
-    height: 1.4rem;
+    width: 1.5rem;
+    height: 1.5rem;
     font-size: 0.9rem;
-    border-width: 0.2rem;
-  }
-
-  .mainCard .header .sayHi h1 {
-    font-size: 1.3rem;
-    text-align: center;
   }
 
   .infoTags {
@@ -700,73 +786,55 @@ main {
   }
 
   .infoTags .tag {
-    font-size: 0.78rem;
-    padding: 0.2rem 0.4rem;
+    font-size: 0.76rem;
+    padding: 0.22rem 0.55rem;
   }
 
   .intro-line {
     white-space: normal;
-    font-size: 0.88rem;
+    font-size: 0.92rem;
   }
 
   .card-grid {
     grid-template-columns: 1fr;
-    gap: 0.7rem;
+    gap: 0.75rem;
+  }
+
+  .card-grid > .card {
+    min-height: 0;
   }
 
   .bottom-bar {
     flex-direction: column;
-    gap: 0.7rem;
+    gap: 0.75rem;
   }
 
-  .bottom-bar .typew-card {
-    flex: none;
-  }
+  .bottom-bar .typew-card { flex: none; }
 
   .mainCard .card {
-    flex: none;
-    padding: 0.8rem;
-    width: auto;
+    padding: 1rem 1.05rem;
+    border-radius: var(--radius-md);
   }
 
-  .mainCard .soc-card {
-    padding: 0.6rem 0.7rem;
-  }
+  .typew-card :deep(.typewriter) { font-size: 13px; }
 
-  .typew-card :deep(.typewriter) {
-    font-size: 13px;
-  }
-
-  .mainCard .footer {
-    margin-top: 1rem;
-  }
-
-  .mainCard .hover:hover {
-    transform: none;
-    box-shadow: none;
-    border-color: var(--card-border-color);
-  }
+  .mainCard .footer { margin-top: 1.3rem; }
 }
 
 @media (max-width: 420px) {
   main {
-    width: 96%;
-    padding: 0.6rem 0 1.5rem;
+    width: 94%;
+    padding: 1rem 0 1.5rem;
   }
 
   .mainCard .header .avatar {
-    width: 4rem;
-    height: 4rem;
-    border-width: 0.25rem;
-  }
-
-  .mainCard .header .sayHi h1 {
-    font-size: 1.1rem;
+    width: 4.4rem;
+    height: 4.4rem;
+    padding: 2px;
   }
 
   .mainCard .card {
-    padding: 0.65rem;
-    border-width: 2px;
+    padding: 0.85rem 0.95rem;
   }
 }
 </style>

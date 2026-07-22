@@ -121,7 +121,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./Dockerfile.app
+          file: ./docker/Dockerfile.app
           push: false
           load: true
           tags: homepage-app:latest
@@ -132,7 +132,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./Dockerfile.caddy
+          file: ./docker/Dockerfile.caddy
           push: false
           load: true
           tags: homepage-caddy:latest

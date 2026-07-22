@@ -206,7 +206,6 @@ onMounted(fetchData)
 
 <style scoped>
 .al-wrap { max-width: 1200px; }
-.al-card { border-radius: 12px; }
 
 .al-filters {
   display: flex; gap: 10px; align-items: center;
@@ -215,37 +214,62 @@ onMounted(fetchData)
 
 .al-detail-text {
   cursor: pointer;
-  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', 'Fira Code', Consolas, monospace;
   font-size: 0.78rem;
-  color: #8c8c8c;
-  max-width: 200px;
+  color: var(--admin-text-secondary);
+  max-width: 220px;
   display: inline-block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--admin-material-thin);
+  border: 1px solid var(--admin-hairline);
+  transition: background-color var(--admin-duration-fast) var(--admin-ease-out);
+}
+.al-detail-text:hover {
+  background: var(--admin-primary-softer);
+  color: var(--admin-primary);
 }
 
 .al-detail-pop {
+  font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', 'Fira Code', Consolas, monospace;
   font-size: 0.75rem;
   max-height: 300px;
   overflow: auto;
   margin: 0;
   white-space: pre-wrap;
   word-break: break-all;
+  color: var(--admin-text);
 }
 
 .al-date-input {
-  height: 32px; padding: 0 8px;
-  border: 1px solid #d9d9d9; border-radius: 6px;
-  font-size: 0.85rem; color: #262626; background: #fff;
-  outline: none; transition: border-color 0.2s; font-family: inherit;
-  width: 140px;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--admin-hairline);
+  border-radius: var(--admin-radius-sm);
+  font-size: 0.85rem;
+  color: var(--admin-text);
+  background: var(--admin-material-ultrathin);
+  outline: none;
+  transition:
+    border-color var(--admin-duration-fast) var(--admin-ease-out),
+    box-shadow var(--admin-duration-fast) var(--admin-ease-out);
+  font-family: inherit;
+  width: 148px;
+  font-variant-numeric: tabular-nums;
 }
-.al-date-input:focus { border-color: #1677ff; box-shadow: 0 0 0 2px rgba(22,119,255,0.1); }
-.al-date-sep { color: #d9d9d9; }
+.al-date-input:hover { border-color: var(--admin-hairline-strong); }
+.al-date-input:focus {
+  border-color: var(--admin-primary);
+  box-shadow: 0 0 0 3px var(--admin-primary-soft);
+}
+.al-date-sep { color: var(--admin-text-tertiary); }
 
 @media (max-width: 768px) {
   .al-filters { flex-direction: column; align-items: stretch; }
   .al-filters > * { width: 100% !important; }
+  .al-date-input { width: 100% !important; }
 }
 </style>

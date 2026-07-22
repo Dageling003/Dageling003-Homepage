@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -12,6 +13,7 @@ import { AuditService } from '../audit/audit.service';
 
 @Injectable()
 export class SiteConfigService {
+  private readonly logger = new Logger(SiteConfigService.name);
   constructor(
     @InjectRepository(SiteConfig)
     private configRepository: Repository<SiteConfig>,
@@ -203,6 +205,6 @@ export class SiteConfigService {
       const config = this.configRepository.create(item);
       await this.configRepository.save(config);
     }
-    console.log(`Default site config seeded (${defaults.length} items)`); // 模板变量用反引号
+    this.logger.log(`Default site config seeded (${defaults.length} items)`);
   }
 }

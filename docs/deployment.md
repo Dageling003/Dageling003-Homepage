@@ -146,7 +146,7 @@ DOMAIN=your-domain.com bash scripts/deploy.sh
 1. 复制环境变量模板：
 
 ```bash
-cp .env.docker.example .env.docker
+cp docker/.env.example .env.docker
 ```
 
 2. 编辑 `.env.docker` 文件，填入以下必要配置：

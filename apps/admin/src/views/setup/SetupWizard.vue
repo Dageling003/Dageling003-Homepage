@@ -26,6 +26,8 @@ const todoItems = ref<Array<{ text: string; done: boolean }>>([])
 
 // 首管账号（仅在 hasUsers=false 时启用）
 const needsBootstrap = ref(false)
+const setupTokenRequired = ref(false)
+const setupToken = ref('')
 const adminUsername = ref('admin')
 const adminPassword = ref('')
 const adminPasswordConfirm = ref('')
@@ -72,12 +74,13 @@ const adminPwdStrength = computed(() => {
   if (/[^A-Za-z0-9]/.test(v)) s++
   return Math.min(s, 4)
 })
-const adminPwdStrengthColor = computed(() => ['', '#ff4d4f', '#faad14', '#1677ff', '#52c41a'][adminPwdStrength.value])
+const adminPwdStrengthColor = computed(() => ['', '#ff3b30', '#ff9500', '#0a84ff', '#34c759'][adminPwdStrength.value])
 const adminPwdStrengthLabel = computed(() => ['', '弱', '一般', '良好', '强'][adminPwdStrength.value])
 const canCreateAdmin = computed(() =>
   adminUsername.value.length >= 2
   && adminPassword.value.length >= 12
-  && adminPassword.value === adminPasswordConfirm.value,
+  && adminPassword.value === adminPasswordConfirm.value
+  && (!setupTokenRequired.value || setupToken.value.trim().length > 0),
 )
 
 // 动态步骤：启动态多一步「创建管理员」
@@ -144,9 +147,12 @@ async function loadExisting() {
 async function loadBootstrapState() {
   try {
     const res = await hasUsersApi()
-    needsBootstrap.value = !(res.data as any)?.data?.hasUsers
+    const payload = (res.data as any)?.data
+    needsBootstrap.value = !payload?.hasUsers
+    setupTokenRequired.value = !!payload?.setupTokenRequired
   } catch {
     needsBootstrap.value = false
+    setupTokenRequired.value = false
   }
 }
 
@@ -183,17 +189,26 @@ async function saveConfig(key: string, value: string) {
 
 async function createFirstAdmin() {
   if (!canCreateAdmin.value) {
-    message.warning('请检查用户名（≥ 2 位）和密码（≥ 12 位且两次输入一致）')
+    if (setupTokenRequired.value && !setupToken.value.trim()) {
+      message.warning('请填写服务端 .env 中的 SETUP_TOKEN')
+    } else {
+      message.warning('请检查用户名（≥ 2 位）和密码（≥ 12 位且两次输入一致）')
+    }
     return
   }
   creatingAdmin.value = true
   try {
-    await createFirstAdminApi(adminUsername.value, adminPassword.value)
+    await createFirstAdminApi(
+      adminUsername.value,
+      adminPassword.value,
+      setupTokenRequired.value ? setupToken.value.trim() : undefined,
+    )
     const loginRes = await loginApi(adminUsername.value, adminPassword.value)
     localStorage.setItem('token', loginRes.data.accessToken)
     message.success('管理员账号已创建')
     adminPassword.value = ''
     adminPasswordConfirm.value = ''
+    setupToken.value = ''
     step.value++
   } catch (err: any) {
     message.error(err?.response?.data?.message || '创建管理员失败')
@@ -268,7 +283,7 @@ async function handleFinish() {
     <div class="sw-progress">
       <div
         v-for="(s, i) in STEPS"
-        :key="i"
+        :key="s.title"
         class="sw-step"
         :class="{ active: i === step, done: i < step }"
       >
@@ -312,6 +327,10 @@ async function handleFinish() {
           </a-form-item>
           <a-form-item label="确认密码" required class="sw-form-full">
             <a-input-password v-model:value="adminPasswordConfirm" placeholder="再输入一次" size="middle" />
+          </a-form-item>
+          <a-form-item v-if="setupTokenRequired" label="Setup Token" required class="sw-form-full">
+            <a-input-password v-model:value="setupToken" placeholder="服务端 .env 中的 SETUP_TOKEN" size="middle" />
+            <div class="sw-hint">服务器管理员在 <code>.env</code> 中配置了 <code>SETUP_TOKEN</code>，请向其索取该值。</div>
           </a-form-item>
         </div>
       </div>
@@ -378,7 +397,7 @@ async function handleFinish() {
       <div v-else-if="STEPS[step]?.title === '快捷链接'" class="sw-step-content">
         <h3 class="sw-section-title">🔗 添加快捷链接</h3>
         <div class="sw-list">
-          <div v-for="(item, i) in linkItems" :key="i" class="sw-list-row">
+          <div v-for="(item, i) in linkItems" :key="`link-${i}-${item.url}`" class="sw-list-row">
             <a-input v-model:value="item.text" placeholder="名称" size="small" style="flex:1" />
             <a-input v-model:value="item.url" placeholder="URL" size="small" style="flex:2" />
             <a-button type="text" danger size="small" @click="linkItems.splice(i, 1)">✕</a-button>
@@ -393,7 +412,7 @@ async function handleFinish() {
       <div v-else-if="STEPS[step]?.title === '技术栈'" class="sw-step-content">
         <h3 class="sw-section-title">🛠️ 设置技术栈</h3>
         <div class="sw-grid-2">
-          <div v-for="(item, i) in techItems" :key="i">
+          <div v-for="(item, i) in techItems" :key="`tech-${i}-${item.name}`">
             <a-input v-model:value="item.name" placeholder="技术名称" size="small">
               <template #suffix>
                 <a-button type="text" danger size="small" @click="techItems.splice(i, 1)" style="margin-right:-8px">✕</a-button>
@@ -410,7 +429,7 @@ async function handleFinish() {
       <div v-else-if="STEPS[step]?.title === '打字机'" class="sw-step-content">
         <h3 class="sw-section-title">📝 设置打字机文字</h3>
         <div class="sw-list">
-          <div v-for="(_, i) in typewriterItems" :key="i" class="sw-list-row">
+          <div v-for="(item, i) in typewriterItems" :key="`tw-${i}-${item}`" class="sw-list-row">
             <span class="sw-idx">{{ i + 1 }}</span>
             <a-input v-model:value="typewriterItems[i]" placeholder="轮播文字" size="small" style="flex:1" />
             <a-button type="text" danger size="small" @click="typewriterItems.splice(i, 1)">✕</a-button>
@@ -423,7 +442,7 @@ async function handleFinish() {
       <div v-else-if="STEPS[step]?.title === '待办事项'" class="sw-step-content">
         <h3 class="sw-section-title">📋 设置待办事项</h3>
         <div class="sw-list">
-          <div v-for="(item, i) in todoItems" :key="i" class="sw-list-row">
+          <div v-for="(item, i) in todoItems" :key="`todo-${i}-${item.text}`" class="sw-list-row">
             <a-checkbox v-model:checked="item.done" />
             <a-input v-model:value="item.text" placeholder="待办内容" size="small" style="flex:1" />
             <a-button type="text" danger size="small" @click="todoItems.splice(i, 1)">✕</a-button>
@@ -468,114 +487,277 @@ async function handleFinish() {
 </template>
 
 <style scoped>
+/* ============================================================
+   SetupWizard — Apple glass card with critically-damped motion
+   ============================================================ */
 .sw-root {
-  max-width: 640px; margin: 0 auto; padding: 1rem 0;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
 }
 
 /* ====== Progress ====== */
 .sw-progress {
-  display: flex; justify-content: space-between; margin-bottom: 1.5rem;
-  padding: 0 0.5rem; overflow-x: auto;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1.8rem;
+  padding: 0 0.5rem;
+  overflow-x: auto;
 }
 .sw-step {
-  display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
-  flex: 1; position: relative; min-width: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 1;
+  position: relative;
+  min-width: 62px;
 }
 .sw-step::after {
-  content: ''; position: absolute; top: 16px; left: 50%; width: 100%;
-  height: 2px; background: #f0f0f0; z-index: 0;
+  content: '';
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  width: 100%;
+  height: 2px;
+  background: var(--admin-hairline);
+  z-index: 0;
+  transition: background-color var(--admin-duration-medium) var(--admin-ease-out);
 }
 .sw-step:last-child::after { display: none; }
-.sw-step.done::after { background: #1677ff; }
+.sw-step.done::after { background: var(--admin-primary); }
 .sw-step-dot {
-  width: 32px; height: 32px; border-radius: 50%; display: flex;
-  align-items: center; justify-content: center; font-size: 0.85rem;
-  background: #f0f0f0; color: #bfbfbf; z-index: 1; transition: all 0.3s;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: var(--admin-material-thin);
+  color: var(--admin-text-tertiary);
+  border: 1px solid var(--admin-hairline);
+  z-index: 1;
+  transition:
+    transform var(--admin-duration-medium) var(--admin-ease-spring),
+    background-color var(--admin-duration-medium) var(--admin-ease-out),
+    color var(--admin-duration-medium) var(--admin-ease-out),
+    box-shadow var(--admin-duration-medium) var(--admin-ease-out);
 }
-.sw-step.active .sw-step-dot { background: #1677ff; color: #fff; transform: scale(1.15); }
-.sw-step.done .sw-step-dot { background: #52c41a; color: #fff; }
-.sw-step-label { font-size: 0.72rem; color: #bfbfbf; white-space: nowrap; }
-.sw-step.active .sw-step-label { color: #1677ff; font-weight: 600; }
-.sw-step.done .sw-step-label { color: #52c41a; }
+.sw-step.active .sw-step-dot {
+  background: var(--admin-primary);
+  color: #fff;
+  border-color: var(--admin-primary);
+  transform: scale(1.15);
+  box-shadow: 0 4px 14px rgba(var(--admin-primary-rgb), 0.4);
+}
+.sw-step.done .sw-step-dot {
+  background: var(--admin-success);
+  color: #fff;
+  border-color: var(--admin-success);
+}
+.sw-step-label {
+  font-size: 0.72rem;
+  color: var(--admin-text-tertiary);
+  white-space: nowrap;
+  letter-spacing: -0.005em;
+}
+.sw-step.active .sw-step-label {
+  color: var(--admin-primary);
+  font-weight: 600;
+}
+.sw-step.done .sw-step-label { color: var(--admin-success); }
 
-/* ====== Card ====== */
+/* ====== Card — glass ====== */
 .sw-card {
-  background: #fff; border: 1px solid #f0f0f0; border-radius: 16px;
-  padding: 1.5rem; box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  position: relative;
+  background: var(--admin-material-regular);
+  backdrop-filter: blur(var(--admin-blur)) saturate(var(--admin-saturation));
+  -webkit-backdrop-filter: blur(var(--admin-blur)) saturate(var(--admin-saturation));
+  border: 1px solid var(--admin-hairline);
+  border-radius: var(--admin-radius-xl);
+  padding: 2rem 1.8rem;
+  box-shadow: var(--admin-shadow-2);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.sw-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(255, 255, 255, 0.6),
+    transparent);
+  pointer-events: none;
+}
+
+[theme='dark'] .sw-card::before {
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(255, 255, 255, 0.16),
+    transparent);
 }
 
 /* ====== Welcome ====== */
-.sw-welcome { text-align: center; padding: 2rem 1rem; }
-.sw-welcome-icon { font-size: 3rem; margin-bottom: 0.5rem; }
-.sw-welcome h2 { font-size: 1.3rem; margin: 0 0 0.5rem; color: #141414; }
-.sw-welcome p { font-size: 0.9rem; color: #595959; margin: 0 0 0.3rem; }
-.sw-hint { color: #bfbfbf !important; font-size: 0.8rem !important; }
+.sw-welcome { text-align: center; padding: 1.5rem 1rem; }
+.sw-welcome-icon {
+  font-size: 3.4rem;
+  margin-bottom: 0.75rem;
+  line-height: 1;
+  filter: drop-shadow(0 4px 12px var(--admin-primary-soft));
+}
+.sw-welcome h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 0.55rem;
+  color: var(--admin-text);
+  letter-spacing: -0.02em;
+}
+.sw-welcome p {
+  font-size: 0.94rem;
+  color: var(--admin-text-secondary);
+  margin: 0 0 0.35rem;
+  line-height: 1.55;
+}
+.sw-hint { color: var(--admin-text-tertiary) !important; font-size: 0.8rem !important; }
 
 /* ====== Form ====== */
 .sw-step-content { min-height: 280px; }
-.sw-section-title { font-size: 1rem; font-weight: 650; margin: 0 0 0.3rem; color: #262626; }
-.sw-section-desc { font-size: 0.82rem; color: #8c8c8c; margin: 0 0 1rem; }
-.sw-form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.sw-section-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0 0 0.4rem;
+  color: var(--admin-text);
+  letter-spacing: -0.015em;
+}
+.sw-section-desc {
+  font-size: 0.86rem;
+  color: var(--admin-text-secondary);
+  margin: 0 0 1.2rem;
+}
+.sw-form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .sw-form-full { grid-column: 1 / -1; }
 .sw-input { width: 100%; }
-.sw-birth-label { display: block; font-size: 0.82rem; color: #595959; margin-bottom: 4px; }
+.sw-birth-label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--admin-text-secondary);
+  margin-bottom: 6px;
+  font-weight: 500;
+}
 .sw-birth-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .sw-date-input {
-  height: 32px; padding: 0 10px; border: 1px solid #d9d9d9; border-radius: 6px;
-  font-size: 0.88rem; color: #262626; background: #fff; outline: none;
-  transition: border-color 0.2s; font-family: inherit;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--admin-hairline);
+  border-radius: var(--admin-radius-sm);
+  font-size: 0.88rem;
+  color: var(--admin-text);
+  background: var(--admin-material-ultrathin);
+  outline: none;
+  transition:
+    border-color var(--admin-duration-fast) var(--admin-ease-out),
+    box-shadow var(--admin-duration-fast) var(--admin-ease-out);
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
 }
-.sw-date-input:focus { border-color: #1677ff; box-shadow: 0 0 0 2px rgba(22,119,255,0.1); }
-.sw-birth-preview { font-size: 0.82rem; color: #1677ff; background: #f0f5ff; padding: 4px 10px; border-radius: 6px; }
+.sw-date-input:hover { border-color: var(--admin-hairline-strong); }
+.sw-date-input:focus {
+  border-color: var(--admin-primary);
+  box-shadow: 0 0 0 3px var(--admin-primary-soft);
+}
+.sw-birth-preview {
+  font-size: 0.82rem;
+  color: var(--admin-primary);
+  background: var(--admin-primary-softer);
+  border: 1px solid color-mix(in srgb, var(--admin-primary) 22%, transparent);
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-weight: 500;
+}
 .sw-birth-preview b { font-weight: 700; }
 
 .sw-title-preview {
-  margin-top: 8px;
+  margin-top: 10px;
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.82rem;
+  font-size: 0.85rem;
 }
-.sw-title-preview-label { color: #8c8c8c; }
+.sw-title-preview-label { color: var(--admin-text-secondary); }
 .sw-title-preview-tab {
-  background: #f5f5f5;
+  background: var(--admin-material-thin);
   padding: 4px 12px;
-  border-radius: 6px;
-  border: 1px solid #d9d9d9;
-  color: #262626;
-  font-size: 0.82rem;
+  border-radius: var(--admin-radius-sm);
+  border: 1px solid var(--admin-hairline);
+  color: var(--admin-text);
+  font-size: 0.85rem;
+  font-weight: 500;
 }
 .sw-title-hint {
   margin-top: 6px;
   font-size: 0.78rem;
-  color: #bfbfbf;
+  color: var(--admin-text-tertiary);
 }
 
-.sw-strength { margin-top: 6px; display: flex; align-items: center; gap: 8px; }
-.sw-strength-bar { flex: 1; height: 4px; background: #f0f0f0; border-radius: 2px; overflow: hidden; }
-.sw-strength-fill { height: 100%; transition: width 0.3s, background 0.3s; }
-.sw-strength-text { font-size: 0.78rem; white-space: nowrap; }
+.sw-strength { margin-top: 8px; display: flex; align-items: center; gap: 10px; }
+.sw-strength-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--admin-hairline-strong);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.sw-strength-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition:
+    width var(--admin-duration-medium) var(--admin-ease-out),
+    background-color var(--admin-duration-fast) var(--admin-ease-out);
+}
+.sw-strength-text {
+  font-size: 0.78rem;
+  white-space: nowrap;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
 
-.sw-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.sw-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
 
 /* ====== List ====== */
-.sw-list { display: flex; flex-direction: column; gap: 8px; }
-.sw-list-row { display: flex; align-items: center; gap: 6px; }
-.sw-idx { width: 20px; text-align: center; font-size: 0.78rem; color: #bfbfbf; }
-.sw-add-btn { margin-top: 8px; }
+.sw-list { display: flex; flex-direction: column; gap: 10px; }
+.sw-list-row { display: flex; align-items: center; gap: 8px; }
+.sw-idx {
+  width: 22px;
+  text-align: center;
+  font-family: ui-monospace, 'SF Mono', 'Fira Code', Consolas, monospace;
+  font-size: 0.78rem;
+  color: var(--admin-text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+.sw-add-btn { margin-top: 10px; }
 
 /* ====== Navigation ====== */
 .sw-nav {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1.8rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--admin-hairline);
 }
-.sw-nav-right { margin-left: auto; display: flex; gap: 8px; }
+.sw-nav-right { margin-left: auto; display: flex; gap: 10px; }
 
 /* ====== Responsive ====== */
 @media (max-width: 768px) {
+  .sw-root { padding: 1rem 0.5rem; }
   .sw-progress { gap: 0; }
   .sw-step-label { font-size: 0.65rem; }
   .sw-form { grid-template-columns: 1fr; }
   .sw-grid-2 { grid-template-columns: 1fr; }
+  .sw-card { padding: 1.4rem 1.2rem; border-radius: var(--admin-radius-lg); }
 }
 </style>

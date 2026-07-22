@@ -154,10 +154,14 @@ homepage/
 ├── config/                        # 配置文件
 │   └── ecosystem.config.cjs       # PM2 配置
 ├── docs/                          # 项目文档
-├── Caddyfile                      # 反向代理（开发/内网部署）
-├── Caddyfile.docker               # Caddy 配置（Docker 部署，内置到 Caddy 镜像）
-├── Dockerfile.app                 # 后端 API 镜像构建
-├── Dockerfile.caddy               # Caddy + 静态文件镜像构建
+├── docker/                        # Docker 构建文件
+│   ├── Dockerfile.app             # 后端 API 镜像构建
+│   ├── Dockerfile.caddy           # Caddy + 静态文件镜像构建
+│   └── .env.example               # Docker 环境变量模板
+├── caddy/                         # Caddy 配置
+│   ├── Caddyfile                  # Caddy 配置（Docker）
+│   ├── Caddyfile.dev              # 反向代理（开发/内网部署）
+│   └── entrypoint.sh              # Caddy 入口
 ├── docker-compose.yml             # Docker 编排（app + mariadb + caddy）
 ├── .dockerignore                  # Docker 构建忽略清单
 ├── package.json                   # workspace 根
@@ -288,7 +292,7 @@ audit_logs:
 - admin 以表单形式编辑（不再是 JSON 文本框）
 - 前台通过 configHandlers 映射动态加载
 - 出生日期自动计算年龄和星座
-- 34 省选择器 + 1200+ 学校搜索
+- 34 省选择器 + 2909 所学校搜索
 
 ### 部署
 

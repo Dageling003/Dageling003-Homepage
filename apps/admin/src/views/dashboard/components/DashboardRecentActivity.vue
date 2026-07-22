@@ -76,48 +76,94 @@ function friendlyKey(key: string): string {
 
 <style scoped>
 .dra-section {
-  margin-bottom: 1.5rem;
+  padding: 1.15rem 1.25rem 1rem;
+  border-radius: var(--admin-radius-lg);
+  background: var(--admin-material-regular);
+  backdrop-filter: blur(var(--admin-blur)) saturate(var(--admin-saturation));
+  -webkit-backdrop-filter: blur(var(--admin-blur)) saturate(var(--admin-saturation));
+  border: 1px solid var(--admin-hairline);
+  box-shadow: var(--admin-shadow-1);
+  position: relative;
+  overflow: hidden;
+}
+
+.dra-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(255, 255, 255, 0.65),
+    transparent);
+  pointer-events: none;
+}
+
+[theme='dark'] .dra-section::before {
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(255, 255, 255, 0.18),
+    transparent);
 }
 
 .dra-title {
-  font-size: 1rem;
+  font-size: 0.78rem;
   font-weight: 600;
-  margin: 0 0 0.8rem;
-  color: var(--admin-text, #262626);
+  margin: 0 0 0.75rem;
+  color: var(--admin-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .dra-card {
-  border-radius: 12px;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
+
+.dra-item {
+  padding: 0.7rem 0 !important;
+  border-bottom: 1px solid var(--admin-hairline) !important;
+}
+
+.dra-item:last-child { border-bottom: none !important; }
 
 .dra-meta {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.5rem;
 }
 
 .dra-tag {
   font-size: 0.72rem;
-  line-height: 1;
+  line-height: 1.4;
+  padding: 0.15em 0.65em !important;
 }
 
 .dra-key {
-  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', 'Fira Code', Consolas, monospace;
   font-size: 0.82rem;
-  color: #595959;
+  color: var(--admin-text-secondary);
   background: none;
   padding: 0;
+  letter-spacing: -0.005em;
 }
 
 .dra-operator {
-  font-weight: 500;
-  font-size: 0.85rem;
-  color: var(--admin-text, #262626);
+  font-weight: 600;
+  font-size: 0.86rem;
+  color: var(--admin-text);
+  letter-spacing: -0.005em;
 }
 
 .dra-time {
   margin-left: 0.6rem;
-  font-size: 0.78rem;
-  color: #bfbfbf;
+  font-size: 0.76rem;
+  color: var(--admin-text-tertiary);
+  font-variant-numeric: tabular-nums;
 }
 </style>

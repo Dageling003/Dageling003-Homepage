@@ -16,8 +16,8 @@ COPY --from=app-static /static/frontend /var/www/frontend
 COPY --from=app-static /static/admin /var/www/admin
 
 # Copy Caddy config and entrypoint
-COPY Caddyfile.docker /etc/caddy/Caddyfile
-COPY caddy-entrypoint.sh /usr/local/bin/caddy-entrypoint.sh
+COPY caddy/Caddyfile /etc/caddy/Caddyfile
+COPY caddy/entrypoint.sh /usr/local/bin/caddy-entrypoint.sh
 RUN chmod +x /usr/local/bin/caddy-entrypoint.sh
 
 ENTRYPOINT ["/usr/local/bin/caddy-entrypoint.sh"]

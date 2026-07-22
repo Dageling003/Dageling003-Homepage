@@ -1,0 +1,7 @@
+{
+  // Use the TypeScript version installed in the workspace (currently 6.0.x)
+  // instead of the older TS bundled with VS Code. TS 6.0 accepts
+  // `"ignoreDeprecations": "6.0"` in tsconfig; older bundled versions do not.
+  "typescript.tsdk": "apps/frontend/node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true
+}

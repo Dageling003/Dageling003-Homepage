@@ -4,7 +4,7 @@ import { computed } from 'vue'
 export interface QuickLink {
   text: string
   url: string
-  /** Background color (optional, falls back to theme color) */
+  /** Background color (optional, falls back to a themed tint) */
   color?: string
   /** Emoji or short text icon shown before the label */
   icon?: string
@@ -34,20 +34,20 @@ const gridStyle = computed(() => ({
 
 const linkSize = computed(() => {
   switch (props.size) {
-    case 'sm': return { padding: '0.4rem 0.8rem', fontSize: '0.82rem', gap: '0.3rem' }
-    case 'lg': return { padding: '0.8rem 1.4rem', fontSize: '1.1rem', gap: '0.6rem' }
-    default: return { padding: '0.55rem 1rem', fontSize: '0.93rem', gap: '0.4rem' }
+    case 'sm': return { padding: '0.4rem 0.85rem', fontSize: '0.82rem', gap: '0.35rem' }
+    case 'lg': return { padding: '0.7rem 1.25rem', fontSize: '0.98rem', gap: '0.55rem' }
+    default:   return { padding: '0.55rem 1rem',    fontSize: '0.9rem',  gap: '0.4rem'  }
   }
 })
 
-// Generate a deterministic pastel color from text if no color is provided
+// Generate a deterministic soft hue from text if no color is provided
 function getFallbackColor(text: string): string {
   let hash = 0
   for (let i = 0; i < text.length; i++) {
     hash = text.charCodeAt(i) + ((hash << 5) - hash)
   }
   const h = Math.abs(hash) % 360
-  return `hsl(${h}, 65%, 55%)`
+  return `hsl(${h}, 72%, 56%)`
 }
 </script>
 
@@ -99,34 +99,37 @@ function getFallbackColor(text: string): string {
         ...(layout === 'row' || layout === 'list' ? linkSize : {}),
       }"
     >
-      <!-- Icon -->
+      <!-- Icon dot -->
       <span v-if="link.icon" class="ql-icon">{{ link.icon }}</span>
+      <span v-else class="ql-dot" aria-hidden="true" />
       <!-- Label -->
       <span class="ql-label">{{ link.text }}</span>
       <!-- Arrow indicator -->
-      <span class="ql-arrow">→</span>
+      <span class="ql-arrow" aria-hidden="true">
+        <svg viewBox="0 0 16 16" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 3l5 5-5 5" />
+        </svg>
+      </span>
     </a>
   </div>
 </template>
 
 <style scoped>
-/* ========== WRAPPER ========== */
+/* ============================================================
+   QuickLinks — Apple-style glass pills with hairline border and
+   a soft tinted accent (color used as an accent, not a fill).
+   ============================================================ */
+
 .ql-wrap {
   display: flex;
-  gap: 0.6rem;
+  gap: 0.55rem;
 }
 
-/* -------- Grid layout -------- */
 .ql-grid {
   display: grid;
   gap: 0.6rem;
 }
 
-.ql-grid .ql-link {
-  padding: 0.7rem 0.9rem;
-}
-
-/* -------- Row layout (horizontal) -------- */
 .ql-row {
   flex-direction: row;
   flex-wrap: wrap;
@@ -134,86 +137,96 @@ function getFallbackColor(text: string): string {
   justify-content: center;
 }
 
-.ql-row .ql-link {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 14px;
-  text-decoration: none;
-  color: #fff;
-  font-weight: 500;
-  transition: all 0.25s ease;
-  cursor: pointer;
-}
-
-/* -------- List layout (vertical) -------- */
 .ql-list {
   flex-direction: column;
 }
 
-.ql-list .ql-link {
-  display: flex;
-  align-items: center;
-  border-radius: 12px;
-  text-decoration: none;
-  color: #fff;
-  font-weight: 500;
-  transition: all 0.25s ease;
-  cursor: pointer;
-}
-
-/* ========== LINK STYLES ========== */
+/* ---------- Link itself ---------- */
 .ql-link {
   position: relative;
   overflow: hidden;
-  background: var(--link-color);
-  border: 2px solid transparent;
-  padding: 0;  /* overridden by layout-specific or size-specific styles above */
-}
-
-/* Override the global `a::before` so it doesn't interfere */
-.ql-link::before {
-  display: none !important;
-}
-
-.ql-link:hover {
-  transform: translateY(-3px);
-  box-shadow:
-    0 6px 20px rgba(0, 0, 0, 0.15),
-    0 0 0 2px var(--link-color),
-    0 0 0 4px rgba(255, 255, 255, 0.3);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
   text-decoration: none;
-  color: #fff;
-  opacity: 0.92;
+  color: var(--text-color);
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  cursor: pointer;
+  background: var(--material-thin);
+  backdrop-filter: blur(20px) saturate(var(--material-saturation));
+  -webkit-backdrop-filter: blur(20px) saturate(var(--material-saturation));
+  border: 1px solid var(--hairline);
+  border-radius: 999px; /* Apple-style capsule */
+  padding: 0.55rem 1rem;
+  transition:
+    transform var(--duration-med) var(--ease-spring),
+    box-shadow var(--duration-med) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+  box-shadow: var(--shadow-1);
 }
 
-.ql-link:active {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-}
+/* Override any global `a::before` */
+.ql-link::before { display: none !important; }
 
-/* Shine effect on hover */
+/* Bright top edge */
 .ql-link::after {
   content: '';
   position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 60%);
-  opacity: 0;
-  transition: opacity 0.4s ease;
+  top: 0;
+  left: 12%;
+  right: 12%;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(255, 255, 255, 0.6),
+    transparent);
   pointer-events: none;
 }
 
-.ql-link:hover::after {
-  opacity: 1;
+[theme='dark'] .ql-link::after {
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(255, 255, 255, 0.18),
+    transparent);
 }
 
-/* ========== INNER ELEMENTS ========== */
+@media (hover: hover) {
+  .ql-link:hover {
+    transform: translate3d(0, -2px, 0);
+    box-shadow: var(--shadow-2);
+    color: var(--text-color);
+    background: var(--material-thick);
+    border-color: color-mix(in srgb, var(--link-color) 45%, var(--hairline));
+  }
+}
+
+.ql-link:active {
+  transform: translate3d(0, 0, 0) scale(0.97);
+  transition-duration: 120ms;
+  box-shadow: var(--shadow-1);
+}
+
+.ql-link:focus-visible {
+  outline: 2px solid var(--link-color);
+  outline-offset: 3px;
+}
+
+/* ---------- Icon / label / arrow ---------- */
 .ql-icon {
-  font-size: 1.1em;
+  font-size: 1.05em;
   flex-shrink: 0;
   line-height: 1;
+}
+
+.ql-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--link-color);
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--link-color) 22%, transparent);
 }
 
 .ql-label {
@@ -224,90 +237,74 @@ function getFallbackColor(text: string): string {
 }
 
 .ql-arrow {
-  font-size: 0.8em;
-  opacity: 0.7;
-  transition: transform 0.25s ease;
+  color: var(--text-tertiary);
+  display: inline-flex;
+  align-items: center;
+  transition:
+    transform var(--duration-med) var(--ease-spring),
+    color var(--duration-fast) var(--ease-out);
   flex-shrink: 0;
 }
 
 .ql-link:hover .ql-arrow {
   transform: translateX(3px);
+  color: var(--link-color);
 }
 
-/* ========== SIZE VARIANTS ========== */
-/* sm */
+/* ---------- Grid mode ---------- */
+.ql-grid .ql-link {
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius-md);
+}
+
+/* ---------- Size variants ---------- */
 .ql-size-sm .ql-link {
-  padding: 0.4rem 0.8rem;
+  padding: 0.4rem 0.85rem;
   font-size: 0.82rem;
-  border-radius: 10px;
-  gap: 0.3rem;
+  gap: 0.35rem;
 }
-
-/* md (default) */
-.ql-size-md .ql-link {
-  padding: 0.55rem 1rem;
-  font-size: 0.93rem;
-  border-radius: 14px;
-  gap: 0.4rem;
-}
-
-/* lg */
 .ql-size-lg .ql-link {
-  padding: 0.8rem 1.4rem;
-  font-size: 1.1rem;
-  border-radius: 18px;
-  gap: 0.6rem;
+  padding: 0.7rem 1.25rem;
+  font-size: 0.98rem;
+  gap: 0.55rem;
 }
 
-/* Grid-mode specific overrides for size */
-.ql-grid.ql-size-sm .ql-link { padding: 0.5rem 0.7rem; }
-.ql-grid.ql-size-lg .ql-link { padding: 1rem 1.2rem; }
+.ql-grid.ql-size-sm .ql-link { padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); }
+.ql-grid.ql-size-lg .ql-link { padding: 0.85rem 1.1rem; border-radius: var(--radius-md); }
 
-/* ========== SKELETON LOADING ========== */
+/* ---------- Skeleton ---------- */
 .ql-skeleton {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.7rem 0.9rem;
-  background: var(--card-background);
-  border: 2px solid var(--card-border-color);
-  border-radius: 14px;
-  animation: ql-pulse 1.5s ease-in-out infinite;
+  gap: 0.55rem;
+  padding: 0.6rem 0.9rem;
+  background: var(--material-thin);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  animation: ql-pulse 1.6s ease-in-out infinite;
 }
 
 .ql-skel-icon {
-  width: 1.2em;
-  height: 1.2em;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: var(--card-border-color);
+  background: var(--hairline-strong);
   flex-shrink: 0;
 }
 
 .ql-skel-text {
   flex: 1;
-  height: 0.8em;
+  height: 0.7em;
   border-radius: 4px;
-  background: var(--card-border-color);
-}
-
-.ql-grid .ql-skeleton {
-  padding: 0.7rem 0.9rem;
-}
-
-.ql-row .ql-skeleton {
-  padding: 0.55rem 1rem;
-}
-
-.ql-list .ql-skeleton {
-  padding: 0.55rem 1rem;
+  background: var(--hairline-strong);
 }
 
 @keyframes ql-pulse {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
 }
 
-/* ========== EMPTY STATE ========== */
+/* ---------- Empty ---------- */
 .ql-empty {
   display: flex;
   flex-direction: column;
@@ -315,17 +312,17 @@ function getFallbackColor(text: string): string {
   justify-content: center;
   gap: 0.3rem;
   padding: 1.5rem 1rem;
-  background: var(--card-background);
-  border: 2px dashed var(--card-border-color);
-  border-radius: 16px;
-  color: var(--text-color);
-  opacity: 0.6;
+  background: var(--material-thin);
+  border: 1px dashed var(--hairline-strong);
+  border-radius: var(--radius-lg);
+  color: var(--text-secondary);
   text-align: center;
 }
 
 .ql-empty-icon {
-  font-size: 2rem;
-  margin-bottom: 0.3rem;
+  font-size: 1.8rem;
+  margin-bottom: 0.25rem;
+  opacity: 0.7;
 }
 
 .ql-empty-text {
@@ -335,6 +332,6 @@ function getFallbackColor(text: string): string {
 
 .ql-empty-hint {
   font-size: 0.8rem;
-  opacity: 0.6;
+  color: var(--text-tertiary);
 }
 </style>

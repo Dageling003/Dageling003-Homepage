@@ -207,10 +207,14 @@ homepage/
 │       └── users/         # 用户实体
 │
 ├── docs/                  # 项目文档
-├── Caddyfile              # 反向代理（开发/内网部署）
-├── Caddyfile.docker       # Caddy 配置（Docker，内置到 Caddy 镜像）
-├── Dockerfile.app         # 后端镜像构建
-├── Dockerfile.caddy       # Caddy + 静态文件镜像构建
+├── docker/                # Docker 构建文件
+│   ├── Dockerfile.app     # 后端镜像构建
+│   ├── Dockerfile.caddy   # Caddy + 静态文件镜像构建
+│   └── .env.example       # Docker 环境变量模板
+├── caddy/                 # Caddy 配置
+│   ├── Caddyfile          # Caddy 配置（Docker）
+│   ├── Caddyfile.dev      # 反向代理（开发/内网部署）
+│   └── entrypoint.sh      # Caddy 入口
 ├── docker-compose.yml     # Docker 编排（app + mariadb + caddy）
 ├── deploy.sh              # 一键部署脚本
 ├── ecosystem.config.cjs   # PM2
@@ -302,7 +306,7 @@ DOMAIN=my.example.com bash deploy.sh  # 指定域名
 
 ```bash
 # 复制并编辑环境变量
-cp .env.docker.example .env.docker
+cp docker/.env.example .env.docker
 # 编辑 .env.docker，关键字段：
 #   - DOMAIN / JWT_SECRET 必填
 #   - DEFAULT_ADMIN_PASSWORD 留空则走 /admin/setup 自设

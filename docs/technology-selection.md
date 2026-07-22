@@ -275,7 +275,7 @@ pnpm --filter homepage-backend dev
 # 生产部署（内网 HTTP）
 pnpm build
 pm2 start ecosystem.config.cjs       # PM2 守护后端
-caddy run --config Caddyfile          # Caddy 反向代理
+caddy run --config caddy/Caddyfile.dev          # Caddy 反向代理
 
 # 或 Docker 一键部署
 docker compose up -d                  # 启动全部服务

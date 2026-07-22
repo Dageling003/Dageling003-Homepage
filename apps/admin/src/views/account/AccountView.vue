@@ -101,9 +101,9 @@ async function handleSave() {
         <span class="ac-section-title"><UserOutlined /> 账号信息</span>
       </template>
       <div class="ac-profile">
-        <a-avatar :size="64" style="background-color: #1677ff; font-size: 1.6rem; flex-shrink: 0;">
+        <a-avatar :size="72" class="ac-avatar">
           <template v-if="profile.avatarUrl">
-            <img :src="profile.avatarUrl" alt="avatar" />
+            <img :src="profile.avatarUrl" :alt="`${profile.username}的头像`" />
           </template>
           <template v-else>
             {{ profile.username.charAt(0).toUpperCase() }}
@@ -169,13 +169,66 @@ async function handleSave() {
 </template>
 
 <style scoped>
-.ac-wrap { max-width: 640px; display: flex; flex-direction: column; gap: 16px; }
-.ac-card { border-radius: 14px; }
-.ac-section-title { font-size: 1rem; font-weight: 650; display: flex; align-items: center; gap: 0.4rem; }
-.ac-profile { display: flex; align-items: center; gap: 1rem; }
-.ac-profile-info { display: flex; flex-direction: column; gap: 0.3rem; }
-.ac-profile-name { font-size: 1.1rem; font-weight: 650; color: #262626; }
-.ac-profile-meta { display: flex; gap: 0.3rem; }
-.ac-avatar-set { display: flex; gap: 8px; align-items: center; }
-.ac-avatar-set .ant-input-group-wrapper { flex: 1; }
+.ac-wrap {
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0 auto;
+}
+
+.ac-section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--admin-text);
+  letter-spacing: -0.01em;
+}
+
+.ac-profile {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+}
+
+.ac-avatar {
+  background: linear-gradient(135deg,
+    var(--admin-primary),
+    color-mix(in srgb, var(--admin-primary) 65%, #fff 25%)) !important;
+  color: #fff !important;
+  font-size: 1.7rem !important;
+  font-weight: 600 !important;
+  flex-shrink: 0;
+  box-shadow:
+    0 6px 20px rgba(var(--admin-primary-rgb), 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  letter-spacing: -0.02em;
+}
+
+.ac-profile-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.ac-profile-name {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--admin-text);
+  letter-spacing: -0.015em;
+}
+
+.ac-profile-meta {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.ac-avatar-set {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.ac-avatar-set :deep(.ant-input-group-wrapper) { flex: 1; }
 </style>

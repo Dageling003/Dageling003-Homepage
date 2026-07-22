@@ -27,7 +27,7 @@ services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile.app
+      dockerfile: docker/Dockerfile.app
     image: homepage-app:latest
     container_name: homepage-app
     restart: unless-stopped
@@ -35,6 +35,7 @@ services:
       mariadb:
         condition: service_healthy
     environment:
+      NODE_ENV: production
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       DB_HOST: mariadb
       DB_PORT: 3306
@@ -43,6 +44,7 @@ services:
       DB_DATABASE: ${DB_DATABASE:-homepage}
       DB_SYNCHRONIZE: ${DB_SYNCHRONIZE:-false}
       DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:-}
+      SETUP_TOKEN: ${SETUP_TOKEN:-}
       CORS_ORIGIN: ${DOMAIN:-localhost}
       PORT: 8000
       # 找回密码 / 邮件
@@ -80,7 +82,7 @@ services:
   caddy:
     build:
       context: .
-      dockerfile: Dockerfile.caddy
+      dockerfile: docker/Dockerfile.caddy
     image: homepage-caddy:latest
     container_name: homepage-caddy
     restart: unless-stopped

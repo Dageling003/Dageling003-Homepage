@@ -29,7 +29,7 @@ const passwordStrength = computed(() => {
 })
 
 const strengthLabel = computed(() => ['', '弱', '一般', '良好', '强'][passwordStrength.value])
-const strengthColor = computed(() => ['', '#ff4d4f', '#faad14', '#1677ff', '#52c41a'][passwordStrength.value])
+const strengthColor = computed(() => ['', '#ff3b30', '#ff9500', '#0a84ff', '#34c759'][passwordStrength.value])
 
 const canSubmit = computed(() =>
   password.value.length >= 12
@@ -168,82 +168,159 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* ============================================================
+   ResetPassword — Apple glass card, matches ForgotPasswordView
+   ============================================================ */
 .rp-root {
   min-height: 100vh;
   display: flex; align-items: center; justify-content: center;
   position: relative; overflow: hidden;
-  background: #f0f2f5;
+  background: var(--admin-bg);
+  padding: 1rem;
 }
-.rp-bg { position: absolute; inset: 0; pointer-events: none; }
+.rp-bg { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .rp-circle {
   position: absolute; border-radius: 50%;
-  animation: rp-drift 18s ease-in-out infinite;
+  filter: blur(90px);
+  animation: rp-drift 34s ease-in-out infinite alternate;
+  opacity: 0.55;
 }
 .rp-circle-1 {
-  width: 420px; height: 420px;
-  background: radial-gradient(circle, rgba(82,196,26,0.08) 0%, transparent 70%);
-  top: -120px; left: -80px;
+  width: 40vmax; height: 40vmax;
+  background: var(--admin-orb-3);
+  top: -14vmax; left: -10vmax;
 }
 .rp-circle-2 {
-  width: 360px; height: 360px;
-  background: radial-gradient(circle, rgba(22,119,255,0.06) 0%, transparent 70%);
-  bottom: -100px; right: -60px;
-  animation-delay: -6s;
+  width: 34vmax; height: 34vmax;
+  background: var(--admin-orb-2);
+  bottom: -12vmax; right: -8vmax;
+  animation-delay: -12s;
 }
+
+[theme='dark'] .rp-circle { opacity: 0.35; }
+
 @keyframes rp-drift {
-  0%, 100% { transform: translate(0,0) scale(1); }
-  50% { transform: translate(20px,-20px) scale(1.04); }
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to   { transform: translate3d(3vmax, -3vmax, 0) scale(1.08); }
 }
 
 .rp-card {
   position: relative; z-index: 1;
-  width: 420px;
-  background: rgba(255,255,255,0.92);
-  backdrop-filter: blur(12px);
-  border-radius: 20px;
-  padding: 2.2rem 2rem 1.5rem;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.03), 0 8px 40px rgba(0,0,0,0.06);
-  animation: rp-card-in 0.45s ease;
+  width: 100%;
+  max-width: 420px;
+  background: var(--admin-material-thick);
+  backdrop-filter: blur(var(--admin-blur-strong)) saturate(var(--admin-saturation));
+  -webkit-backdrop-filter: blur(var(--admin-blur-strong)) saturate(var(--admin-saturation));
+  border: 1px solid var(--admin-hairline);
+  border-radius: var(--admin-radius-xl);
+  padding: 2.4rem 2.2rem 1.6rem;
+  box-shadow: var(--admin-shadow-3);
+  animation: rp-card-in 620ms var(--admin-ease-out) both;
+  isolation: isolate;
 }
+.rp-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 12%;
+  right: 12%;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(255, 255, 255, 0.7),
+    transparent);
+  pointer-events: none;
+}
+[theme='dark'] .rp-card::before {
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent);
+}
+
 @keyframes rp-card-in {
-  from { opacity: 0; transform: translateY(20px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+  from { opacity: 0; transform: translate3d(0, 16px, 0) scale(0.97); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
 }
 
-.rp-back { position: absolute; top: 12px; left: 12px; color: #8c8c8c; }
-.rp-back:hover { color: #1677ff; }
+.rp-back {
+  position: absolute; top: 14px; left: 14px;
+  color: var(--admin-text-secondary) !important;
+  padding: 0 8px !important;
+  height: 30px !important;
+  border-radius: 999px !important;
+}
+.rp-back:hover { color: var(--admin-primary) !important; background: var(--admin-primary-softer) !important; }
 
-.rp-header { text-align: center; margin: 0.5rem 0 1.5rem; }
+.rp-header { text-align: center; margin: 0.5rem 0 1.8rem; }
 .rp-logo-wrap {
-  width: 56px; height: 56px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #52c41a, #95de64);
+  width: 64px; height: 64px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #34c759, #a3e57a);
   display: flex; align-items: center; justify-content: center;
-  margin: 0 auto 0.8rem;
-  box-shadow: 0 4px 14px rgba(82,196,26,0.25);
+  margin: 0 auto 1rem;
+  box-shadow:
+    0 8px 24px rgba(52, 199, 89, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
   color: #fff; font-size: 1.5rem;
 }
-.rp-title { font-size: 1.3rem; font-weight: 700; margin: 0 0 0.3rem; color: #141414; }
-.rp-subtitle { margin: 0; font-size: 0.85rem; color: #8c8c8c; }
+.rp-title {
+  font-size: 1.55rem;
+  font-weight: 700;
+  margin: 0 0 0.35rem;
+  color: var(--admin-text);
+  letter-spacing: -0.022em;
+}
+.rp-subtitle { margin: 0; font-size: 0.9rem; color: var(--admin-text-secondary); }
 
 .rp-alert { margin-bottom: 1rem; }
-.rp-form .ant-form-item { margin-bottom: 1rem; }
-.rp-input :deep(.ant-input-prefix) { margin-right: 6px; }
-.rp-input-icon { color: #bfbfbf; font-size: 0.95rem; }
+.rp-form :deep(.ant-form-item) { margin-bottom: 1rem; }
+.rp-input :deep(.ant-input-prefix) { margin-right: 8px; }
+.rp-input-icon { color: var(--admin-text-tertiary); font-size: 0.95rem; }
 .rp-btn {
-  height: 44px; font-size: 1rem;
-  border-radius: 10px; font-weight: 600; letter-spacing: 0.1em;
+  height: 46px; font-size: 1rem;
+  border-radius: var(--admin-radius-md) !important;
+  font-weight: 600; letter-spacing: 0.02em;
 }
 
-.rp-strength { margin-top: 6px; display: flex; align-items: center; gap: 8px; }
+.rp-strength { margin-top: 8px; display: flex; align-items: center; gap: 10px; }
 .rp-strength-bar {
-  flex: 1; height: 4px; background: #f0f0f0; border-radius: 2px; overflow: hidden;
+  flex: 1;
+  height: 4px;
+  background: var(--admin-hairline-strong);
+  border-radius: 999px;
+  overflow: hidden;
 }
-.rp-strength-fill { height: 100%; transition: width 0.3s, background 0.3s; }
-.rp-strength-text { font-size: 0.78rem; white-space: nowrap; }
+.rp-strength-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition:
+    width var(--admin-duration-medium) var(--admin-ease-out),
+    background-color var(--admin-duration-fast) var(--admin-ease-out);
+}
+.rp-strength-text {
+  font-size: 0.78rem;
+  white-space: nowrap;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
 
 .rp-result { text-align: center; padding: 0.5rem 0; }
-.rp-result-icon { font-size: 2.6rem; color: #52c41a; margin-bottom: 0.6rem; }
-.rp-result-title { font-size: 1.1rem; font-weight: 600; margin: 0 0 0.5rem; color: #141414; }
-.rp-result-text { font-size: 0.88rem; color: #595959; margin: 0.2rem 0 1.2rem; }
+.rp-result-icon {
+  font-size: 2.8rem;
+  color: var(--admin-success);
+  margin-bottom: 0.75rem;
+  filter: drop-shadow(0 4px 12px rgba(52, 199, 89, 0.35));
+}
+.rp-result-title {
+  font-size: 1.15rem; font-weight: 600;
+  margin: 0 0 0.6rem;
+  color: var(--admin-text);
+  letter-spacing: -0.015em;
+}
+.rp-result-text {
+  font-size: 0.9rem;
+  color: var(--admin-text-secondary);
+  margin: 0.2rem 0 1.3rem;
+}
 </style>

@@ -17,7 +17,9 @@ import { MailService } from '../common/mail.service';
     JwtModule.registerAsync({
       useFactory: () => ({
         secret: process.env.JWT_SECRET!,
-        signOptions: { expiresIn: '7d' },
+        // 缩短到 12 小时；配合 jwt.strategy 内的 passwordChangedAt 校验，
+        // 改密码 / 删账号后旧 token 立即失效
+        signOptions: { expiresIn: (process.env.JWT_EXPIRES_IN || '12h') as any },
       }),
     }),
   ],

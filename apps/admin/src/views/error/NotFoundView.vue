@@ -21,30 +21,40 @@ const router = useRouter()
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 50vh;
+  min-height: 60vh;
   text-align: center;
   padding: 2rem;
+  gap: 0.4rem;
 }
 
 .err-code {
-  font-size: 6rem;
-  font-weight: 700;
-  color: #1677ff;
+  font-size: clamp(6rem, 15vw, 9rem);
+  font-weight: 800;
   line-height: 1;
-  opacity: 0.15;
-  letter-spacing: 0.1em;
+  letter-spacing: -0.04em;
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--admin-primary) 55%, transparent) 0%,
+    color-mix(in srgb, var(--admin-primary) 20%, transparent) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 8px 24px var(--admin-primary-soft));
+  margin-bottom: 0.4rem;
+  font-optical-sizing: auto;
 }
 
 .err-title {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #262626;
-  margin: 0.5rem 0;
+  font-size: 1.55rem;
+  font-weight: 700;
+  color: var(--admin-text);
+  margin: 0.35rem 0;
+  letter-spacing: -0.018em;
 }
 
 .err-desc {
-  font-size: 0.9rem;
-  color: #8c8c8c;
-  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+  color: var(--admin-text-secondary);
+  margin: 0 0 1.8rem;
+  max-width: 30ch;
 }
 </style>

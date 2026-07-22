@@ -143,14 +143,14 @@ const progressList = computed<ProgressItem[]>(() => [
   yearProgress.value,
 ])
 
-// ==================== Period-based accent color ====================
+// ==================== Period-based accent color (Apple system-inspired) ====================
 const accentColor = computed(() => {
   const colors: Record<string, string> = {
-    morning: 'var(--greeting-morning, #f59e0b)',
-    noon: 'var(--greeting-noon, #ef4444)',
-    afternoon: 'var(--greeting-afternoon, #f97316)',
-    evening: 'var(--greeting-evening, #8b5cf6)',
-    night: 'var(--greeting-night, #6366f1)',
+    morning:   'var(--greeting-morning, #ff9500)',   // system orange
+    noon:      'var(--greeting-noon, #ff3b30)',      // system red
+    afternoon: 'var(--greeting-afternoon, #ff9f0a)', // system amber
+    evening:   'var(--greeting-evening, #bf5af2)',   // system purple
+    night:     'var(--greeting-night, #64d2ff)',     // system light-blue
   }
   return colors[period.value] || 'var(--theme-color)'
 })
@@ -212,23 +212,28 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+/* ============================================================
+   TimeGreeting — Apple-style: hairline separators, tabular time,
+   thin progress rails, subtle accent, no shimmer overload.
+   ============================================================ */
 .tg-wrap {
   display: flex;
   flex-direction: column;
-  gap: 0.8rem;
+  gap: 0.9rem;
+  color: var(--text-color);
 }
 
-/* ====== GREETING ====== */
+/* ---------- Greeting ---------- */
 .tg-greeting {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  padding-bottom: 0.6rem;
-  border-bottom: 2px solid var(--card-border-color);
+  gap: 0.7rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--hairline);
 }
 
 .tg-emoji {
-  font-size: 1.8rem;
+  font-size: 1.7rem;
   line-height: 1;
   flex-shrink: 0;
 }
@@ -236,135 +241,112 @@ onUnmounted(() => {
 .tg-greeting-text {
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
+  gap: 0.15rem;
+  min-width: 0;
 }
 
 .tg-hello {
-  font-size: 1.1rem;
-  font-weight: 700;
+  font-size: 1.02rem;
+  font-weight: 600;
   color: var(--accent);
+  letter-spacing: -0.005em;
+  line-height: 1.15;
 }
 
 .tg-time {
-  font-size: 0.85rem;
-  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
-  opacity: 0.7;
-  letter-spacing: 0.05em;
+  font-size: 0.8rem;
+  font-family:
+    ui-monospace, 'SF Mono', 'JetBrains Mono', 'Fira Code',
+    'Cascadia Code', 'Menlo', Consolas, monospace;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
 }
 
-/* ====== PROGRESS ====== */
+/* ---------- Progress list ---------- */
 .tg-progress {
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
+  gap: 0.75rem;
 }
 
 .tg-prog-item {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.35rem;
 }
 
 .tg-prog-header {
   display: flex;
   align-items: center;
-  gap: 0.3rem;
-  font-size: 0.82rem;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  line-height: 1.25;
 }
 
 .tg-prog-emoji {
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   flex-shrink: 0;
+  line-height: 1;
 }
 
 .tg-prog-label {
   font-weight: 600;
   flex-shrink: 0;
   color: var(--text-color);
+  letter-spacing: -0.005em;
 }
 
 .tg-prog-nums {
-  opacity: 0.6;
+  color: var(--text-tertiary);
   flex: 1;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.75rem;
 }
 
 .tg-prog-pct {
-  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
-  font-size: 0.78rem;
+  font-family:
+    ui-monospace, 'SF Mono', 'JetBrains Mono', 'Fira Code',
+    'Cascadia Code', 'Menlo', Consolas, monospace;
+  font-size: 0.72rem;
   font-weight: 600;
   color: var(--accent);
-  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
 }
 
-/* ====== PROGRESS BAR ====== */
+/* ---------- Progress rail ---------- */
 .tg-prog-bar {
-  height: 6px;
-  background: color-mix(in srgb, var(--accent) 15%, var(--card-border-color));
-  border-radius: 6px;
+  height: 4px;
+  background: color-mix(in srgb, var(--accent) 12%, var(--hairline));
+  border-radius: 999px;
   overflow: hidden;
+  position: relative;
 }
 
 .tg-prog-fill {
   height: 100%;
-  border-radius: 6px;
-  background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 60%, #fff));
-  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  border-radius: 999px;
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--accent) 90%, #fff 5%),
+    var(--accent));
+  transition: width var(--duration-slow) var(--ease-out);
   position: relative;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
-/* Glossy shimmer on the fill bar */
-.tg-prog-fill::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.3),
-    transparent
-  );
-  animation: tg-shimmer 3s ease-in-out infinite;
-}
-
-@keyframes tg-shimmer {
-  0%   { left: -100%; }
-  100% { left: 200%; }
-}
-
-/* ====== COMPACT ====== */
+/* ---------- Compact ---------- */
 .compact .tg-greeting {
-  padding-bottom: 0.4rem;
-  gap: 0.4rem;
+  padding-bottom: 0.5rem;
+  gap: 0.5rem;
 }
 
-.compact .tg-emoji {
-  font-size: 1.4rem;
-}
-
-.compact .tg-hello {
-  font-size: 0.95rem;
-}
-
-.compact .tg-time {
-  font-size: 0.78rem;
-}
-
-.compact .tg-progress {
-  gap: 0.45rem;
-}
-
-.compact .tg-prog-header {
-  font-size: 0.76rem;
-}
-
-.compact .tg-prog-bar {
-  height: 4px;
-}
-
-.compact .tg-prog-pct {
-  font-size: 0.72rem;
-}
+.compact .tg-emoji { font-size: 1.35rem; }
+.compact .tg-hello { font-size: 0.9rem; }
+.compact .tg-time  { font-size: 0.74rem; }
+.compact .tg-progress { gap: 0.55rem; }
+.compact .tg-prog-header { font-size: 0.74rem; }
+.compact .tg-prog-bar { height: 3px; }
+.compact .tg-prog-pct { font-size: 0.68rem; }
 </style>

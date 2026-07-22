@@ -4,10 +4,12 @@ import {
   Get,
   Put,
   Body,
+  Headers,
   UseGuards,
   Request,
   HttpCode,
   HttpStatus,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
@@ -73,7 +75,12 @@ export class AuthController {
     description: '前端用此判断是否进入「首次设置」流程。',
   })
   async hasUsers() {
-    return { data: { hasUsers: await this.authService.hasAnyUser() } };
+    return {
+      data: {
+        hasUsers: await this.authService.hasAnyUser(),
+        setupTokenRequired: !!process.env.SETUP_TOKEN?.trim(),
+      },
+    };
   }
 
   @Post('create-first-admin')
@@ -82,9 +89,20 @@ export class AuthController {
   @ApiOperation({
     summary: '创建第一个管理员账号（仅 users 表为空时可用）',
     description:
-      '首次部署时由 /admin/setup 调用，创建完成后请用该账号登录并继续配置。',
+      '首次部署时由 /admin/setup 调用。若配置了 SETUP_TOKEN 环境变量，必须通过 X-Setup-Token 请求头提供匹配的令牌。',
   })
-  async createFirstAdmin(@Body() dto: CreateFirstAdminDto) {
+  async createFirstAdmin(
+    @Body() dto: CreateFirstAdminDto,
+    @Headers('x-setup-token') setupTokenHeader?: string,
+  ) {
+    const expected = process.env.SETUP_TOKEN?.trim();
+    if (expected) {
+      if (!setupTokenHeader || setupTokenHeader.trim() !== expected) {
+        throw new ForbiddenException(
+          '缺少或错误的 SETUP_TOKEN。请在服务器 .env 中查看 SETUP_TOKEN，并在初始化页面输入。',
+        );
+      }
+    }
     return this.authService.createFirstAdmin(dto.username, dto.password);
   }
 

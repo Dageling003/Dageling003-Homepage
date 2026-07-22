@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getConfigsApi, getAuditLogsApi } from '@/api'
+import { useAdminThemeStore } from '@/stores/theme'
 import DashboardStatCard from './components/DashboardStatCard.vue'
 import DashboardCharts from './components/DashboardCharts.vue'
 import DashboardRecentActivity from './components/DashboardRecentActivity.vue'
@@ -13,6 +14,7 @@ import {
 import type { EChartsOption } from 'echarts'
 
 const router = useRouter()
+const themeStore = useAdminThemeStore()
 
 // ==================== Types ====================
 interface ConfigItem {
@@ -50,34 +52,51 @@ const statCards = computed(() => [
     label: '配置项总数',
     value: configs.value.length,
     icon: SettingOutlined,
-    color: '#1677ff',
-    bg: '#e6f4ff',
+    color: '#0a84ff',
+    bg: 'rgba(10, 132, 255, 0.14)',
     to: '/config',
   },
   {
     label: '操作日志',
     value: auditTotal.value,
     icon: AuditOutlined,
-    color: '#722ed1',
-    bg: '#f9f0ff',
+    color: '#af52de',
+    bg: 'rgba(175, 82, 222, 0.14)',
     to: '/audit',
   },
   {
     label: '系统状态',
     value: initialized.value ? '已初始化' : '待设置',
     icon: CheckCircleOutlined,
-    color: initialized.value ? '#52c41a' : '#faad14',
-    bg: initialized.value ? '#f6ffed' : '#fffbe6',
+    color: initialized.value ? '#34c759' : '#ff9500',
+    bg: initialized.value ? 'rgba(52, 199, 89, 0.14)' : 'rgba(255, 149, 0, 0.16)',
     to: initialized.value ? undefined : '/setup',
   },
   {
     label: '最近更新',
     value: lastUpdate.value,
     icon: CalendarOutlined,
-    color: '#13c2c2',
-    bg: '#e6fffb',
+    color: '#64d2ff',
+    bg: 'rgba(100, 210, 255, 0.16)',
   },
 ])
+
+// ==================== Apple system palette for ECharts ====================
+const chartTextColor = computed(() => themeStore.isDark ? 'rgba(255,255,255,0.94)' : '#1d1d1f')
+const chartSubTextColor = computed(() => themeStore.isDark ? 'rgba(255,255,255,0.62)' : '#6e6e73')
+const chartAxisLineColor = computed(() => themeStore.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)')
+const chartBorderColor = computed(() => themeStore.isDark ? '#1c1c1e' : '#ffffff')
+
+const APPLE_CHART_PALETTE = [
+  '#0a84ff', // blue
+  '#34c759', // green
+  '#af52de', // purple
+  '#ff9500', // orange
+  '#ff375f', // pink
+  '#64d2ff', // teal
+  '#ffcc00', // yellow
+  '#5e5ce6', // indigo
+]
 
 // ==================== Chart 1: Config Category Donut ====================
 const categoryDonutOption = computed<EChartsOption>(() => {
@@ -99,7 +118,7 @@ const categoryDonutOption = computed<EChartsOption>(() => {
       text: total ? `配置分布 · ${total} 项` : '暂无配置',
       left: 'center',
       top: 10,
-      textStyle: { fontSize: 14, fontWeight: 600, color: '#262626' },
+      textStyle: { fontSize: 14, fontWeight: 600, color: chartTextColor.value },
     },
     tooltip: {
       trigger: 'item',
@@ -107,24 +126,24 @@ const categoryDonutOption = computed<EChartsOption>(() => {
     },
     legend: {
       bottom: 0,
-      textStyle: { fontSize: 11 },
+      textStyle: { fontSize: 11, color: chartSubTextColor.value },
     },
     series: [
       {
         type: 'pie',
-        radius: ['50%', '75%'],
+        radius: ['54%', '78%'],
         center: ['50%', '48%'],
         avoidLabelOverlap: false,
-        itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 3 },
+        itemStyle: { borderRadius: 8, borderColor: chartBorderColor.value, borderWidth: 3 },
         label: { show: false },
         emphasis: {
-          label: { show: true, fontSize: 14, fontWeight: 'bold' },
+          label: { show: true, fontSize: 14, fontWeight: 'bold', color: chartTextColor.value },
           scaleSize: 8,
         },
         data: data.length
           ? data
-          : [{ name: '暂无数据', value: 1, itemStyle: { color: '#f0f0f0' } }],
-        color: ['#1677ff', '#52c41a', '#722ed1', '#faad14', '#fa541c', '#13c2c2', '#eb2f96', '#fa8c16'],
+          : [{ name: '暂无数据', value: 1, itemStyle: { color: chartAxisLineColor.value } }],
+        color: APPLE_CHART_PALETTE,
       },
     ],
   }
@@ -165,7 +184,7 @@ const auditTrendOption = computed<EChartsOption>(() => {
       text: '近 7 日操作趋势',
       left: 'center',
       top: 10,
-      textStyle: { fontSize: 14, fontWeight: 600, color: '#262626' },
+      textStyle: { fontSize: 14, fontWeight: 600, color: chartTextColor.value },
     },
     tooltip: {
       trigger: 'axis',
@@ -174,19 +193,22 @@ const auditTrendOption = computed<EChartsOption>(() => {
     legend: {
       data: ['新增', '更新', '删除'],
       bottom: 0,
-      textStyle: { fontSize: 11 },
+      textStyle: { fontSize: 11, color: chartSubTextColor.value },
     },
     grid: { left: 10, right: 10, top: 52, bottom: 38 },
     xAxis: {
       type: 'category',
       data: dayLabels,
-      axisLabel: { fontSize: 10 },
+      axisLabel: { fontSize: 10, color: chartSubTextColor.value },
+      axisLine: { lineStyle: { color: chartAxisLineColor.value } },
+      axisTick: { show: false },
     },
     yAxis: {
       type: 'value',
       minInterval: 1,
-      axisLabel: { fontSize: 10 },
-      splitLine: { lineStyle: { type: 'dashed', color: '#f0f0f0' } },
+      axisLabel: { fontSize: 10, color: chartSubTextColor.value },
+      axisLine: { show: false },
+      splitLine: { lineStyle: { type: 'dashed', color: chartAxisLineColor.value } },
     },
     series: [
       {
@@ -194,8 +216,8 @@ const auditTrendOption = computed<EChartsOption>(() => {
         type: 'bar',
         stack: 'total',
         data: createData,
-        itemStyle: { color: '#52c41a', borderRadius: [0, 0, 0, 0] },
-        barWidth: 24,
+        itemStyle: { color: '#34c759', borderRadius: [0, 0, 0, 0] },
+        barWidth: 20,
         emphasis: { focus: 'series' },
       },
       {
@@ -203,7 +225,7 @@ const auditTrendOption = computed<EChartsOption>(() => {
         type: 'bar',
         stack: 'total',
         data: updateData,
-        itemStyle: { color: '#1677ff' },
+        itemStyle: { color: '#0a84ff' },
         emphasis: { focus: 'series' },
       },
       {
@@ -211,7 +233,7 @@ const auditTrendOption = computed<EChartsOption>(() => {
         type: 'bar',
         stack: 'total',
         data: deleteData,
-        itemStyle: { color: '#fa541c', borderRadius: [4, 4, 0, 0] },
+        itemStyle: { color: '#ff3b30', borderRadius: [6, 6, 0, 0] },
         emphasis: { focus: 'series' },
       },
     ],
@@ -264,7 +286,7 @@ const contentCompletenessOption = computed<EChartsOption>(() => {
       text: `内容完善度 · ${pct}%`,
       left: 'center',
       top: 10,
-      textStyle: { fontSize: 14, fontWeight: 600, color: '#262626' },
+      textStyle: { fontSize: 14, fontWeight: 600, color: chartTextColor.value },
     },
     series: [
       {
@@ -281,10 +303,10 @@ const contentCompletenessOption = computed<EChartsOption>(() => {
           lineStyle: {
             width: 16,
             color: [
-              [0.3, '#fa541c'],
-              [0.6, '#faad14'],
-              [0.8, '#1677ff'],
-              [1, '#52c41a'],
+              [0.3, '#ff3b30'],
+              [0.6, '#ff9500'],
+              [0.8, '#0a84ff'],
+              [1, '#34c759'],
             ],
           },
         },
@@ -294,10 +316,10 @@ const contentCompletenessOption = computed<EChartsOption>(() => {
           width: 8,
           itemStyle: { color: 'auto' },
         },
-        axisTick: { distance: -16, length: 4, lineStyle: { width: 1, color: '#999' } },
-        splitLine: { distance: -22, length: 10, lineStyle: { width: 2, color: '#999' } },
+        axisTick: { distance: -16, length: 4, lineStyle: { width: 1, color: chartSubTextColor.value } },
+        splitLine: { distance: -22, length: 10, lineStyle: { width: 2, color: chartSubTextColor.value } },
         axisLabel: {
-          color: '#999',
+          color: chartSubTextColor.value,
           distance: 28,
           fontSize: 10,
           formatter: (v: number) => `${v}%`,
@@ -305,7 +327,7 @@ const contentCompletenessOption = computed<EChartsOption>(() => {
         detail: {
           valueAnimation: true,
           formatter: '{value}%',
-          color: '#262626',
+          color: chartTextColor.value,
           fontSize: 22,
           fontWeight: 'bold',
           offsetCenter: [0, '78%'],
@@ -395,37 +417,34 @@ onMounted(fetchData)
 <style scoped>
 .db-wrap {
   max-width: 1200px;
+  padding: 4px;
 }
 
 /* ====== STATS ====== */
 .db-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 14px;
-  margin-bottom: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
 }
 
 /* ====== CHARTS ====== */
 .db-charts {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-  margin-bottom: 1rem;
-}
-
-.db-chart-card {
-  border-radius: 14px;
+  gap: 16px;
+  margin-bottom: 16px;
 }
 
 .db-chart-card :deep(.ant-card-body) {
-  padding: 12px;
+  padding: 14px;
 }
 
 /* ====== BOTTOM ====== */
 .db-bottom {
   display: grid;
-  grid-template-columns: 200px 1fr;
-  gap: 14px;
+  grid-template-columns: 220px 1fr;
+  gap: 16px;
   align-items: start;
 }
 

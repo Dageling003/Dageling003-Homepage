@@ -73,21 +73,29 @@ onUnmounted(() => {
 
 <style scoped>
 .typewriter {
-  font-family: monospace;
+  font-family:
+    ui-monospace, 'SF Mono', 'JetBrains Mono', 'Fira Code',
+    'Cascadia Code', 'Menlo', Consolas, monospace;
   white-space: pre-wrap;
   overflow: hidden;
   text-align: center;
-  font-size: 18px;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.005em;
+  color: var(--text-color);
 }
 
 .cursor {
-  font-weight: bolder;
-  margin-left: 2px;
-  opacity: 1;
-  transition: opacity 0.1s;
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 3px;
+  vertical-align: -0.15em;
+  background: var(--theme-color);
+  color: transparent;
+  border-radius: 1px;
+  transition: opacity 120ms linear;
 }
 
-.cursor.blink {
-  opacity: 0;
-}
+.cursor.blink { opacity: 0; }
 </style>

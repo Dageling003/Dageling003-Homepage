@@ -93,7 +93,7 @@
 | `infoAgeDisplay` | 年龄展示位置（all/intro/tag/hide） | 个人信息 → 年龄 |
 | `zodiac` | 星座（自动计算/手动） | 个人信息 → 年龄 |
 | `infoProvince` | 省份（34 省选择器） | 个人信息 → 省份 |
-| `infoSchool` | 学校（1200+ 院校搜索） | 个人信息 → 就读学校 |
+| `infoSchool` | 学校（2909 所院校搜索） | 个人信息 → 就读学校 |
 | `avatarUrl` | 头像 URL（支持本地上传） | 个人信息 → 头像 |
 | `professions` | 职业标签（tag 输入） | 个人信息 → 职业标签 |
 | `links` | 快捷链接 | 快捷链接 |

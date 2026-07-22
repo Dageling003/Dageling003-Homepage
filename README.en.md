@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Dageling003/Dageling003-Homepage/releases/tag/v1.0.0"><img src="https://img.shields.io/badge/release-v1.0.0-blue?logo=github" alt="Release v1.0.0" /></a>
+  <a href="https://github.com/Dageling003/Dageling003-Homepage/releases/tag/v1.1.0"><img src="https://img.shields.io/badge/release-v1.1.0-blue?logo=github" alt="Release v1.1.0" /></a>
   <a href="https://github.com/Dageling003/Dageling003-Homepage/releases"><img src="https://img.shields.io/github/v/release/Dageling003/Dageling003-Homepage?display_name=tag&sort=semver&label=latest" alt="Latest Release" /></a>
   <a href="https://dageling003.top/"><img src="https://img.shields.io/website?url=https%3A%2F%2Fdageling003.top%2F&up_message=online&down_message=offline&label=Live%20Demo" alt="Live Demo" /></a>
   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-%3E%3D20.19.0-339933?logo=nodedotjs&logoColor=white" alt="Node.js" /></a>
@@ -121,7 +121,7 @@ The whole UI is built around **minimalism + rounded cards + soft shadows**. Ever
     </td>
     <td>
       <strong>🎂 Smart form fields</strong><br />
-      Enter a birthday — age and zodiac are computed for you. Built-in picker for 34 Chinese provinces and 1,200+ universities.
+      Enter a birthday — age and zodiac are computed for you. Built-in picker for 34 Chinese provinces and 2,909 universities.
     </td>
   </tr>
   <tr>
@@ -300,16 +300,6 @@ In local development each service listens on `127.0.0.1` under a dedicated port.
 
 ### Docker one-command deploy
 
-> ⚠️ **Docker deployment is not stable yet — stay tuned.**
->
-> `Dockerfile.app` / `Dockerfile.caddy` / `docker-compose.yml` / `deploy.sh` are still being polished and haven't cleared full end-to-end validation. **Not recommended** for production or personal servers just yet.
->
-> - CI (the `docker-build` job in `.github/workflows/ci.yml`) only guarantees that **the images build successfully** — it does not guarantee full runtime functionality.
-> - Known rough edges are still being ironed out (build ordering, static file injection, ACME cert issuance, healthchecks, …) — see the [Docker troubleshooting](#-docker-troubleshooting) section.
-> - If you need to self-host today, please prefer [Option B: MariaDB](#option-b-mariadb-production-style) and run the Node process directly with PM2 or systemd.
->
-> The Docker docs below are kept as a design reference and this notice will be removed once things stabilize.
-
 > **Windows users**: `deploy.sh` requires a bash environment. Use [WSL2](https://learn.microsoft.com/windows/wsl/install) or [Git Bash](https://git-scm.com/downloads).
 
 ```bash
@@ -346,7 +336,7 @@ After deployment (only ports 80/443 are exposed):
 
 ```bash
 # 1. Create env file
-cp .env.docker.example .env.docker
+cp docker/.env.example .env.docker
 # Edit .env.docker — fill in domain, secrets and passwords (all passwords are required, no weak defaults)
 
 # 2. Build images (app first, then caddy — caddy extracts static files from the app image)
@@ -371,8 +361,8 @@ docker compose --env-file .env.docker up -d
 
 | Image | Dockerfile | Contents | Size |
 |------|-----------|------|------|
-| `homepage-app` | `Dockerfile.app` | NestJS backend (`pnpm deploy --prod`, production deps only) | ~80–120 MB |
-| `homepage-caddy` | `Dockerfile.caddy` | Caddy 2 + bundled frontend/admin static files | ~50 MB |
+| `homepage-app` | `docker/Dockerfile.app` | NestJS backend (`pnpm deploy --prod`, production deps only) | ~80–120 MB |
+| `homepage-caddy` | `docker/Dockerfile.caddy` | Caddy 2 + bundled frontend/admin static files | ~50 MB |
 
 #### ZeroSSL vs. Let's Encrypt
 
@@ -426,13 +416,15 @@ homepage/
 │   ├── progress.md
 │   └── technology-selection.md
 ├── image/                   # asset images
-├── Caddyfile                # reverse-proxy config (dev / intranet)
-├── Caddyfile.docker         # Caddy config (baked into the Caddy image)
-├── caddy-entrypoint.sh      # Caddy entrypoint (handles empty ACME_EMAIL)
-├── Dockerfile.app           # backend API image
-├── Dockerfile.caddy         # Caddy + static files image
+├── docker/                  # Docker build files
+│   ├── Dockerfile.app       # backend API image
+│   ├── Dockerfile.caddy     # Caddy + static files image
+│   └── .env.example         # Docker env template
+├── caddy/                   # Caddy config
+│   ├── Caddyfile            # Caddy config (Docker)
+│   ├── Caddyfile.dev        # reverse-proxy config (dev / intranet)
+│   └── entrypoint.sh        # Caddy entrypoint
 ├── docker-compose.yml       # Docker orchestration (app + mariadb + caddy)
-├── .env.docker.example      # Docker env template
 └── pnpm-workspace.yaml
 ```
 
@@ -538,7 +530,7 @@ gunzip -c ./backups/homepage_YYYYMMDD_HHMMSS.sql.gz | \
 
 ## 📖 Documentation
 
-> 📁 Full index in [`docs/README.en.md`](./docs/README.en.md).
+> 📁 Full index in [`docs/README.en.md`](./docs/README.en.md) (Chinese: [`docs/README.md`](./docs/README.md)).
 
 | Doc | About |
 |------|------|
@@ -548,6 +540,12 @@ gunzip -c ./backups/homepage_YYYYMMDD_HHMMSS.sql.gz | \
 | [Dev guide](./docs/dev-guide.en.md) | Local dev workflow, FAQ |
 | [Tech choices](./docs/technology-selection.en.md) | Stack list and rationale |
 | [Progress](./docs/progress.en.md) | Version milestones and feature history |
+
+Each document is available in both Chinese and English (`.md` / `.en.md`), kept in sync.
+
+### 📋 Test Logs (`docs/log/`)
+
+The `docs/log/` directory stores local integration test and bug-fix reports (e.g. Windows 11 SQLite tuning records), named by timestamp, documenting test scenarios and fixes for future reference.
 
 ---
 

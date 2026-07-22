@@ -95,7 +95,7 @@
 | `infoAgeDisplay` | Age placement (all / intro / tag / hide) | Personal info → Age |
 | `zodiac` | Zodiac (auto / manual) | Personal info → Age |
 | `infoProvince` | Region (34-province picker) | Personal info → Region |
-| `infoSchool` | School (search across 1200+) | Personal info → School |
+| `infoSchool` | School (search across 2,909) | Personal info → School |
 | `avatarUrl` | Avatar URL (local upload supported) | Personal info → Avatar |
 | `professions` | Profession tags | Personal info → Professions |
 | `links` | Quick links | Quick links |

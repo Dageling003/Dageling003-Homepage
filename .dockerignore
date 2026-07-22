@@ -1,15 +1,63 @@
+# Dependencies
 node_modules
+.pnpm-store
+
+# Git
 .git
 .gitignore
+
+# Documentation
 *.md
 docs
+
+# IDE
 .vscode
+.idea
+
+# Build outputs
 **/dist
 **/node_modules
+*.tsbuildinfo
+
+# Environment
 .env
 .env.local
+.env.*
+!.env.example
+!.env.docker.example
+
+# Logs
 *.log
+.frontend.log
+.frontend.err
+.admin.log
+.admin.err
+.backend.log
+.backend.err
+
+# OS
 .DS_Store
-.pnpm-store
-*.tsbuildinfo
+Thumbs.db
+
+# Testing
 coverage
+
+# Backups
+backups/
+*.sqlite
+*.sqlite3
+
+# AI / CLI tools
+.agents/
+.opencode/
+.claude/
+
+# Temp
+.tmp/
+.temp/
+*.tmp
+.pnpm-builds/
+
+# Caddy
+caddy/data/
+caddy/logs/

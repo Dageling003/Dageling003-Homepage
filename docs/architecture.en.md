@@ -155,10 +155,14 @@ homepage/
 ├── config/
 │   └── ecosystem.config.cjs       # PM2
 ├── docs/                          # project docs
-├── Caddyfile                      # reverse proxy (dev / intranet)
-├── Caddyfile.docker               # Caddy config (baked into Caddy image)
-├── Dockerfile.app                 # backend API image
-├── Dockerfile.caddy               # Caddy + static files image
+├── docker/                        # Docker build files
+│   ├── Dockerfile.app             # backend API image
+│   ├── Dockerfile.caddy           # Caddy + static files image
+│   └── .env.example               # Docker env template
+├── caddy/                         # Caddy config
+│   ├── Caddyfile                  # Caddy config (Docker)
+│   ├── Caddyfile.dev              # reverse proxy (dev / intranet)
+│   └── entrypoint.sh              # Caddy entrypoint
 ├── docker-compose.yml             # Docker orchestration (app + mariadb + caddy)
 ├── .dockerignore
 ├── package.json                   # workspace root
@@ -290,7 +294,7 @@ audit_logs:
 - The admin edits everything through forms (no more JSON textareas).
 - The frontend dynamically loads them through a `configHandlers` mapping.
 - Birthday auto-computes age and zodiac.
-- Built-in picker for 34 Chinese provinces + search across 1,200+ universities.
+- Built-in picker for 34 Chinese provinces + search across 2,909 universities.
 
 ### Deployment
 

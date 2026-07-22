@@ -26,6 +26,9 @@ RUN pnpm --filter homepage-backend build && \
     TSC_COMPILE_ON_ERROR=true pnpm --filter homepage-admin build && \
     pnpm --filter homepage-backend deploy /deploy --prod --legacy && \
     mkdir -p /deploy/public/uploads/avatar && \
+    mkdir -p /static/frontend /static/admin && \
+    cp -r apps/frontend/dist/. /static/frontend/ && \
+    cp -r apps/admin/dist/. /static/admin/ && \
     pnpm store prune
 
 # ====== Stage 2: Runtime (distroless, production-only) ======

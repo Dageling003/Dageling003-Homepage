@@ -1,0 +1,586 @@
+/* ============================================================
+   apple.css — Global Apple Design theming for the admin app.
+
+   Loaded once in main.ts (AFTER `ant-design-vue/dist/reset.css`).
+   Works in tandem with the dynamic CSS variables written by
+   apps/admin/src/stores/theme.ts.
+
+   All overrides intentionally target `.ant-*` selectors so they
+   apply across all AntD components without editing each usage
+   site. Component-level fine details still live in each .vue
+   file's <style scoped>.
+   ============================================================ */
+
+/* ---------- 1. Root defaults ---------- */
+
+html,
+body {
+  background: var(--admin-bg, #f5f5f7);
+  color: var(--admin-text, #1d1d1f);
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display',
+    'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei',
+    'Helvetica Neue', Roboto, Arial, sans-serif;
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'ss01', 'ss02', 'cv11';
+  letter-spacing: -0.005em;
+  transition:
+    background-color var(--admin-duration-medium, 320ms) var(--admin-ease-out, ease),
+    color var(--admin-duration-medium, 320ms) var(--admin-ease-out, ease);
+}
+
+/* ---------- 2. Ambient background layer (aurora orbs) ---------- */
+
+.app-ambient {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.app-ambient .orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(110px);
+  opacity: 0.5;
+  will-change: transform;
+}
+
+.app-ambient .orb-a {
+  width: 46vmax; height: 46vmax;
+  background: var(--admin-orb-1, #ffb1d8);
+  top: -12vmax; left: -10vmax;
+  animation: aa-drift-a 34s ease-in-out infinite alternate;
+}
+.app-ambient .orb-b {
+  width: 42vmax; height: 42vmax;
+  background: var(--admin-orb-2, #a5c8ff);
+  top: 20vmax; right: -14vmax;
+  animation: aa-drift-b 42s ease-in-out infinite alternate;
+}
+.app-ambient .orb-c {
+  width: 38vmax; height: 38vmax;
+  background: var(--admin-orb-3, #b4f0d9);
+  bottom: -18vmax; left: 20vmax;
+  animation: aa-drift-c 38s ease-in-out infinite alternate;
+  opacity: 0.4;
+}
+
+[theme='dark'] .app-ambient .orb { opacity: 0.34; }
+
+@keyframes aa-drift-a { from { transform: translate3d(0,0,0) scale(1);} to { transform: translate3d(6vmax,4vmax,0) scale(1.08);} }
+@keyframes aa-drift-b { from { transform: translate3d(0,0,0) scale(1);} to { transform: translate3d(-6vmax,5vmax,0) scale(1.1);} }
+@keyframes aa-drift-c { from { transform: translate3d(0,0,0) scale(1);} to { transform: translate3d(4vmax,-5vmax,0) scale(0.95);} }
+
+/* Ensure our own #app / RouterView stacks above ambient */
+#app {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---------- 3. Buttons — capsule with fine hairline ---------- */
+
+.ant-btn {
+  border-radius: var(--admin-radius-pill, 999px);
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  transition:
+    transform var(--admin-duration-medium, 320ms) var(--admin-ease-spring, ease),
+    box-shadow var(--admin-duration-medium, 320ms) var(--admin-ease-out, ease),
+    background-color var(--admin-duration-fast, 180ms) var(--admin-ease-out, ease),
+    border-color var(--admin-duration-fast, 180ms) var(--admin-ease-out, ease),
+    color var(--admin-duration-fast, 180ms) var(--admin-ease-out, ease) !important;
+}
+
+.ant-btn:not(.ant-btn-primary):not(.ant-btn-dangerous):not(.ant-btn-link):not(.ant-btn-text) {
+  background: var(--admin-material-thick);
+  backdrop-filter: blur(20px) saturate(var(--admin-saturation));
+  -webkit-backdrop-filter: blur(20px) saturate(var(--admin-saturation));
+  border-color: var(--admin-hairline);
+  color: var(--admin-text);
+  box-shadow: var(--admin-shadow-1);
+}
+
+.ant-btn:not(.ant-btn-primary):not(.ant-btn-dangerous):not(.ant-btn-link):not(.ant-btn-text):hover {
+  transform: translate3d(0, -1px, 0);
+  box-shadow: var(--admin-shadow-2);
+  border-color: var(--admin-hairline-strong);
+  color: var(--admin-text);
+  background: var(--admin-material-thick);
+}
+
+.ant-btn-primary {
+  background: var(--admin-primary);
+  border-color: var(--admin-primary);
+  color: var(--admin-text-inverse, #fff);
+  box-shadow: 0 4px 14px rgba(var(--admin-primary-rgb, 0 113 227), 0.28);
+}
+.ant-btn-primary:hover,
+.ant-btn-primary:focus {
+  background: var(--admin-primary-hover) !important;
+  border-color: var(--admin-primary-hover) !important;
+  color: var(--admin-text-inverse, #fff) !important;
+  transform: translate3d(0, -1px, 0);
+  box-shadow: 0 6px 18px rgba(var(--admin-primary-rgb, 0 113 227), 0.35);
+}
+.ant-btn-primary:active {
+  background: var(--admin-primary-active) !important;
+  transform: translate3d(0, 0, 0) scale(0.98);
+}
+
+.ant-btn:active { transform: translate3d(0, 0, 0) scale(0.97); }
+.ant-btn:focus-visible { outline: 2px solid var(--admin-primary); outline-offset: 2px; }
+
+.ant-btn-link {
+  color: var(--admin-primary);
+  padding: 0 4px;
+  box-shadow: none;
+}
+.ant-btn-link:hover { color: var(--admin-primary-hover) !important; }
+
+.ant-btn-text {
+  background: transparent;
+  box-shadow: none;
+  color: var(--admin-text);
+}
+.ant-btn-text:hover {
+  background: var(--admin-primary-softer) !important;
+  color: var(--admin-primary) !important;
+}
+
+.ant-btn-dangerous.ant-btn-primary {
+  background: var(--admin-error);
+  border-color: var(--admin-error);
+  box-shadow: 0 4px 14px rgba(255, 59, 48, 0.28);
+}
+
+.ant-btn-dangerous.ant-btn-primary:hover,
+.ant-btn-dangerous.ant-btn-primary:focus {
+  background: #d92e26 !important;
+  border-color: #d92e26 !important;
+}
+
+.ant-btn-block { border-radius: var(--admin-radius-md, 14px); }
+
+/* ---------- 4. Inputs — soft glass surface, thin borders ---------- */
+
+.ant-input,
+.ant-input-affix-wrapper,
+.ant-input-password,
+.ant-input-number,
+.ant-picker,
+.ant-select .ant-select-selector,
+.ant-input-textarea .ant-input {
+  background: var(--admin-material-ultrathin) !important;
+  border-color: var(--admin-hairline) !important;
+  border-radius: var(--admin-radius-sm, 10px) !important;
+  color: var(--admin-text) !important;
+  transition:
+    border-color var(--admin-duration-fast) var(--admin-ease-out),
+    box-shadow var(--admin-duration-fast) var(--admin-ease-out),
+    background-color var(--admin-duration-fast) var(--admin-ease-out) !important;
+}
+
+.ant-input:hover,
+.ant-input-affix-wrapper:hover,
+.ant-picker:hover,
+.ant-select:not(.ant-select-disabled):hover .ant-select-selector {
+  border-color: var(--admin-hairline-strong) !important;
+}
+
+.ant-input:focus,
+.ant-input-focused,
+.ant-input-affix-wrapper-focused,
+.ant-picker-focused,
+.ant-select-focused:not(.ant-select-disabled) .ant-select-selector {
+  border-color: var(--admin-primary) !important;
+  box-shadow: 0 0 0 3px var(--admin-primary-soft) !important;
+  outline: none !important;
+}
+
+.ant-input-lg,
+.ant-input-affix-wrapper-lg,
+.ant-picker-large,
+.ant-select-lg .ant-select-selector {
+  border-radius: var(--admin-radius-md, 14px) !important;
+}
+
+.ant-input::placeholder { color: var(--admin-text-tertiary); }
+
+.ant-input-prefix,
+.ant-input-suffix { color: var(--admin-text-tertiary); }
+
+/* ---------- 5. Card — glass material with hairline ---------- */
+
+.ant-card {
+  background: var(--admin-material-regular) !important;
+  backdrop-filter: blur(var(--admin-blur)) saturate(var(--admin-saturation));
+  -webkit-backdrop-filter: blur(var(--admin-blur)) saturate(var(--admin-saturation));
+  border: 1px solid var(--admin-hairline) !important;
+  border-radius: var(--admin-radius-lg, 20px) !important;
+  box-shadow: var(--admin-shadow-1);
+  overflow: hidden;
+  color: var(--admin-text);
+}
+
+.ant-card-head { border-bottom-color: var(--admin-hairline) !important; }
+
+/* ---------- 6. Modal ---------- */
+
+.ant-modal-content {
+  background: var(--admin-material-thick) !important;
+  backdrop-filter: blur(var(--admin-blur-strong)) saturate(var(--admin-saturation));
+  -webkit-backdrop-filter: blur(var(--admin-blur-strong)) saturate(var(--admin-saturation));
+  border-radius: var(--admin-radius-lg, 20px) !important;
+  border: 1px solid var(--admin-hairline);
+  box-shadow: var(--admin-shadow-3);
+}
+.ant-modal-header {
+  background: transparent !important;
+  border-bottom-color: var(--admin-hairline) !important;
+}
+.ant-modal-title { color: var(--admin-text) !important; }
+.ant-modal-body { color: var(--admin-text); }
+.ant-modal-footer { border-top-color: var(--admin-hairline) !important; }
+.ant-modal-mask { backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+
+/* ---------- 7. Menu ---------- */
+
+.ant-menu-inline,
+.ant-menu-vertical {
+  background: transparent !important;
+  border-inline-end-color: var(--admin-hairline) !important;
+}
+
+.ant-menu-item,
+.ant-menu-submenu-title {
+  border-radius: var(--admin-radius-sm, 10px) !important;
+  margin: 4px 8px !important;
+  width: calc(100% - 16px) !important;
+  transition:
+    background-color var(--admin-duration-fast) var(--admin-ease-out),
+    color var(--admin-duration-fast) var(--admin-ease-out) !important;
+}
+
+.ant-menu-item:hover:not(.ant-menu-item-selected),
+.ant-menu-submenu-title:hover {
+  background: var(--admin-primary-softer) !important;
+  color: var(--admin-text) !important;
+}
+
+.ant-menu-item-selected {
+  background: var(--admin-primary-soft) !important;
+  color: var(--admin-primary) !important;
+  font-weight: 500;
+}
+
+.ant-menu-item-selected::after { display: none !important; }
+
+/* ---------- 8. Table — hairline dividers, no heavy borders ---------- */
+
+.ant-table {
+  background: transparent !important;
+  color: var(--admin-text);
+}
+
+.ant-table-thead > tr > th {
+  background: var(--admin-bg-secondary) !important;
+  color: var(--admin-text-secondary) !important;
+  border-bottom-color: var(--admin-hairline) !important;
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ant-table-thead > tr > th::before { display: none !important; }
+
+.ant-table-tbody > tr > td {
+  border-bottom-color: var(--admin-hairline) !important;
+  color: var(--admin-text);
+}
+
+.ant-table-tbody > tr:hover > td {
+  background: var(--admin-primary-softer) !important;
+}
+
+.ant-table-container,
+.ant-table-content {
+  border-radius: var(--admin-radius-md, 14px) !important;
+}
+
+.ant-pagination-item {
+  border-color: var(--admin-hairline) !important;
+  border-radius: var(--admin-radius-sm, 10px) !important;
+  background: var(--admin-material-thin) !important;
+}
+.ant-pagination-item-active {
+  background: var(--admin-primary) !important;
+  border-color: var(--admin-primary) !important;
+}
+.ant-pagination-item-active a { color: var(--admin-text-inverse, #fff) !important; }
+.ant-pagination-prev .ant-pagination-item-link,
+.ant-pagination-next .ant-pagination-item-link {
+  border-color: var(--admin-hairline) !important;
+  border-radius: var(--admin-radius-sm, 10px) !important;
+}
+
+/* ---------- 9. Tag ---------- */
+
+.ant-tag {
+  border-radius: var(--admin-radius-pill, 999px);
+  padding: 0.1em 0.7em;
+  font-size: 0.76rem;
+  font-weight: 500;
+  border: 1px solid transparent;
+  line-height: 1.5;
+}
+
+.ant-tag-blue,
+.ant-tag-processing {
+  background: var(--admin-primary-soft) !important;
+  color: var(--admin-primary) !important;
+  border-color: transparent !important;
+}
+.ant-tag-green,
+.ant-tag-success {
+  background: rgba(52, 199, 89, 0.14) !important;
+  color: var(--admin-success) !important;
+  border-color: transparent !important;
+}
+.ant-tag-red,
+.ant-tag-error {
+  background: rgba(255, 59, 48, 0.14) !important;
+  color: var(--admin-error) !important;
+  border-color: transparent !important;
+}
+.ant-tag-gold,
+.ant-tag-warning,
+.ant-tag-orange {
+  background: rgba(255, 149, 0, 0.16) !important;
+  color: var(--admin-warning) !important;
+  border-color: transparent !important;
+}
+.ant-tag-purple {
+  background: rgba(175, 82, 222, 0.16) !important;
+  color: #af52de !important;
+  border-color: transparent !important;
+}
+
+[theme='dark'] .ant-tag-blue,
+[theme='dark'] .ant-tag-processing { color: #64baff !important; }
+
+/* ---------- 10. Select dropdown ---------- */
+
+.ant-select-dropdown {
+  background: var(--admin-material-thick) !important;
+  backdrop-filter: blur(var(--admin-blur)) saturate(var(--admin-saturation));
+  -webkit-backdrop-filter: blur(var(--admin-blur)) saturate(var(--admin-saturation));
+  border: 1px solid var(--admin-hairline) !important;
+  border-radius: var(--admin-radius-md, 14px) !important;
+  box-shadow: var(--admin-shadow-2);
+  padding: 4px !important;
+}
+
+.ant-select-item {
+  border-radius: var(--admin-radius-sm, 10px) !important;
+  color: var(--admin-text);
+}
+.ant-select-item-option-active { background: var(--admin-primary-softer) !important; }
+.ant-select-item-option-selected {
+  background: var(--admin-primary-soft) !important;
+  color: var(--admin-primary) !important;
+  font-weight: 500;
+}
+
+/* ---------- 11. Drawer ---------- */
+
+.ant-drawer-content {
+  background: var(--admin-material-thick) !important;
+  backdrop-filter: blur(var(--admin-blur-strong)) saturate(var(--admin-saturation));
+  -webkit-backdrop-filter: blur(var(--admin-blur-strong)) saturate(var(--admin-saturation));
+}
+.ant-drawer-header {
+  background: transparent !important;
+  border-bottom-color: var(--admin-hairline) !important;
+}
+.ant-drawer-title { color: var(--admin-text) !important; }
+.ant-drawer-body { color: var(--admin-text); }
+
+/* ---------- 12. Message / Notification ---------- */
+
+.ant-message-notice-content,
+.ant-notification-notice {
+  background: var(--admin-material-thick) !important;
+  backdrop-filter: blur(var(--admin-blur)) saturate(var(--admin-saturation));
+  -webkit-backdrop-filter: blur(var(--admin-blur)) saturate(var(--admin-saturation));
+  border: 1px solid var(--admin-hairline) !important;
+  border-radius: var(--admin-radius-md, 14px) !important;
+  box-shadow: var(--admin-shadow-2);
+  color: var(--admin-text) !important;
+}
+
+/* ---------- 13. Popover / Tooltip ---------- */
+
+.ant-popover-inner,
+.ant-tooltip-inner {
+  background: var(--admin-material-thick) !important;
+  backdrop-filter: blur(var(--admin-blur)) saturate(var(--admin-saturation));
+  -webkit-backdrop-filter: blur(var(--admin-blur)) saturate(var(--admin-saturation));
+  border: 1px solid var(--admin-hairline) !important;
+  border-radius: var(--admin-radius-md, 14px) !important;
+  box-shadow: var(--admin-shadow-2) !important;
+  color: var(--admin-text) !important;
+}
+.ant-tooltip-arrow::before { background: var(--admin-material-thick) !important; }
+
+/* ---------- 14. Divider ---------- */
+
+.ant-divider {
+  border-color: var(--admin-hairline) !important;
+}
+
+/* ---------- 15. Radio / Checkbox / Switch ---------- */
+
+.ant-radio-inner,
+.ant-checkbox-inner {
+  border-color: var(--admin-hairline-strong) !important;
+  background: var(--admin-material-ultrathin) !important;
+}
+
+.ant-radio-checked .ant-radio-inner,
+.ant-checkbox-checked .ant-checkbox-inner {
+  border-color: var(--admin-primary) !important;
+  background: var(--admin-primary) !important;
+}
+
+.ant-radio-button-wrapper {
+  background: var(--admin-material-thin) !important;
+  border-color: var(--admin-hairline) !important;
+  color: var(--admin-text) !important;
+}
+.ant-radio-button-wrapper:first-child { border-radius: 999px 0 0 999px !important; }
+.ant-radio-button-wrapper:last-child  { border-radius: 0 999px 999px 0 !important; }
+.ant-radio-button-wrapper-checked:not(.ant-radio-button-wrapper-disabled) {
+  background: var(--admin-primary) !important;
+  border-color: var(--admin-primary) !important;
+  color: var(--admin-text-inverse, #fff) !important;
+  box-shadow: 0 2px 8px rgba(var(--admin-primary-rgb), 0.28);
+}
+
+.ant-switch { background: rgba(120, 120, 128, 0.32); }
+.ant-switch-checked { background: var(--admin-success) !important; }
+
+/* ---------- 16. Layout header/sider ---------- */
+
+.ant-layout,
+.ant-layout-content {
+  background: transparent !important;
+}
+
+/* ---------- 17. Empty & Skeleton ---------- */
+
+.ant-empty-description { color: var(--admin-text-tertiary); }
+.ant-skeleton-title,
+.ant-skeleton-paragraph > li,
+.ant-skeleton-avatar {
+  background: linear-gradient(90deg,
+    var(--admin-hairline) 25%,
+    var(--admin-hairline-strong) 37%,
+    var(--admin-hairline) 63%) !important;
+  background-size: 400% 100% !important;
+}
+
+/* ---------- 18. Alert ---------- */
+
+.ant-alert {
+  border-radius: var(--admin-radius-md, 14px) !important;
+  border: 1px solid var(--admin-hairline);
+  backdrop-filter: blur(20px) saturate(var(--admin-saturation));
+  -webkit-backdrop-filter: blur(20px) saturate(var(--admin-saturation));
+}
+.ant-alert-info    { background: rgba(100, 210, 255, 0.12) !important; }
+.ant-alert-success { background: rgba(52, 199, 89, 0.12) !important; }
+.ant-alert-warning { background: rgba(255, 149, 0, 0.14) !important; }
+.ant-alert-error   { background: rgba(255, 59, 48, 0.12) !important; }
+
+/* ---------- 19. Form ---------- */
+
+.ant-form-item-label > label {
+  color: var(--admin-text-secondary) !important;
+  font-weight: 500;
+  font-size: 0.85rem;
+  letter-spacing: -0.005em;
+}
+
+/* ---------- 20. Dropdown ---------- */
+
+.ant-dropdown-menu {
+  background: var(--admin-material-thick) !important;
+  backdrop-filter: blur(var(--admin-blur)) saturate(var(--admin-saturation));
+  -webkit-backdrop-filter: blur(var(--admin-blur)) saturate(var(--admin-saturation));
+  border: 1px solid var(--admin-hairline) !important;
+  border-radius: var(--admin-radius-md, 14px) !important;
+  box-shadow: var(--admin-shadow-2) !important;
+  padding: 4px !important;
+}
+.ant-dropdown-menu-item {
+  border-radius: var(--admin-radius-sm, 10px) !important;
+  color: var(--admin-text) !important;
+}
+.ant-dropdown-menu-item:hover {
+  background: var(--admin-primary-softer) !important;
+}
+
+/* ---------- 21. Scrollbars (subtle, Apple-esque) ---------- */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--admin-hairline-strong) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--admin-hairline-strong);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--admin-text-tertiary); background-clip: padding-box; }
+
+/* ---------- 22. Accessibility ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .app-ambient .orb { animation: none !important; }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .app-ambient { display: none !important; }
+  .ant-card,
+  .ant-modal-content,
+  .ant-drawer-content,
+  .ant-select-dropdown,
+  .ant-dropdown-menu,
+  .ant-popover-inner,
+  .ant-tooltip-inner,
+  .ant-message-notice-content,
+  .ant-notification-notice {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--admin-bg-card) !important;
+  }
+}

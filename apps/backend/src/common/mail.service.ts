@@ -127,22 +127,32 @@ export class MailService {
     rawToken: string;
     reason: string;
   }) {
+    const masked = this.maskToken(params.rawToken);
+    const maskedUrl = params.resetUrl.replace(params.rawToken, masked);
     const banner = [
       '',
       '═══════════════════════════════════════════════════════════════',
-      '  📬  密码重置请求（邮件降级输出）',
+      '  📬  密码重置请求（邮件降级输出 — token 已脱敏）',
       '═══════════════════════════════════════════════════════════════',
-      `  收件人          : ${this.maskEmail(params.to)}`,
-      `  用户名          : ${params.username}`,
-      `  重置链接        : ${params.resetUrl}`,
-      `  重置 token (原样): ${params.rawToken}`,
-      `  原因            : ${params.reason}`,
-      '  过期时间        : 1 小时',
+      `  收件人             : ${this.maskEmail(params.to)}`,
+      `  用户名             : ${params.username}`,
+      `  重置链接（脱敏）    : ${maskedUrl}`,
+      `  token 前缀 / 后缀   : ${masked}  （完整 token 未写入日志）`,
+      `  原因               : ${params.reason}`,
+      '  说明               : 请立即配置 SMTP 或用受限权限文件下发 token；',
+      '                        当前流程只在数据库保存 hash，日志无完整 token。',
+      '  过期时间            : 15 分钟',
       '═══════════════════════════════════════════════════════════════',
       '',
     ].join('\n');
     // 走 console.log 才能保证 docker logs 立即可见且不被 JSON driver 吞掉
     console.log(banner);
+  }
+
+  private maskToken(raw: string): string {
+    if (!raw) return '***';
+    if (raw.length <= 8) return '***';
+    return `${raw.slice(0, 4)}…${raw.slice(-4)}`;
   }
 
   private maskEmail(email: string): string {

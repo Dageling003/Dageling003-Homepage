@@ -28,6 +28,10 @@
 - **想改架构 / 提 PR** → [architecture.md](./architecture.md) → [technology-selection.md](./technology-selection.md) → [dev-guide.md](./dev-guide.md)
 - **想接入 API** → [api.md](./api.md)（或本地起服务后访问 `http://localhost:8000/api/docs`）
 
+### 📋 测试日志（`docs/log/`）
+
+`docs/log/` 目录保存本地联调与问题修复的测试报告，按时间戳命名，记录特定场景下的测试过程与修复结果。
+
 ---
 
 ## 🔄 关于文档时效

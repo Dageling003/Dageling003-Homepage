@@ -28,6 +28,10 @@
 - **Want to change the architecture / send a PR** → [architecture.en.md](./architecture.en.md) → [technology-selection.en.md](./technology-selection.en.md) → [dev-guide.en.md](./dev-guide.en.md)
 - **Want to consume the API** → [api.en.md](./api.en.md) (or hit `http://localhost:8000/api/docs` after starting the server)
 
+### 📋 Test Logs (`docs/log/`)
+
+The `docs/log/` directory stores local integration test and bug-fix reports, named by timestamp, documenting test scenarios and fixes.
+
 ---
 
 ## 🔄 On doc freshness

@@ -49,13 +49,45 @@ function handleAction(to: string, external: boolean) {
 <style scoped>
 .dqa-section {
   height: 100%;
+  padding: 1.15rem 1.25rem;
+  border-radius: var(--admin-radius-lg);
+  background: var(--admin-material-regular);
+  backdrop-filter: blur(var(--admin-blur)) saturate(var(--admin-saturation));
+  -webkit-backdrop-filter: blur(var(--admin-blur)) saturate(var(--admin-saturation));
+  border: 1px solid var(--admin-hairline);
+  box-shadow: var(--admin-shadow-1);
+  position: relative;
+  overflow: hidden;
+}
+
+.dqa-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(255, 255, 255, 0.65),
+    transparent);
+  pointer-events: none;
+}
+
+[theme='dark'] .dqa-section::before {
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(255, 255, 255, 0.18),
+    transparent);
 }
 
 .dqa-title {
-  font-size: 1rem;
+  font-size: 0.78rem;
   font-weight: 600;
-  margin: 0 0 0.8rem;
-  color: var(--admin-text, #262626);
+  margin: 0 0 0.85rem;
+  color: var(--admin-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .dqa-grid {

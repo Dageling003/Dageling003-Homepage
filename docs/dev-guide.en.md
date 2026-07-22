@@ -208,10 +208,14 @@ homepage/
 │       └── users/         # user entity
 │
 ├── docs/                  # project docs
-├── Caddyfile              # reverse proxy (dev / intranet)
-├── Caddyfile.docker       # Caddy config (baked into the Caddy image)
-├── Dockerfile.app         # backend image
-├── Dockerfile.caddy       # Caddy + static files image
+├── docker/                # Docker build files
+│   ├── Dockerfile.app     # backend image
+│   ├── Dockerfile.caddy   # Caddy + static files image
+│   └── .env.example       # Docker env template
+├── caddy/                 # Caddy config
+│   ├── Caddyfile          # Caddy config (Docker)
+│   ├── Caddyfile.dev      # reverse proxy (dev / intranet)
+│   └── entrypoint.sh      # Caddy entrypoint
 ├── docker-compose.yml     # Docker orchestration (app + mariadb + caddy)
 ├── deploy.sh              # one-command deploy
 ├── ecosystem.config.cjs   # PM2
@@ -301,7 +305,7 @@ DOMAIN=my.example.com bash deploy.sh  # domain provided upfront
 
 ```bash
 # Copy & edit env vars
-cp .env.docker.example .env.docker
+cp docker/.env.example .env.docker
 # In .env.docker:
 #   - DOMAIN / JWT_SECRET are required
 #   - DEFAULT_ADMIN_PASSWORD blank → create via /admin/setup

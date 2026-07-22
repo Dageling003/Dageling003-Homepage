@@ -13,8 +13,10 @@ build/
 .env.docker
 .env.local
 .env.*.local
+.env.production
+*.local
 !.env.example
-!.env.docker.example
+!docker/.env.example
 
 # Logs
 *.log
@@ -23,6 +25,12 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+.frontend.log
+.frontend.err
+.admin.log
+.admin.err
+.backend.log
+.backend.err
 
 # Testing & coverage
 coverage/
@@ -39,6 +47,7 @@ coverage/
 .stats.yml
 .vite/
 .turbo/
+.pnpm-builds/
 
 # Database
 apps/backend/data/
@@ -68,6 +77,8 @@ Desktop.ini
 
 # AI / CLI tool metadata
 .claude/
+.agents/
+.opencode/
 apps/*/skills/
 apps/*/.skills_store_lock.json
 
@@ -85,3 +96,7 @@ apps/*/.skills_store_lock.json
 .stylelintcache
 .tmp/
 .temp/
+*.lock
+!package-lock.json
+!pnpm-lock.yaml
+skills-lock.json

@@ -108,8 +108,12 @@ export function hasUsersApi() {
   return request.get('/auth/has-users')
 }
 
-export function createFirstAdminApi(username: string, password: string) {
-  return request.post('/auth/create-first-admin', { username, password })
+export function createFirstAdminApi(username: string, password: string, setupToken?: string) {
+  return request.post(
+    '/auth/create-first-admin',
+    { username, password },
+    setupToken ? { headers: { 'X-Setup-Token': setupToken } } : undefined,
+  )
 }
 
 // Profile

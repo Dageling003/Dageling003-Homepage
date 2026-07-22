@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
@@ -50,14 +50,21 @@ async function bootstrap() {
           ? {
               directives: {
                 defaultSrc: ["'self'"],
-                scriptSrc: ["'self'", "'unsafe-inline'"],
+                // Vite 产物是 ES modules，不注入内联脚本；样式全部走独立 CSS
+                scriptSrc: ["'self'"],
+                // ant-design-vue 运行时会通过 dynamic <style> 注入组件级样式，
+                // 因此 style-src 允许 'unsafe-inline'；后续可用 style-src-elem +
+                // hash 或 CSP nonce 收紧
                 styleSrc: ["'self'", "'unsafe-inline'"],
                 imgSrc: ["'self'", 'data:', 'https:'],
                 connectSrc: ["'self'"],
-                fontSrc: ["'self'"],
+                fontSrc: ["'self'", 'data:'],
                 objectSrc: ["'none'"],
                 mediaSrc: ["'self'"],
                 frameSrc: ["'none'"],
+                baseUri: ["'self'"],
+                formAction: ["'self'"],
+                frameAncestors: ["'none'"],
               },
             }
           : false,
@@ -148,9 +155,9 @@ async function bootstrap() {
 
   const port = process.env.PORT || 8000;
   await app.listen(port);
-  console.log(`Server is running on http://localhost:${port}`);
+  Logger.log(`Server is running on http://localhost:${port}`, 'Bootstrap');
   if (process.env.NODE_ENV !== 'production') {
-    console.log(`API docs at http://localhost:${port}/api/docs`);
+    Logger.log(`API docs at http://localhost:${port}/api/docs`, 'Bootstrap');
   }
 }
 void bootstrap();

@@ -50,10 +50,10 @@ function goForgot() {
     <div class="lg-card">
       <!-- Header -->
       <div class="lg-card-header">
-        <div class="lg-logo-wrap">
-          <span class="lg-logo-icon">🧩</span>
+        <div class="lg-logo-wrap" aria-hidden="true">
+          <span class="lg-logo-icon">◈</span>
         </div>
-        <h2 class="lg-title">homepage 管理</h2>
+        <h2 class="lg-title">Homepage 管理</h2>
         <p class="lg-subtitle">请输入账号密码登录系统</p>
       </div>
 
@@ -102,7 +102,9 @@ function goForgot() {
 </template>
 
 <style scoped>
-/* ====== Root ====== */
+/* ============================================================
+   LoginView — Apple glass card on aurora backdrop
+   ============================================================ */
 .lg-root {
   min-height: 100vh;
   display: flex;
@@ -110,130 +112,180 @@ function goForgot() {
   justify-content: center;
   position: relative;
   overflow: hidden;
-  background: #f0f2f5;
+  background: var(--admin-bg);
+  padding: 1rem;
 }
 
-/* ====== Decorative circles ====== */
+/* ---------- Decorative aurora orbs ---------- */
 .lg-bg {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  overflow: hidden;
 }
 
 .lg-circle {
   position: absolute;
   border-radius: 50%;
-  animation: lg-drift 20s ease-in-out infinite;
+  filter: blur(90px);
+  animation: lg-drift 34s ease-in-out infinite alternate;
+  opacity: 0.55;
 }
 
 .lg-circle-1 {
-  width: 500px; height: 500px;
-  background: radial-gradient(circle, rgba(22,119,255,0.08) 0%, transparent 70%);
-  top: -150px; left: -100px;
+  width: 42vmax; height: 42vmax;
+  background: var(--admin-orb-1);
+  top: -14vmax; left: -10vmax;
   animation-delay: 0s;
 }
 
 .lg-circle-2 {
-  width: 400px; height: 400px;
-  background: radial-gradient(circle, rgba(114,46,209,0.06) 0%, transparent 70%);
-  bottom: -100px; right: -80px;
-  animation-delay: -7s;
+  width: 40vmax; height: 40vmax;
+  background: var(--admin-orb-2);
+  bottom: -14vmax; right: -8vmax;
+  animation-delay: -12s;
 }
 
 .lg-circle-3 {
-  width: 300px; height: 300px;
-  background: radial-gradient(circle, rgba(82,196,26,0.05) 0%, transparent 70%);
-  top: 50%; left: 60%;
-  animation-delay: -14s;
+  width: 30vmax; height: 30vmax;
+  background: var(--admin-orb-3);
+  top: 40%; left: 55%;
+  animation-delay: -22s;
+  opacity: 0.35;
 }
+
+[theme='dark'] .lg-circle { opacity: 0.35; }
 
 @keyframes lg-drift {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(30px, -30px) scale(1.05); }
-  66% { transform: translate(-20px, 20px) scale(0.95); }
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to   { transform: translate3d(3vmax, -3vmax, 0) scale(1.08); }
 }
 
-/* ====== Card ====== */
+/* ---------- Card — glass + hairline ---------- */
 .lg-card {
-  width: 400px;
-  background: rgba(255,255,255,0.92);
-  backdrop-filter: blur(12px);
-  border-radius: 20px;
-  padding: 2.2rem 2rem 1.5rem;
-  box-shadow:
-    0 1px 2px rgba(0,0,0,0.03),
-    0 8px 40px rgba(0,0,0,0.06);
+  width: 100%;
+  max-width: 420px;
+  background: var(--admin-material-thick);
+  backdrop-filter: blur(var(--admin-blur-strong)) saturate(var(--admin-saturation));
+  -webkit-backdrop-filter: blur(var(--admin-blur-strong)) saturate(var(--admin-saturation));
+  border: 1px solid var(--admin-hairline);
+  border-radius: var(--admin-radius-xl);
+  padding: 2.4rem 2.2rem 1.6rem;
+  box-shadow: var(--admin-shadow-3);
   position: relative;
   z-index: 1;
-  animation: lg-card-in 0.5s ease;
+  animation: lg-card-in 620ms var(--admin-ease-out) both;
+  isolation: isolate;
+}
+
+/* Bright top edge — glass catching light */
+.lg-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 12%;
+  right: 12%;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(255, 255, 255, 0.7),
+    transparent);
+  pointer-events: none;
+}
+
+[theme='dark'] .lg-card::before {
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent);
 }
 
 @keyframes lg-card-in {
-  from { opacity: 0; transform: translateY(20px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+  from { opacity: 0; transform: translate3d(0, 16px, 0) scale(0.97); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
 }
 
-/* ====== Card Header ====== */
+/* ---------- Header ---------- */
 .lg-card-header {
   text-align: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.8rem;
 }
 
 .lg-logo-wrap {
-  width: 56px; height: 56px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #1677ff, #4096ff);
+  width: 64px; height: 64px;
+  border-radius: 20px;
+  background: linear-gradient(135deg,
+    var(--admin-primary),
+    color-mix(in srgb, var(--admin-primary) 60%, #fff 25%));
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 0.8rem;
-  box-shadow: 0 4px 14px rgba(22,119,255,0.25);
+  margin: 0 auto 1rem;
+  box-shadow:
+    0 8px 24px rgba(var(--admin-primary-rgb), 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  color: #fff;
+  font-weight: 800;
+  font-size: 1.9rem;
+  letter-spacing: -0.05em;
 }
 
 .lg-logo-icon {
-  font-size: 1.5rem;
+  font-size: 1.7rem;
   line-height: 1;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
 .lg-title {
-  font-size: 1.3rem;
+  font-size: 1.55rem;
   font-weight: 700;
-  margin: 0 0 0.3rem;
-  color: #141414;
+  margin: 0 0 0.35rem;
+  color: var(--admin-text);
+  letter-spacing: -0.022em;
+  line-height: 1.15;
 }
 
 .lg-subtitle {
   margin: 0;
-  font-size: 0.85rem;
-  color: #8c8c8c;
+  font-size: 0.9rem;
+  color: var(--admin-text-secondary);
+  letter-spacing: -0.005em;
 }
 
-/* ====== Form ====== */
-.lg-form .ant-form-item { margin-bottom: 1rem; }
+/* ---------- Form ---------- */
+.lg-form :deep(.ant-form-item) { margin-bottom: 1rem; }
 
 .lg-extra {
   display: flex;
   justify-content: flex-end;
-  margin-top: -0.5rem;
+  margin-top: -0.35rem;
+  margin-bottom: 0.5rem;
 }
-.lg-forgot { padding: 0 4px; font-size: 0.85rem; }
+.lg-forgot {
+  padding: 0 4px;
+  font-size: 0.85rem;
+  color: var(--admin-text-secondary) !important;
+}
+.lg-forgot:hover { color: var(--admin-primary) !important; }
 
-.lg-input :deep(.ant-input-prefix) { margin-right: 6px; }
-.lg-input-icon { color: #bfbfbf; font-size: 0.95rem; }
+.lg-input :deep(.ant-input-prefix) { margin-right: 8px; }
+.lg-input-icon { color: var(--admin-text-tertiary); font-size: 0.95rem; }
 
 .lg-btn {
-  height: 44px;
+  height: 46px;
   font-size: 1rem;
-  border-radius: 10px;
+  border-radius: var(--admin-radius-md) !important;
   font-weight: 600;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.02em;
+  margin-top: 0.25rem;
 }
 
-/* ====== Footer ====== */
+/* ---------- Footer ---------- */
 .lg-footer-text {
   text-align: center;
   font-size: 0.75rem;
-  color: #d9d9d9;
-  margin: 1.2rem 0 0;
+  color: var(--admin-text-tertiary);
+  margin: 1.4rem 0 0;
+  letter-spacing: 0.02em;
 }
 </style>

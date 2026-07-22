@@ -28,9 +28,18 @@ const items = computed(() => {
 
 <template>
   <div class="ab-wrap">
-    <span class="ab-home">🏠</span>
+    <router-link to="/dashboard" class="ab-home" aria-label="首页">
+      <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M2 7L8 2l6 5v6a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V7z" />
+        <path d="M6 14V9h4v5" />
+      </svg>
+    </router-link>
     <template v-for="(item, i) in items" :key="i">
-      <span class="ab-sep">/</span>
+      <span class="ab-sep" aria-hidden="true">
+        <svg viewBox="0 0 16 16" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 3l5 5-5 5" />
+        </svg>
+      </span>
       <span v-if="item.isLast" class="ab-current">{{ item.title }}</span>
       <router-link v-else :to="item.path" class="ab-link">{{ item.title }}</router-link>
     </template>
@@ -41,32 +50,66 @@ const items = computed(() => {
 .ab-wrap {
   display: flex;
   align-items: center;
-  gap: 0.3rem;
-  font-size: 0.85rem;
-  color: var(--admin-text-secondary, #8c8c8c);
+  gap: 0.4rem;
+  font-size: 0.86rem;
+  color: var(--admin-text-secondary);
+  letter-spacing: -0.005em;
+  min-width: 0;
 }
 
 .ab-home {
-  font-size: 0.9rem;
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--admin-material-thin);
+  border: 1px solid var(--admin-hairline);
+  color: var(--admin-text-secondary);
+  transition:
+    background-color var(--admin-duration-fast) var(--admin-ease-out),
+    color var(--admin-duration-fast) var(--admin-ease-out),
+    transform var(--admin-duration-medium) var(--admin-ease-spring);
+  flex-shrink: 0;
+}
+
+.ab-home:hover {
+  color: var(--admin-primary);
+  background: var(--admin-primary-softer);
+  transform: translate3d(0, -1px, 0);
 }
 
 .ab-sep {
-  color: var(--admin-border, #d9d9d9);
+  display: inline-flex;
+  align-items: center;
+  color: var(--admin-text-tertiary);
+  opacity: 0.65;
+  flex-shrink: 0;
 }
 
 .ab-link {
-  color: var(--admin-text-secondary, #8c8c8c);
+  color: var(--admin-text-secondary);
   text-decoration: none;
-  transition: color 0.2s;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transition:
+    color var(--admin-duration-fast) var(--admin-ease-out),
+    background-color var(--admin-duration-fast) var(--admin-ease-out);
+  white-space: nowrap;
 }
 
 .ab-link:hover {
-  color: #1677ff;
+  color: var(--admin-primary);
+  background: var(--admin-primary-softer);
 }
 
 .ab-current {
-  color: var(--admin-text, #262626);
-  font-weight: 500;
+  color: var(--admin-text);
+  font-weight: 600;
+  padding: 2px 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>
