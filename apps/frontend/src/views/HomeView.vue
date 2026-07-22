@@ -309,23 +309,23 @@ onMounted(async () => {
    HomeView — Apple-style materials, restrained motion, hairlines
    ============================================================ */
 
-/* ---------- Entrance: soft, critically damped, staggered ---------- */
-@keyframes fadeUp {
+/* ---------- Entrance: spring-like stagger, scale + fade ---------- */
+@keyframes springUp {
   from {
     opacity: 0;
-    transform: translate3d(0, 14px, 0);
+    transform: translate3d(0, 18px, 0) scale(0.97);
   }
   to {
     opacity: 1;
-    transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0) scale(1);
   }
 }
 
-.main.loaded .header      { animation: fadeUp 620ms var(--ease-out) 40ms both; }
-.main.loaded .intro-card  { animation: fadeUp 620ms var(--ease-out) 120ms both; }
-.main.loaded .card-grid   { animation: fadeUp 620ms var(--ease-out) 200ms both; }
-.main.loaded .bottom-bar  { animation: fadeUp 620ms var(--ease-out) 280ms both; }
-.main.loaded .footer      { animation: fadeUp 620ms var(--ease-out) 360ms both; }
+.main.loaded .header      { animation: springUp 640ms var(--ease-out) 40ms both; }
+.main.loaded .intro-card  { animation: springUp 640ms var(--ease-out) 120ms both; }
+.main.loaded .card-grid   { animation: springUp 640ms var(--ease-out) 200ms both; }
+.main.loaded .bottom-bar  { animation: springUp 640ms var(--ease-out) 280ms both; }
+.main.loaded .footer      { animation: springUp 640ms var(--ease-out) 400ms both; }
 
 /* ---------- Layout ---------- */
 main {
@@ -360,6 +360,17 @@ main {
     var(--shadow-2),
     0 0 0 1px var(--hairline) inset;
   isolation: isolate;
+  transition:
+    transform var(--duration-med) var(--ease-spring),
+    box-shadow var(--duration-med) var(--ease-out);
+  backface-visibility: hidden;
+}
+
+@media (hover: hover) {
+  .mainCard .header .avatar:hover {
+    transform: scale(1.03);
+    box-shadow: var(--shadow-3), 0 0 0 1px var(--hairline) inset;
+  }
 }
 
 [theme='dark'] .mainCard .header .avatar {
@@ -409,8 +420,8 @@ main {
   margin: 0;
   color: var(--text-color);
   font-weight: 700;
-  letter-spacing: -0.022em; /* tightening for large display type */
-  line-height: 1.08;
+  letter-spacing: -0.025em; /* tightening for large display type */
+  line-height: 1.1;
   font-optical-sizing: auto;
 }
 
@@ -453,7 +464,7 @@ main {
   font-size: 0.82rem;
   font-weight: 500;
   color: var(--text-secondary);
-  letter-spacing: 0.005em;
+  letter-spacing: 0.008em;
   line-height: 1.35;
 }
 
@@ -537,7 +548,8 @@ main {
   height: 1px;
   background: linear-gradient(90deg,
     transparent,
-    rgba(255, 255, 255, 0.7),
+    rgba(255, 255, 255, 0.7) 30%,
+    rgba(255, 255, 255, 0.7) 70%,
     transparent);
   pointer-events: none;
   z-index: 2;
@@ -546,7 +558,8 @@ main {
 [theme='dark'] .mainCard .card::before {
   background: linear-gradient(90deg,
     transparent,
-    rgba(255, 255, 255, 0.18),
+    rgba(255, 255, 255, 0.18) 30%,
+    rgba(255, 255, 255, 0.18) 70%,
     transparent);
 }
 
@@ -559,19 +572,20 @@ main {
   letter-spacing: 0.06em;
 }
 
-/* ---------- Hover: subtle lift, no color change on border ---------- */
+/* ---------- Hover: spring lift, Apple card elevation ---------- */
 .mainCard .hover {
   transition:
     transform var(--duration-med) var(--ease-spring),
     box-shadow var(--duration-med) var(--ease-out),
     background-color var(--duration-med) var(--ease-out);
   will-change: transform;
+  backface-visibility: hidden;
 }
 
 @media (hover: hover) {
   .mainCard .hover:hover {
-    transform: translate3d(0, -3px, 0);
-    box-shadow: var(--shadow-2);
+    transform: translate3d(0, -5px, 0);
+    box-shadow: var(--shadow-3);
     background: var(--material-thick);
   }
 }
@@ -669,11 +683,12 @@ main {
     transform var(--duration-med) var(--ease-spring),
     box-shadow var(--duration-med) var(--ease-out),
     background-color var(--duration-fast) var(--ease-out);
+  backface-visibility: hidden;
 }
 
 @media (hover: hover) {
   .techItem:hover {
-    transform: translate3d(0, -3px, 0) scale(1.05);
+    transform: translate3d(0, -4px, 0) scale(1.06);
     box-shadow: var(--shadow-2);
     background: var(--material-thick);
     z-index: 2;

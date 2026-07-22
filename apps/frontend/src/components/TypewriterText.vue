@@ -94,7 +94,7 @@ onUnmounted(() => {
   background: var(--theme-color);
   color: transparent;
   border-radius: 1px;
-  transition: opacity 120ms linear;
+  transition: opacity 120ms var(--ease-out);
 }
 
 .cursor.blink { opacity: 0; }

@@ -204,7 +204,8 @@ function getFallbackColor(text: string): string {
 
 .ql-link:active {
   transform: translate3d(0, 0, 0) scale(0.97);
-  transition-duration: 120ms;
+  transition-duration: 100ms;
+  transition-timing-function: var(--ease-out);
   box-shadow: var(--shadow-1);
 }
 

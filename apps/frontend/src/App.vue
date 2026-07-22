@@ -88,9 +88,11 @@ onMounted(() => {
   --radius-lg: 22px;
   --radius-xl: 28px;
 
-  /* Springs / motion */
-  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  /* Springs / motion — Apple critical-damping defaults */
+  /*                   damping 1.0, response 0.35–0.4        */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  /* momentum variant — damping ~0.8, slight overshoot       */
+  --ease-spring: cubic-bezier(0.34, 1.25, 0.64, 1);
   --duration-fast: 180ms;
   --duration-med: 320ms;
   --duration-slow: 520ms;

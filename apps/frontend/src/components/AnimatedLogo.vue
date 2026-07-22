@@ -179,7 +179,7 @@ defineExpose({ finish })
   font-size: 2.3rem;
   line-height: 1;
   z-index: 1;
-  animation: al-bounce 1.8s var(--ease-spring, cubic-bezier(0.34, 1.4, 0.64, 1)) infinite;
+  animation: al-bounce 2s var(--ease-spring, cubic-bezier(0.34, 1.25, 0.64, 1)) infinite;
   filter: drop-shadow(0 4px 12px color-mix(in srgb, var(--al-accent) 40%, transparent));
 }
 
@@ -192,7 +192,7 @@ defineExpose({ finish })
   position: absolute;
   border-radius: 50%;
   border: 1px solid color-mix(in srgb, var(--al-accent) 55%, transparent);
-  animation: al-ring-pulse 2.4s ease-out infinite;
+  animation: al-ring-pulse 2.8s var(--ease-out) infinite;
   pointer-events: none;
 }
 
