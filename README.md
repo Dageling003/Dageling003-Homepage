@@ -578,6 +578,8 @@ gunzip -c ./backups/homepage_YYYYMMDD_HHMMSS.sql.gz | \
 
 我们欢迎任何形式的贡献——无论是 Bug 报告、功能建议还是代码提交。
 
+> 📖 完整的贡献指南（含 Skill 体系说明、AI Agent 注意事项）见 [`docs/CONTRIBUTING.md`](./docs/CONTRIBUTING.md)。
+
 ### 流程
 
 1. **Fork** 本仓库
