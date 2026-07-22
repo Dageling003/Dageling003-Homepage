@@ -1,0 +1,155 @@
+{
+  "version": 1,
+  "skills": {
+    "apple-design": {
+      "source": "emilkowalski/skills",
+      "sourceType": "github",
+      "skillPath": "skills/apple-design/SKILL.md",
+      "computedHash": "1eee5dd2e2ae9378d4349647339f2cf6387231107523d1f65c7488877e41b269"
+    },
+    "bug-fixing": {
+      "source": "opencode-registry",
+      "sourceType": "registry",
+      "skillPath": "skills/bug-fixing/SKILL.md",
+      "computedHash": "b3faab3b5fd22193a4a33be2f345150e23e7931bad90a207eab6557c92406166",
+      "ownerId": "kn7ftkzj94fzbwepzdkcvab9ms80v445",
+      "slug": "bug-fixing",
+      "version": "1.0.3"
+    },
+    "code-fix": {
+      "source": "local",
+      "sourceType": "local",
+      "skillPath": "skills/code-fix/SKILL.md",
+      "computedHash": "ff7704174aaa68fdb8fe521da9122e97fe1716bae6a4033184166b84ed0cdd3e"
+    },
+    "debug-pro": {
+      "source": "opencode-registry",
+      "sourceType": "registry",
+      "skillPath": "skills/debug-pro/SKILL.md",
+      "computedHash": "7c2bf3589c478b059b9789753a4e17ef9e33b2f163a48721b86162d7beb9001d",
+      "ownerId": "kn748g49ccv1rsj08vhpyw42a1802zkx",
+      "slug": "debug-pro",
+      "version": "1.0.0"
+    },
+    "docker": {
+      "source": "opencode-registry",
+      "sourceType": "registry",
+      "skillPath": "skills/docker/SKILL.md",
+      "computedHash": "3bdbdb648838baa4df99319e8005e1546349fefcef4823769b14d96ab767a67d",
+      "ownerId": "kn73vp5rarc3b14rc7wjcw8f8580t5d1",
+      "slug": "docker",
+      "version": "1.0.4"
+    },
+    "duckduckgo-search": {
+      "source": "opencode-registry",
+      "sourceType": "registry",
+      "skillPath": "skills/duckduckgo-search/SKILL.md",
+      "computedHash": "9f6d37d64e14db3c4b736dbe9ad19630ddae05d735915476507344e14623500b",
+      "ownerId": "kn7e6rmb07qmpshw2vp52sw2gs80fcd0",
+      "slug": "duckduckgo-search",
+      "version": "1.0.0"
+    },
+    "find-skill-skillhub": {
+      "source": "opencode-registry",
+      "sourceType": "registry",
+      "skillPath": "skills/find-skill-skillhub/SKILL.md",
+      "computedHash": "d72ba42fe2d03b958f81f50696de6d8b6ff0cc98e0105f1a8bf7ca6d86661d86",
+      "ownerId": "421931",
+      "slug": "find-skill-skillhub",
+      "version": "1.0.2"
+    },
+    "find-skills": {
+      "source": "local",
+      "sourceType": "local",
+      "skillPath": "skills/find-skills/SKILL.md",
+      "computedHash": "112297a5cb6b773a0e2796c05c4b9c7b5a9d3f4c24c90ea0afc7c68267ec83e4"
+    },
+    "log-analyzer": {
+      "source": "opencode-registry",
+      "sourceType": "registry",
+      "skillPath": "skills/log-analyzer/SKILL.md",
+      "computedHash": "036cc61e39826812818ed6321b36dfe52fb8e6d9f853d237b3da40c0542d2c6c",
+      "ownerId": "kn7f6g2r31qsb1ts8cf5x7rpk180fn9j",
+      "slug": "log-analyzer",
+      "version": "1.0.0"
+    },
+    "nestjs": {
+      "source": "opencode-registry",
+      "sourceType": "registry",
+      "skillPath": "skills/nestjs/SKILL.md",
+      "computedHash": "3c7923455a5ee2d45c97776309f6b9943b45f4480e437fefa725dd6e5bc85c49",
+      "ownerId": "kn73vp5rarc3b14rc7wjcw8f8580t5d1",
+      "slug": "nestjs",
+      "version": "1.0.0"
+    },
+    "nexus-error-explain": {
+      "source": "opencode-registry",
+      "sourceType": "registry",
+      "skillPath": "skills/nexus-error-explain/SKILL.md",
+      "computedHash": "4bfd734e69923d184a4c62fb608cc916995fd51e3296d2ff683e2a581ea2b821",
+      "ownerId": "kn7efb82wj6z1vtc8q377eh3r582sdfa",
+      "slug": "nexus-error-explain",
+      "version": "2.1.0"
+    },
+    "security-best-practices": {
+      "source": "opencode-registry",
+      "sourceType": "registry",
+      "skillPath": "skills/security-best-practices/SKILL.md",
+      "computedHash": "9608db1a3d63f45779335387484c4aa9b1f07ea4e16da7b08dc43a514eb75f87",
+      "ownerId": "kn73vp5rarc3b14rc7wjcw8f8580t5d1",
+      "slug": "security-best-practices",
+      "version": "1.0.0"
+    },
+    "superpowers-systematic-debugging": {
+      "source": "opencode-registry",
+      "sourceType": "registry",
+      "skillPath": "skills/superpowers-systematic-debugging/SKILL.md",
+      "computedHash": "569e82dd0c2be3d45c79b222c8fc70a5a7c9c022a2ec777eccea771035cacd4e",
+      "ownerId": "kn7bcaearb90wwcjbr9gpv32s5831k39",
+      "slug": "superpowers-systematic-debugging",
+      "version": "1.0.0"
+    },
+    "tech-bug-troubleshooting": {
+      "source": "local",
+      "sourceType": "local",
+      "skillPath": "skills/tech-bug-troubleshooting/SKILL.md",
+      "computedHash": "f86dd3f93b99df55d3e75d941880128f736c6a353ec81e9e7a9188d3da7895f0"
+    },
+    "typescript": {
+      "source": "opencode-registry",
+      "sourceType": "registry",
+      "skillPath": "skills/typescript/SKILL.md",
+      "computedHash": "dba345bf672d4677a7936947bc0f2be851bec83811908113dc13ec9640bcdf1c",
+      "ownerId": "kn73vp5rarc3b14rc7wjcw8f8580t5d1",
+      "slug": "typescript",
+      "version": "1.0.2"
+    },
+    "vite": {
+      "source": "opencode-registry",
+      "sourceType": "registry",
+      "skillPath": "skills/vite/SKILL.md",
+      "computedHash": "1f65c466539193cfb1c0cdf806a3c19663b184aad083a859584dbc5cab50813c",
+      "ownerId": "kn73vp5rarc3b14rc7wjcw8f8580t5d1",
+      "slug": "vite",
+      "version": "1.0.0"
+    },
+    "vue": {
+      "source": "opencode-registry",
+      "sourceType": "registry",
+      "skillPath": "skills/vue/SKILL.md",
+      "computedHash": "4e93702031e9e7517ee2b8a3df30d6c883186b9ffbeb90b01be71db44dc17d6f",
+      "ownerId": "kn73vp5rarc3b14rc7wjcw8f8580t5d1",
+      "slug": "vue",
+      "version": "1.0.1"
+    },
+    "vue3-composition-helper": {
+      "source": "opencode-registry",
+      "sourceType": "registry",
+      "skillPath": "skills/vue3-composition-helper/SKILL.md",
+      "computedHash": "94941094640cdadc995544acf3d02bd4f05a7fb32be1c07f87bf3227638a5cb",
+      "ownerId": "kn7900pbm17zybcn53zkc1qdrx82s2x8",
+      "slug": "vue3-composition-helper",
+      "version": "1.1.0"
+    }
+  }
+}
