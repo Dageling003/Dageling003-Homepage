@@ -22,8 +22,8 @@ RUN pnpm install --frozen-lockfile
 COPY apps/ apps/
 
 RUN pnpm --filter homepage-backend build && \
-    TSC_COMPILE_ON_ERROR=true pnpm --filter homepage-frontend build && \
-    TSC_COMPILE_ON_ERROR=true pnpm --filter homepage-admin build && \
+    pnpm --filter homepage-frontend build && \
+    pnpm --filter homepage-admin build && \
     pnpm --filter homepage-backend deploy /deploy --prod --legacy && \
     mkdir -p /deploy/public/uploads/avatar && \
     mkdir -p /static/frontend /static/admin && \

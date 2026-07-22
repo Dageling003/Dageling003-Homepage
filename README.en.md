@@ -18,7 +18,7 @@
   <a href="https://github.com/Dageling003/Dageling003-Homepage/releases/tag/v1.1.0"><img src="https://img.shields.io/badge/release-v1.1.0-blue?logo=github" alt="Release v1.1.0" /></a>
   <a href="https://github.com/Dageling003/Dageling003-Homepage/releases"><img src="https://img.shields.io/github/v/release/Dageling003/Dageling003-Homepage?display_name=tag&sort=semver&label=latest" alt="Latest Release" /></a>
   <a href="https://dageling003.top/"><img src="https://img.shields.io/website?url=https%3A%2F%2Fdageling003.top%2F&up_message=online&down_message=offline&label=Live%20Demo" alt="Live Demo" /></a>
-  <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-%3E%3D20.19.0-339933?logo=nodedotjs&logoColor=white" alt="Node.js" /></a>
+   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-%3E%3D22.13.0-339933?logo=nodedotjs&logoColor=white" alt="Node.js" /></a>
   <a href="https://pnpm.io"><img src="https://img.shields.io/badge/pnpm-%3E%3D11.0.0-F69220?logo=pnpm&logoColor=white" alt="pnpm" /></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License" /></a>
   <a href="https://nestjs.com"><img src="https://img.shields.io/badge/nestjs-11-E0234E?logo=nestjs&logoColor=white" alt="NestJS" /></a>
@@ -210,7 +210,7 @@ The whole UI is built around **minimalism + rounded cards + soft shadows**. Ever
 
 ### Prerequisites
 
-- **Node.js** ≥ 20.19.0
+- **Node.js** ≥ 22.13.0
 - **pnpm** ≥ 11.0.0
 
 ### Local development
@@ -220,7 +220,7 @@ The whole UI is built around **minimalism + rounded cards + soft shadows**. Ever
 ```bash
 # 1. Clone
 git clone https://github.com/Dageling003/Dageling003-Homepage.git
-cd homepage
+cd Dageling003-Homepage
 
 # 2. Install
 pnpm install
@@ -255,7 +255,7 @@ pnpm dev
 ```bash
 # 1. Clone
 git clone https://github.com/Dageling003/Dageling003-Homepage.git
-cd homepage
+cd Dageling003-Homepage
 
 # 2. Install
 pnpm install
@@ -304,14 +304,14 @@ In local development each service listens on `127.0.0.1` under a dedicated port.
 
 ```bash
 # Wizard mode — asks for the important settings, auto-generates the rest
-bash deploy.sh
+bash scripts/deploy.sh
 
 # Skip the domain prompt (rest stays interactive)
-# Replace <your-domain> with your domain or IP, e.g. example.com
-DOMAIN=<your-domain> bash deploy.sh
+# Replace your-domain.com with your domain or IP
+DOMAIN=your-domain.com bash scripts/deploy.sh
 
 # CI fully-automated mode (zero interaction)
-CI=true bash deploy.sh
+CI=true bash scripts/deploy.sh
 ```
 
 The script walks you through:
@@ -491,12 +491,12 @@ bash scripts/domain-check.sh            # domain & performance verification
 
 ```bash
 # Full redeploy (keep data)
-bash update.sh
+bash scripts/update.sh
 
 # Wipe all data and redeploy
 docker compose --env-file .env.docker down -v
 rm -f .env.docker
-bash deploy.sh
+bash scripts/deploy.sh
 ```
 
 ---

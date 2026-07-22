@@ -65,7 +65,7 @@ homepage/
 
 ## 🧩 Skill 体系
 
-本项目内置了 19 个 AI Agent Skill，存放在 `.agents/skills/` 目录下，确保贡献者使用统一的 AI 辅助开发体验。
+本项目内置了 18 个 AI Agent Skill，存放在 `.agents/skills/` 目录下，确保贡献者使用统一的 AI 辅助开发体验。
 
 ### Skill 来源分类
 
@@ -121,7 +121,7 @@ homepage/
 
 ### 前置依赖
 
-- **Node.js** ≥ 20.19.0
+- **Node.js** ≥ 22.13.0
 - **pnpm** ≥ 11.0.0
 
 ### 本地开发

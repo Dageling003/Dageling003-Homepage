@@ -96,5 +96,4 @@ apps/*/.skills_store_lock.json
 .tmp/
 .temp/
 *.lock
-!package-lock.json
 !pnpm-lock.yaml

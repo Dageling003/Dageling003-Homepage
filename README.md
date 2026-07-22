@@ -18,7 +18,7 @@
   <a href="https://github.com/Dageling003/Dageling003-Homepage/releases/tag/v1.1.0"><img src="https://img.shields.io/badge/release-v1.1.0-blue?logo=github" alt="Release v1.1.0" /></a>
   <a href="https://github.com/Dageling003/Dageling003-Homepage/releases"><img src="https://img.shields.io/github/v/release/Dageling003/Dageling003-Homepage?display_name=tag&sort=semver&label=latest" alt="Latest Release" /></a>
   <a href="https://dageling003.top/"><img src="https://img.shields.io/website?url=https%3A%2F%2Fdageling003.top%2F&up_message=online&down_message=offline&label=Live%20Demo" alt="Live Demo" /></a>
-  <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-%3E%3D20.19.0-339933?logo=nodedotjs&logoColor=white" alt="Node.js" /></a>
+   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-%3E%3D22.13.0-339933?logo=nodedotjs&logoColor=white" alt="Node.js" /></a>
   <a href="https://pnpm.io"><img src="https://img.shields.io/badge/pnpm-%3E%3D11.0.0-F69220?logo=pnpm&logoColor=white" alt="pnpm" /></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License" /></a>
   <a href="https://nestjs.com"><img src="https://img.shields.io/badge/nestjs-11-E0234E?logo=nestjs&logoColor=white" alt="NestJS" /></a>
@@ -210,7 +210,7 @@
 
 ### 前置依赖
 
-- **Node.js** ≥ 20.19.0
+- **Node.js** ≥ 22.13.0
 - **pnpm** ≥ 11.0.0
 
 ### 本地开发
@@ -220,7 +220,7 @@
 ```bash
 # 1. 克隆仓库
 git clone https://github.com/Dageling003/Dageling003-Homepage.git
-cd homepage
+cd Dageling003-Homepage
 
 # 2. 安装依赖
 pnpm install
@@ -255,7 +255,7 @@ pnpm dev
 ```bash
 # 1. 克隆仓库
 git clone https://github.com/Dageling003/Dageling003-Homepage.git
-cd homepage
+cd Dageling003-Homepage
 
 # 2. 安装依赖
 pnpm install
@@ -298,14 +298,14 @@ npx ts-node -r tsconfig-paths/register node_modules/.bin/typeorm migration:gener
 
 ```bash
 # 向导模式 — 逐项询问关键配置，其余自动生成
-bash deploy.sh
+bash scripts/deploy.sh
 
 # 跳过域名询问（其余仍交互）
-#【提示】：请将【your-domain】替换为你的域名或 IP 地址，例如：your-domain.com
-DOMAIN=【your-domain】 bash deploy.sh
+# 提示：将 your-domain.com 替换为你的域名或 IP 地址
+DOMAIN=your-domain.com bash scripts/deploy.sh
 
 # CI 全自动模式（零交互）
-CI=true bash deploy.sh
+CI=true bash scripts/deploy.sh
 ```
 
 脚本会引导你完成：
@@ -487,12 +487,12 @@ bash scripts/domain-check.sh            # 验证域名访问和性能
 
 ```bash
 # 完全重新部署（保留数据）
-bash update.sh
+bash scripts/update.sh
 
 # 清除所有数据重新部署
 docker compose --env-file .env.docker down -v
 rm -f .env.docker
-bash deploy.sh
+bash scripts/deploy.sh
 ```
 
 ---

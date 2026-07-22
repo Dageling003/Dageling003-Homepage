@@ -58,7 +58,7 @@ fi
 rand() {
     # 生成 base64 随机串，失败时退化
     openssl rand -base64 "$1" 2>/dev/null \
-        || cat /dev/urandom | tr -dc 'a-zA-Z0-9' | head -c"$1"
+        || cat /dev/urandom | tr -dc 'a-zA-Z0-9' | head -c "$1"
 }
 
 # 推断主协议（域名 → https，IP/localhost → http）
@@ -104,6 +104,9 @@ DOMAIN=${DOMAIN}
 JWT_SECRET=${JWT_SECRET}
 # 留空 → 通过 /admin/setup 自设密码；设置 → 容器启动时自动用此密码建 admin
 DEFAULT_ADMIN_PASSWORD=${DEFAULT_ADMIN_PASSWORD}
+# 初始化令牌（强烈推荐，公网部署必填）
+# 防止上线到初始化完成之间的窗口期被抢注管理员
+SETUP_TOKEN=${SETUP_TOKEN}
 ACME_CA=${ACME_CA}
 ACME_EMAIL=${ACME_EMAIL}
 DB_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
@@ -112,6 +115,8 @@ DB_PASSWORD=${DB_PASSWORD}
 DB_DATABASE=${DB_DATABASE}
 # 首次部署自动建表，部署完成后建议改为 false
 DB_SYNCHRONIZE=true
+# MariaDB 镜像源
+MARIADB_IMAGE=${MARIADB_IMAGE:-docker.1ms.run/library/mariadb:11.4}
 # ====================================
 # 找回密码邮件（可选）
 # 留空 = 未配置 SMTP，找回密码链接写入 docker logs
@@ -294,6 +299,7 @@ wizard() {
     # ====== 自动生成项 ======
     ACME_CA="https://acme.zerossl.com/v2/DV90"
     JWT_SECRET="${JWT_SECRET:-$(rand 32)}"
+    SETUP_TOKEN="${SETUP_TOKEN:-$(openssl rand -hex 24 2>/dev/null || rand 24)}"
     DB_ROOT_PASSWORD="${DB_ROOT_PASSWORD:-$(rand 20)}"
     DB_USERNAME="${DB_USERNAME:-homepage}"
     DB_PASSWORD="${DB_PASSWORD:-$(rand 20)}"
@@ -386,7 +392,7 @@ print_summary() {
         echo -e "  ${YELLOW}${BOLD}⚠️   重要提示${NC}"
         echo -e "  ──────────────────────────────────"
         echo -e "  ① 访问 ${CYAN}${admin_url}${NC}  用下方管理员账号直接登录"
-        echo -e "  ② 登录后会自动跳到初始化向导，走完 7 步"
+        echo -e "  ② 登录后会自动跳到初始化向导，走完剩余步骤"
         echo -e "  ③ 初始化完成后，进入 ${CYAN}账号设置${NC} → ${CYAN}修改密码${NC}，替换默认密码"
         echo ""
         echo -e "  ${BOLD}🔐  管理员账号${NC}"
@@ -447,7 +453,7 @@ print_summary() {
 # ====== 5. 冒烟测试 ======
 run_smoke_test() {
     echo ""
-    echo -e "${BOLD}==> 5/6 冒烟测试${NC}"
+    echo -e "${BOLD}==> 5/5 冒烟测试${NC}"
 
     local proto
     proto=$(derive_proto "${DOMAIN:-localhost}")
@@ -475,6 +481,7 @@ main() {
         ACME_EMAIL="${ACME_EMAIL:-}"
         ACME_CA="https://acme.zerossl.com/v2/DV90"
         JWT_SECRET="${JWT_SECRET:-$(rand 32)}"
+        SETUP_TOKEN="${SETUP_TOKEN:-$(openssl rand -hex 24 2>/dev/null || rand 24)}"
         DEFAULT_ADMIN_PASSWORD="${DEFAULT_ADMIN_PASSWORD:-$(rand 24)}"
         DB_ROOT_PASSWORD="${DB_ROOT_PASSWORD:-$(rand 20)}"
         DB_USERNAME="${DB_USERNAME:-homepage}"
