@@ -9,9 +9,11 @@ overrides:
   esbuild: '>=0.28.1'
   form-data: '>=4.0.6'
   multer: '>=2.2.0'
-  brace-expansion: '>=5.0.7'
+  'brace-expansion@1.x': '^1.1.12'
+  'brace-expansion@2.x': '^2.0.2'
   body-parser: '>=2.3.0'
   js-yaml: '>=4.3.0'
+  fast-uri: '>=3.1.4'
 
 # Only allow build scripts for packages that need native compilation
 allowBuilds:
