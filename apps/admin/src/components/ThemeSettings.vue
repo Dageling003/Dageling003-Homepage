@@ -13,8 +13,10 @@ const themeStore = useAdminThemeStore()
     :title="'主题设置'"
     @click="themeStore.settingsPanelVisible = true"
   >
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
-      stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+      stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+    >
       <circle cx="12" cy="12" r="9" />
       <path d="M12 3a9 9 0 0 0 0 18" fill="currentColor" opacity="0.5" />
       <circle cx="8" cy="12" r="1" />
@@ -40,8 +42,10 @@ const themeStore = useAdminThemeStore()
           :class="{ active: !themeStore.isDark }"
           @click="themeStore.isDark && themeStore.toggleDark()"
         >
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
-            stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg
+            viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+            stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+          >
             <circle cx="12" cy="12" r="4" />
             <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
           </svg>
@@ -53,8 +57,10 @@ const themeStore = useAdminThemeStore()
           :class="{ active: themeStore.isDark }"
           @click="!themeStore.isDark && themeStore.toggleDark()"
         >
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
-            stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg
+            viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+            stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+          >
             <path d="M20.5 13.4A8.5 8.5 0 1 1 10.6 3.5a6.6 6.6 0 0 0 9.9 9.9z" />
           </svg>
           <span>暗色</span>

@@ -67,10 +67,10 @@ function handleOk() {
   <a-modal
     :open="visible"
     :title="isEdit ? '编辑配置' : '新增配置'"
-    :confirmLoading="submitting"
+    :confirm-loading="submitting"
     @ok="handleOk"
     @cancel="handleCancel"
-    :destroyOnClose="true"
+    :destroy-on-close="true"
     width="480px"
   >
     <a-form layout="vertical" class="config-form">

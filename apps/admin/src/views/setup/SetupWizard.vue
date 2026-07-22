@@ -46,7 +46,7 @@ function calcAge(birthStr: string): number | null {
 }
 function calcZodiac(birthStr: string): string | null {
   if (!birthStr || birthStr.split('-').length < 3) return null
-  const [_, m, d] = birthStr.split('-').map(Number)
+  const [, m, d] = birthStr.split('-').map(Number)
   if (isNaN(m) || isNaN(d)) return null
   const Z = [
     { n: '摩羯座', s: [1, 1], e: [1, 19] }, { n: '水瓶座', s: [1, 20], e: [2, 18] },

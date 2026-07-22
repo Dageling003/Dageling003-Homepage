@@ -124,90 +124,89 @@ function handleLogout() {
   <a-layout class="al-root" :class="{ 'al-dark': themeStore.isDark }">
     <!-- ====== SIDEBAR (hidden for setup) ====== -->
     <template v-if="!noSidebar">
-    <a-layout-sider
-      v-model:collapsed="collapsed"
-      collapsible
-      :theme="getTheme()"
-      :width="232"
-      collapsed-width="72"
-      class="al-sider"
-    >
-      <div class="al-logo">
-        <span class="al-logo-icon">◈</span>
-        <span v-show="!collapsed" class="al-logo-text">Homepage</span>
-      </div>
-
-      <a-menu
-        mode="inline"
+      <a-layout-sider
+        v-model:collapsed="collapsed"
+        collapsible
         :theme="getTheme()"
-        :selected-keys="[route.path]"
-        :open-keys="route.path.startsWith('/config/') ? ['config-group'] : []"
-        :items="menuItems"
-        @click="handleMenuClick"
-      />
-
-      <!-- Collapse trigger at bottom -->
-      <template #trigger>
-        <div class="al-sider-trigger">
-          <MenuFoldOutlined v-if="!collapsed" />
-          <MenuUnfoldOutlined v-else />
+        :width="232"
+        collapsed-width="72"
+        class="al-sider"
+      >
+        <div class="al-logo">
+          <span class="al-logo-icon">◈</span>
+          <span v-show="!collapsed" class="al-logo-text">Homepage</span>
         </div>
-      </template>
-    </a-layout-sider>
+
+        <a-menu
+          mode="inline"
+          :theme="getTheme()"
+          :selected-keys="[route.path]"
+          :open-keys="route.path.startsWith('/config/') ? ['config-group'] : []"
+          :items="menuItems"
+          @click="handleMenuClick"
+        />
+
+        <!-- Collapse trigger at bottom -->
+        <template #trigger>
+          <div class="al-sider-trigger">
+            <MenuFoldOutlined v-if="!collapsed" />
+            <MenuUnfoldOutlined v-else />
+          </div>
+        </template>
+      </a-layout-sider>
     </template>
 
     <!-- ====== MAIN AREA ====== -->
     <a-layout>
       <!-- ====== HEADER (hidden for setup) ====== -->
       <template v-if="!noSidebar">
-      <a-layout-header class="al-header">
-        <div class="al-header-left">
-          <AppBreadcrumb />
-        </div>
+        <a-layout-header class="al-header">
+          <div class="al-header-left">
+            <AppBreadcrumb />
+          </div>
 
-        <div class="al-header-right">
-          <button
-            class="al-icon-btn"
-            @click="toggleTheme"
-            :aria-label="themeStore.isDark ? '切换亮色' : '切换暗色'"
-            :title="themeStore.isDark ? '切换亮色' : '切换暗色'"
-          >
-            <BulbFilled v-if="themeStore.isDark" class="al-sun-icon" />
-            <BulbOutlined v-else class="al-moon-icon" />
-          </button>
+          <div class="al-header-right">
+            <button
+              class="al-icon-btn"
+              @click="toggleTheme"
+              :aria-label="themeStore.isDark ? '切换亮色' : '切换暗色'"
+              :title="themeStore.isDark ? '切换亮色' : '切换暗色'"
+            >
+              <BulbFilled v-if="themeStore.isDark" class="al-sun-icon" />
+              <BulbOutlined v-else class="al-moon-icon" />
+            </button>
 
-          <a-dropdown :trigger="['click']" placement="bottomRight">
-            <div class="al-user" role="button" tabindex="0">
-              <div class="al-avatar">
-                <img
-                  v-if="authStore.avatarUrl"
-                  :src="authStore.avatarUrl"
-                  :alt="`${authStore.username}的头像`"
-                />
-                <span v-else class="al-avatar-letter">
-                  {{ authStore.username?.charAt(0)?.toUpperCase() }}
-                </span>
+            <a-dropdown :trigger="['click']" placement="bottomRight">
+              <div class="al-user" role="button" tabindex="0">
+                <div class="al-avatar">
+                  <img
+                    v-if="authStore.avatarUrl"
+                    :src="authStore.avatarUrl"
+                    :alt="`${authStore.username}的头像`"
+                  />
+                  <span v-else class="al-avatar-letter">
+                    {{ authStore.username?.charAt(0)?.toUpperCase() }}
+                  </span>
+                </div>
+                <span class="al-username">{{ authStore.username }}</span>
               </div>
-              <span class="al-username">{{ authStore.username }}</span>
-            </div>
-            <template #overlay>
-              <a-menu>
-                <a-menu-item key="account" @click="router.push('/account')">
-                  <UserOutlined /> 账号设置
-                </a-menu-item>
-                <a-menu-divider />
-                <a-menu-item key="logout" @click="handleLogout" danger>
-                  <LogoutOutlined /> 退出登录
-                </a-menu-item>
-              </a-menu>
-            </template>
-          </a-dropdown>
-        </div>
-      </a-layout-header>
+              <template #overlay>
+                <a-menu>
+                  <a-menu-item key="account" @click="router.push('/account')">
+                    <UserOutlined /> 账号设置
+                  </a-menu-item>
+                  <a-menu-divider />
+                  <a-menu-item key="logout" @click="handleLogout" danger>
+                    <LogoutOutlined /> 退出登录
+                  </a-menu-item>
+                </a-menu>
+              </template>
+            </a-dropdown>
+          </div>
+        </a-layout-header>
 
-      <!-- ====== TABS ====== -->
-      <AppTab />
-
+        <!-- ====== TABS ====== -->
+        <AppTab />
       </template>
 
       <!-- ====== CONTENT (always visible) ====== -->
