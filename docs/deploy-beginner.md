@@ -218,6 +218,12 @@ ufw reload
 **[RHEL / CentOS Stream / Rocky / AlmaLinux]** 系统默认启用 `firewalld`：
 
 ```bash
+# 先看 firewalld 是不是活着
+systemctl is-active firewalld
+# 结果是 active         → 继续下面几条
+# 结果是 inactive       → 云机默认关的（腾讯云 / 阿里云常见），直接跳到 4.3
+# 结果是 unit not found → 没装 firewalld，也直接跳到 4.3
+
 firewall-cmd --permanent --add-service=ssh
 firewall-cmd --permanent --add-service=http
 firewall-cmd --permanent --add-service=https
@@ -227,7 +233,7 @@ firewall-cmd --reload
 firewall-cmd --list-all
 ```
 
-> 如果 `firewall-cmd` 命令找不到，说明 firewalld 没装或没启用，直接跳到 4.3。
+> 如果 `firewall-cmd` 命令找不到，或看到 `FirewallD is not running`，都说明系统防火墙没在管事，跳到 4.3 即可（云厂商安全组已经在管入方向了）。
 
 ### 4.3 解析域名到服务器（**只有想用 HTTPS + 漂亮域名才需要**）
 

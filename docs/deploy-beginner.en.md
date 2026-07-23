@@ -218,6 +218,12 @@ ufw reload
 **[RHEL / CentOS Stream / Rocky / AlmaLinux]** — `firewalld` is enabled by default:
 
 ```bash
+# First check whether firewalld is actually running
+systemctl is-active firewalld
+# active         → run the commands below
+# inactive       → cloud VM has it disabled (common on Tencent/Alibaba/etc.), skip to 4.3
+# unit not found → not installed, also skip to 4.3
+
 firewall-cmd --permanent --add-service=ssh
 firewall-cmd --permanent --add-service=http
 firewall-cmd --permanent --add-service=https
@@ -227,7 +233,7 @@ firewall-cmd --reload
 firewall-cmd --list-all
 ```
 
-> If `firewall-cmd` isn't found, firewalld isn't installed/enabled — skip to 4.3.
+> If `firewall-cmd` is missing, or you see `FirewallD is not running`, the OS firewall isn't guarding anything — skip to 4.3. Your cloud provider's security group is already handling inbound rules.
 
 ### 4.3 Point your domain at the server (**only if you want HTTPS + a pretty URL**)
 
