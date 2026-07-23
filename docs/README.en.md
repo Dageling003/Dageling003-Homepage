@@ -15,7 +15,8 @@
 | 🏗 Architecture | [architecture.en.md](./architecture.en.md) | Developers who want the big picture | Read once before touching the codebase to understand boundaries and modules |
 | 🧰 Stack | [technology-selection.en.md](./technology-selection.en.md) | Anyone reusing the stack / making tech decisions | When evaluating versions or swapping out a component |
 | 🛠 Dev | [dev-guide.en.md](./dev-guide.en.md) | Contributors running & editing the code locally | When you start coding or debugging |
-| 🚀 Deploy | [deployment.en.md](./deployment.en.md) | Self-hosters / ops | Docker / manual deploy / env var reference |
+| 🚀 Deploy (beginner) | [deploy-beginner.en.md](./deploy-beginner.en.md) | Zero-Docker / zero-Linux readers | First time on a server, want a step-by-step walkthrough |
+| 🚀 Deploy (reference) | [deployment.en.md](./deployment.en.md) | Self-hosters / ops | Docker / manual deploy / env var reference |
 | 📡 API | [api.en.md](./api.en.md) | Frontend integrators / third parties | When you need endpoints and payload details (Swagger UI is also available in dev) |
 | 📅 Progress | [progress.en.md](./progress.en.md) | Curious readers | To see feature history and version milestones |
 | 🤝 Contributing | [CONTRIBUTING.en.md](../CONTRIBUTING.en.md) | Human contributors / AI Agents | Dev conventions, Skill system, PR workflow |
@@ -25,7 +26,7 @@
 ## 🧭 Recommended reading paths
 
 - **Just want to run it** → root [README.en](../README.en.md) → [dev-guide.en.md](./dev-guide.en.md)
-- **Want to host my own instance** → root [README.en](../README.en.md) → [deployment.en.md](./deployment.en.md)
+- **Want to host my own instance** → root [README.en](../README.en.md) → [deploy-beginner.en.md](./deploy-beginner.en.md) (zero experience) or [deployment.en.md](./deployment.en.md) (Docker-savvy)
 - **Want to change the architecture / send a PR** → [architecture.en.md](./architecture.en.md) → [technology-selection.en.md](./technology-selection.en.md) → [dev-guide.en.md](./dev-guide.en.md)
 - **Want to consume the API** → [api.en.md](./api.en.md) (or hit `http://localhost:8000/api/docs` after starting the server)
 
