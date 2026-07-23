@@ -27,7 +27,7 @@
 
 | 东西 | 说明 | 花钱吗 |
 |------|------|--------|
-| 一台云服务器 | 2 核 2G 内存 起步，Ubuntu 22.04 / Debian 12 系统 | 是（学生机 / 轻量应用服务器最便宜，一年 100 元档就够） |
+| 一台云服务器 | 2 核 2G 内存 起步，Ubuntu 22.04 / Debian 12 / Rocky 9 / AlmaLinux 9 / CentOS Stream 9 都行 | 是（学生机 / 轻量应用服务器最便宜，一年 100 元档就够） |
 | （可选）一个域名 | 想要 `xxx.com` 这种漂亮地址 + HTTPS 时才需要 | 是（`.top` / `.xyz` 首年 8 元起，续费贵一点） |
 | SSH 客户端 | Windows 10/11 自带 `ssh`，直接用 PowerShell 或 Windows Terminal 即可；Mac 打开"终端"就行 | 免费 |
 | 复制粘贴的手 | 本教程 90% 的操作是复制命令 → 粘贴 → 回车 | 免费 |
@@ -49,7 +49,7 @@
 
 **买机器时的选项建议：**
 
-- **系统镜像**：`Ubuntu 22.04 LTS` 或 `Debian 12`（本教程以 Ubuntu 为例，Debian 命令一样）
+- **系统镜像**：Debian 系（`Ubuntu 22.04 LTS` / `Debian 12`）或 RHEL 系（`Rocky Linux 9` / `AlmaLinux 9` / `CentOS Stream 9`）都可以。本教程 Debian 命令用 `apt`，RHEL 命令用 `dnf`，两套都给出；命令有区别的地方会明确标注 **[Debian/Ubuntu]** 或 **[RHEL/CentOS/Rocky/AlmaLinux]**
 - **配置**：2 vCPU + 2 GB 内存起步；1G 内存也能跑但很紧张，需自己加 swap
 - **带宽**：3 Mbps 起步够用
 - **系统盘**：40 GB 起步
@@ -86,8 +86,13 @@ Are you sure you want to continue connecting (yes/no/[fingerprint])?
 看到类似这样的欢迎语就成功了：
 
 ```
+# Debian / Ubuntu
 Welcome to Ubuntu 22.04.4 LTS (GNU/Linux 5.15.0-...)
 root@your-server:~#
+
+# 或 RHEL / Rocky / AlmaLinux / CentOS Stream
+Last login: ...
+[root@your-server ~]#
 ```
 
 ### Mac / Linux 用户
@@ -104,6 +109,8 @@ ssh -i /path/to/your-key.pem root@123.45.67.89
 
 ## 3. 装 Docker（一条命令搞定）
 
+> `get.docker.com` 官方脚本原生支持 Ubuntu / Debian / RHEL / CentOS Stream / Rocky / AlmaLinux / Fedora，无需区分发行版。
+
 **服务器海外节点** —— 用官方脚本：
 
 ```bash
@@ -115,6 +122,8 @@ curl -fsSL https://get.docker.com | sh
 ```bash
 curl -fsSL https://get.docker.com | sh -s docker --mirror Aliyun
 ```
+
+> **RHEL 8/9 / Rocky 9 / AlmaLinux 9 系统自带 podman/podman-docker**，脚本会自动检测并处理冲突。如果脚本报 `podman-docker` 冲突，先卸掉：`dnf remove -y podman-docker buildah` 然后重跑。
 
 装完让 Docker 开机自启并立即启动：
 
@@ -167,15 +176,28 @@ Homepage 用 **80（HTTP）** 和 **443（HTTPS）** 对外提供服务。你需
 
 ### 4.2 系统防火墙（大多数云机默认没开，可跳过）
 
-如果你自己开过 `ufw` 或 `firewalld`：
+**[Debian / Ubuntu]** 如果你启用过 `ufw`：
 
 ```bash
-# Ubuntu / Debian
 ufw allow 22/tcp
 ufw allow 80/tcp
 ufw allow 443/tcp
 ufw reload
 ```
+
+**[RHEL / CentOS Stream / Rocky / AlmaLinux]** 系统默认启用 `firewalld`：
+
+```bash
+firewall-cmd --permanent --add-service=ssh
+firewall-cmd --permanent --add-service=http
+firewall-cmd --permanent --add-service=https
+firewall-cmd --reload
+
+# 验证已放行
+firewall-cmd --list-all
+```
+
+> 如果 `firewall-cmd` 命令找不到，说明 firewalld 没装或没启用，直接跳到 4.3。
 
 ### 4.3 解析域名到服务器（**只有想用 HTTPS + 漂亮域名才需要**）
 
@@ -200,10 +222,14 @@ ping your-domain.com
 
 ## 5. 把项目下载到服务器
 
-装 git（Ubuntu 默认没装）：
+装 git（大多数发行版默认没装）：
 
 ```bash
+# [Debian / Ubuntu]
 apt update && apt install -y git
+
+# [RHEL / CentOS Stream / Rocky / AlmaLinux]
+dnf install -y git
 ```
 
 克隆项目：
@@ -379,7 +405,7 @@ docker logs homepage-app --tail 100
 | 日志关键字 | 原因 | 修法 |
 |-----------|------|------|
 | `JWT_SECRET is not properly configured` | `.env.docker` 里 JWT_SECRET 没设或太短 | 用 `openssl rand -base64 32` 生成一个新的填进去，然后 `docker compose --env-file .env.docker up -d` 重启 |
-| `Access denied for user` / `ER_ACCESS_DENIED_ERROR` | 数据库密码不匹配。**通常是你改过 `.env.docker` 但数据库容器保留了旧密码** | 见 10.6 |
+| `Access denied for user` / `ER_ACCESS_DENIED_ERROR` | 数据库密码不匹配。**通常是你改过 `.env.docker` 但数据库容器保留了旧密码** | 见 10.7 |
 | `ECONNREFUSED mariadb:3306` | 数据库还没起来 App 就来连了 | 先 `docker compose --env-file .env.docker down`，再 `up -d`，让 healthcheck 重排 |
 | 容器直接 Exited、无日志、只显示 `Cannot find module '/app/dist/main.js'` | 构建产物路径不对（v1.2.0 之前的老坑） | 拉最新代码 `git pull`，重新 `up -d --build` |
 
@@ -416,14 +442,29 @@ docker compose --env-file .env.docker up -d
 ss -tlnp | grep -E ':(80|443)\b'
 ```
 
-如果是别的 nginx / apache，`systemctl stop nginx && systemctl disable nginx`。
+如果是别的 nginx / apache / httpd，停掉并禁用开机自启：
+
+```bash
+# [Debian / Ubuntu]
+systemctl stop nginx apache2 2>/dev/null
+systemctl disable nginx apache2 2>/dev/null
+
+# [RHEL / CentOS Stream / Rocky / AlmaLinux]
+systemctl stop nginx httpd 2>/dev/null
+systemctl disable nginx httpd 2>/dev/null
+```
 
 ### 10.5 内存不够，容器一直被 kill（`OOMKilled`）
 
 1G 机器的通病。加 swap：
 
 ```bash
+# 通用（大多数发行版都支持 fallocate）
 fallocate -l 2G /swapfile
+
+# 如果 fallocate 报错（部分 XFS / 老内核会），换 dd：
+# dd if=/dev/zero of=/swapfile bs=1M count=2048
+
 chmod 600 /swapfile
 mkswap /swapfile
 swapon /swapfile
@@ -431,7 +472,30 @@ echo '/swapfile none swap sw 0 0' >> /etc/fstab
 free -h    # 验证 Swap 那一行不再是 0
 ```
 
-### 10.6 我改了 `.env.docker` 里的数据库密码，重启后连不上
+> **RHEL / Rocky / AlmaLinux 额外注意**：如果 `swapon` 报 `Insecure permissions` 或 `swap file has holes`，说明系统盘是 XFS，请改用上面 `dd` 那行创建。
+
+### 10.6 SELinux 挡住了容器读写宿主目录 [仅 RHEL 系]
+
+**症状**：容器启动正常但读写 `/opt/Dageling003-Homepage` 下的文件报 `Permission denied`；`docker logs` 看不出应用层错误，`ausearch -m avc` 或 `journalctl -t setroubleshoot` 能看到 AVC 拒绝。
+
+Homepage 项目默认所有数据都走 named volume（`mariadb_data` / `app_uploads` / `caddy_data`），**通常不会踩这个坑**。但如果你自己改了 compose 挂了 bind mount（`- ./some/path:/xxx`），要么给挂载加 `:z` / `:Z` 后缀，要么临时把 SELinux 设成 permissive：
+
+```bash
+# 临时（重启失效）：把 SELinux 从 enforcing 切到 permissive
+setenforce 0
+
+# 永久：编辑 /etc/selinux/config，把 SELINUX=enforcing 改成 SELINUX=permissive
+sestatus    # 验证
+```
+
+**更推荐**：不要关 SELinux，把 bind mount 加 `:Z`（独占，容器专用标签）或 `:z`（共享标签）：
+
+```yaml
+volumes:
+  - ./my-data:/data:Z
+```
+
+### 10.7 我改了 `.env.docker` 里的数据库密码，重启后连不上
 
 **因为数据库容器第一次启动时把密码写进了数据卷 `mariadb_data`，之后改环境变量没用。**
 
@@ -450,7 +514,7 @@ free -h    # 验证 Swap 那一行不再是 0
   ```
   然后同步 `.env.docker` 里的 `DB_PASSWORD`，重启 app：`docker compose --env-file .env.docker restart app`
 
-### 10.7 忘了管理员密码
+### 10.8 忘了管理员密码
 
 如果你还有服务器 SSH：进后台没法自助，但可以走"忘记密码"（前提是配了 SMTP）；否则直接删掉 admin 用户重新初始化：
 
@@ -471,7 +535,7 @@ docker compose --env-file .env.docker restart app
 
 后端启动会自动用新密码建 admin。
 
-### 10.8 首次部署一切正常，但访问网站显示 502 / Bad Gateway
+### 10.9 首次部署一切正常，但访问网站显示 502 / Bad Gateway
 
 Caddy 起来了但连不上 App。基本就是 App 还在启动或已经挂了。
 
