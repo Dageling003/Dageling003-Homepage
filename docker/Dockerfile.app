@@ -43,8 +43,11 @@ USER 65532
 
 EXPOSE 8000
 
-# Health check in exec form (no shell) for distroless compatibility
+# Health check in exec form (no shell) for distroless compatibility.
+# distroless 镜像的 node 只在 /nodejs/bin/node，PATH 里没有 node，
+# 所以必须用绝对路径，否则 docker exec-based healthcheck 会报
+# "executable file not found in $PATH" 从而永远 unhealthy。
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-  CMD ["node", "-e", "require('http').get('http://localhost:8000/health',r=>{let d='';r.on('data',c=>d+=c);r.on('end',()=>process.exit(r.statusCode===200?0:1))})"]
+  CMD ["/nodejs/bin/node", "-e", "require('http').get('http://localhost:8000/health',r=>{let d='';r.on('data',c=>d+=c);r.on('end',()=>process.exit(r.statusCode===200?0:1))})"]
 
 CMD ["dist/main.js"]

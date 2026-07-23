@@ -60,7 +60,7 @@ services:
     volumes:
       - app_uploads:/app/public/uploads
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:8000/health',r=>{r.on('data',()=>{});r.on('end',()=>process.exit(r.statusCode===200?0:1))})"]
+      test: ["CMD", "/nodejs/bin/node", "-e", "require('http').get('http://localhost:8000/health',r=>{r.on('data',()=>{});r.on('end',()=>process.exit(r.statusCode===200?0:1))})"]
       interval: 30s
       timeout: 5s
       start_period: 30s
