@@ -28,6 +28,14 @@ import ThemeSettings from '@/components/ThemeSettings.vue'
 const authStore = useAuthStore()
 const tabStore = useTabStore()
 const themeStore = useAdminThemeStore()
+
+const avatarBroken = ref(false)
+watch(
+  () => authStore.avatarUrl,
+  () => {
+    avatarBroken.value = false
+  },
+)
 const router = useRouter()
 const route = useRoute()
 
@@ -180,9 +188,10 @@ function handleLogout() {
               <div class="al-user" role="button" tabindex="0">
                 <div class="al-avatar">
                   <img
-                    v-if="authStore.avatarUrl"
+                    v-if="authStore.avatarUrl && !avatarBroken"
                     :src="authStore.avatarUrl"
                     :alt="`${authStore.username}的头像`"
+                    @error="avatarBroken = true"
                   />
                   <span v-else class="al-avatar-letter">
                     {{ authStore.username?.charAt(0)?.toUpperCase() }}

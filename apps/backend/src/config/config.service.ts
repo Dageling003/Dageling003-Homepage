@@ -162,7 +162,7 @@ export class SiteConfigService {
       { configKey: 'infoSchool', configValue: '南通大学', category: 'info' },
       {
         configKey: 'avatarUrl',
-        configValue: 'https://api.dicebear.com/7.x/thumbs/svg?seed=cat',
+        configValue: '/default-avatar.svg',
         category: 'info',
       },
       {
@@ -206,5 +206,29 @@ export class SiteConfigService {
       await this.configRepository.save(config);
     }
     this.logger.log(`Default site config seeded (${defaults.length} items)`);
+  }
+
+  /**
+   * Idempotent migration: rewrite the legacy default avatar URL
+   * (api.dicebear.com/7.x/thumbs/svg?seed=cat) to the bundled local SVG
+   * so the homepage never breaks when third-party avatar CDNs are
+   * unreachable. Only touches the exact legacy default value — users
+   * who actively configured a custom avatar URL are left untouched.
+   * Safe to run on every boot.
+   */
+  async migrateLegacyAvatar(): Promise<void> {
+    const LEGACY_DEFAULT =
+      'https://api.dicebear.com/7.x/thumbs/svg?seed=cat';
+    const row = await this.configRepository.findOne({
+      where: { configKey: 'avatarUrl' },
+    });
+    if (!row) return;
+    if (row.configValue === LEGACY_DEFAULT) {
+      row.configValue = '/default-avatar.svg';
+      await this.configRepository.save(row);
+      this.logger.log(
+        `Migrated legacy default avatarUrl -> /default-avatar.svg`,
+      );
+    }
   }
 }

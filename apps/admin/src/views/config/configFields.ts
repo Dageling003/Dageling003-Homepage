@@ -15,7 +15,7 @@ export const FIELD_DEFS: Record<string, {
   infoBirth:      { label: '出生日期',   section: 'info',  desc: '只需填写此项，年龄和星座自动计算',        example: '2001-06-15',  frontendLocation: '标签栏 / 自我介绍' },
   infoProvince:   { label: '省份',       section: 'info',  desc: '标签栏第三项，从34个省级行政区中选择',    example: '江苏省',       frontendLocation: '标签栏' },
   infoSchool:     { label: '学校',       section: 'info',  desc: '标签栏第四项。搜索数据源于教育部承认的全国高等学校名单（截至2024年6月20日）', example: '南通大学', frontendLocation: '标签栏' },
-  avatarUrl:      { label: '头像 URL',   section: 'info',  desc: '左侧圆形头像图片地址',                  example: 'https://api.dicebear.com/7.x/thumbs/svg?seed=cat', frontendLocation: '头像' },
+  avatarUrl:      { label: '头像 URL',   section: 'info',  desc: '左侧圆形头像图片地址',                  example: '/default-avatar.svg', frontendLocation: '头像' },
   professions:    { label: '职业标签',    section: 'info',  desc: '"我是一名 ___" 后的标签列表',           example: '["前端切图仔","摄影爱好者","猫猫教"]', jsonType: 'json-array', frontendLocation: '自我介绍' },
   infoShowName:   { label: '展示姓名',   section: 'info',  desc: '前台是否展示"我叫 xxx"',                example: '1',           frontendLocation: '自我介绍' },
   infoShowZodiac: { label: '展示星座',   section: 'info',  desc: '自我介绍中是否展示"（双子座）"（来自出生日期自动计算）', example: '1', frontendLocation: '自我介绍' },

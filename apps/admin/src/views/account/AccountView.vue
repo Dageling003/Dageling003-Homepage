@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
 import { changePasswordApi, getProfileApi, updateProfileApi } from '@/api'
 import { useAuthStore } from '@/stores/auth'
 import { message } from 'ant-design-vue'
@@ -16,6 +16,14 @@ const loading = ref(false)
 const avatarUploading = ref(false)
 const profile = ref<{ username: string; role: string; avatarUrl?: string } | null>(null)
 const avatarInput = ref('')
+const avatarBroken = ref(false)
+
+watch(
+  () => profile.value?.avatarUrl,
+  () => {
+    avatarBroken.value = false
+  },
+)
 
 onMounted(async () => {
   try {
@@ -102,8 +110,8 @@ async function handleSave() {
       </template>
       <div class="ac-profile">
         <a-avatar :size="72" class="ac-avatar">
-          <template v-if="profile.avatarUrl">
-            <img :src="profile.avatarUrl" :alt="`${profile.username}的头像`" />
+          <template v-if="profile.avatarUrl && !avatarBroken">
+            <img :src="profile.avatarUrl" :alt="`${profile.username}的头像`" @error="avatarBroken = true" />
           </template>
           <template v-else>
             {{ profile.username.charAt(0).toUpperCase() }}

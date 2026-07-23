@@ -457,7 +457,11 @@ watch(() => route.path, () => { fetchData() })
                   <template v-else-if="key === 'avatarUrl'">
                     <div class="cp-avatar-inputs">
                       <div class="cp-avatar-preview" v-if="avatarPreview">
-                        <img :src="avatarPreview" alt="头像预览" />
+                        <img
+                          :src="avatarPreview"
+                          alt="头像预览"
+                          @error="($event.target as HTMLImageElement).src = '/default-avatar.svg'"
+                        />
                       </div>
                       <a-input
                         v-model:value="simpleFields[key]"

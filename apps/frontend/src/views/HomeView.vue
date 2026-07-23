@@ -61,7 +61,14 @@ const showContent = ref(false)
 const logoRef = ref<InstanceType<typeof AnimatedLogo> | null>(null)
 
 const name = ref('鹊楠')
-const avatarUrl = ref('https://api.dicebear.com/7.x/thumbs/svg?seed=cat')
+const DEFAULT_AVATAR = '/default-avatar.svg'
+const avatarUrl = ref(DEFAULT_AVATAR)
+
+function onAvatarError(e: Event) {
+  const el = e.target as HTMLImageElement
+  if (el.src.endsWith(DEFAULT_AVATAR)) return
+  el.src = DEFAULT_AVATAR
+}
 const infoSex = ref('♂')
 const infoSexDisplay = ref('symbol')
 const infoBirth = ref('')
@@ -214,6 +221,7 @@ onMounted(async () => {
             loading="lazy"
             width="144"
             height="144"
+            @error="onAvatarError"
           />
           <span class="avatar-emoji" aria-hidden="true">🐱</span>
         </div>

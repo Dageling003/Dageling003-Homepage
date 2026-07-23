@@ -14,5 +14,6 @@ export class SiteConfigModule implements OnModuleInit {
 
   async onModuleInit() {
     await this.configService.seedDefaults();
+    await this.configService.migrateLegacyAvatar();
   }
 }
