@@ -339,11 +339,15 @@ openssl rand -base64 24    # 用于两个数据库密码，跑两次
 
 ## 7. 一键构建并启动
 
-关键一步，一条命令：
+关键一步，**一条命令**：
 
 ```bash
-docker compose --env-file .env.docker up -d --build
+bash scripts/up.sh
 ```
+
+> **为什么不直接跑 `docker compose up -d --build`？**
+> compose 会**并行**构建 app 和 caddy，但 `Dockerfile.caddy` 里 `FROM homepage-app:latest` —— caddy 有时会先跑，本地找不到就去 docker.io 拉，触发 registry mirror `429 Too Many Requests`。
+> `scripts/up.sh` 干的事就是先 build app、再 up 全部，避开这个并发坑。
 
 **第一次构建会慢**（要下载 Node 镜像、装依赖、编译前后端），大约 **5~15 分钟**，视网速和机器性能。你会看到刷屏的日志，都正常。
 

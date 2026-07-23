@@ -342,8 +342,12 @@ openssl rand -base64 24    # for each DB password (run twice)
 The one command that matters:
 
 ```bash
-docker compose --env-file .env.docker up -d --build
+bash scripts/up.sh
 ```
+
+> **Why not just `docker compose up -d --build`?**
+> Compose builds services **in parallel**, but `Dockerfile.caddy` starts with `FROM homepage-app:latest`. Caddy's build sometimes starts first, can't find that image locally, tries to pull from docker.io, and gets `429 Too Many Requests` from the registry mirror.
+> `scripts/up.sh` builds app first, then ups everything — avoiding the race.
 
 **First build is slow** (pulls Node image, installs deps, compiles both frontends + backend) — expect **5–15 minutes**. Log spam is normal.
 
