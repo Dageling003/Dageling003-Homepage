@@ -51,19 +51,24 @@
 
 	# ====== Admin static assets (Vite hashed filenames) ======
 	# 必须在 /admin* 之前，否则 /admin/assets/* 会被 /admin* 的 try_files 吞掉返回 index.html
+	# root 用 /var/www（不是 /var/www/admin）：Caddy file_server 会把完整请求路径拼到 root 后，
+	# 请求路径 /admin/assets/xxx.js + root /var/www = /var/www/admin/assets/xxx.js ✓
 	handle /admin/assets/* {
 		header Cache-Control "public, max-age=31536000, immutable"
-		root * /var/www/admin
+		root * /var/www
 		file_server
 	}
 
 	# ====== Admin backend SPA ======
 	# Served directly by Caddy — no intermediate Node process
 	# 注意：Caddy 2 里没有 handle_path 指令，用 handle + path 前缀匹配。
+	# root 用 /var/www（不是 /var/www/admin）：请求路径 /admin/setup + root /var/www = /var/www/admin/setup，
+	# try_files 找不到文件后 fallback 到 /index.html → /var/www/index.html（不存在），
+	# 所以这里用 try_files {path} /admin/index.html 确保正确回退。
 	handle /admin* {
 		header Cache-Control "no-cache"
-		root * /var/www/admin
-		try_files {path} /index.html
+		root * /var/www
+		try_files {path} /admin/index.html
 		file_server
 	}
 
