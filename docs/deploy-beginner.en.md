@@ -107,54 +107,84 @@ ssh -i /path/to/your-key.pem root@123.45.67.89
 
 ---
 
-## 3. Install Docker (one command)
+## 3. Install Docker (recommended: use the project script)
 
-> The official `get.docker.com` script natively supports Ubuntu / Debian / RHEL / CentOS Stream / Rocky / AlmaLinux / Fedora — no distro-specific steps needed.
+Supported distros: Debian 11+ / Ubuntu 20.04+ / RHEL 8+ / CentOS Stream 8+ / Rocky 8+ / AlmaLinux 8+ / Fedora 38+.
 
-**Overseas nodes** — official script:
+### Option A: one command with the project script (**recommended**)
+
+If §5 (project clone) isn't done yet, do it first:
 
 ```bash
-curl -fsSL https://get.docker.com | sh
+# Install git (skip if already present)
+# [Debian / Ubuntu]  apt update && apt install -y git
+# [RHEL family]      dnf install -y git
+
+cd /opt
+git clone https://github.com/Dageling003/Dageling003-Homepage.git
+cd Dageling003-Homepage
 ```
 
-**Mainland China nodes** — Alibaba mirror (faster, more reliable):
+Then run the installer:
 
 ```bash
-curl -fsSL https://get.docker.com | sh -s docker --mirror Aliyun
+# Overseas nodes
+bash scripts/install-docker.sh
+
+# Mainland China nodes (Aliyun source + auto registry mirror)
+bash scripts/install-docker.sh --cn
+
+# Also add a non-root user to the docker group (skip sudo for docker)
+bash scripts/install-docker.sh --cn --user ubuntu
 ```
 
-> **RHEL 8/9 / Rocky 9 / AlmaLinux 9 ship with podman/podman-docker**, which the script auto-detects. If it errors on a `podman-docker` conflict, run `dnf remove -y podman-docker buildah` and retry.
+The script handles 6 things automatically:
 
-Enable & start Docker at boot:
+1. Detect the distro family (Debian vs RHEL)
+2. Install `curl` / `ca-certificates` (RHEL 9 minimal often lacks curl)
+3. Remove conflicting packages (`docker.io` / `podman-docker` / stale `runc`)
+4. Call `get.docker.com` to install Engine + Compose plugin
+5. `systemctl enable --now docker`; on RHEL with `firewalld`, restart docker so its iptables NAT rules survive
+6. In `--cn` mode, write registry mirrors (`docker.1ms.run` + `docker.xuanyuan.me`) and set up log rotation
+
+It finishes with a `hello-world` smoke test. If that passes, move on to §4.
+
+### Option B: manual install via get.docker.com
 
 ```bash
+# Prereqs (RHEL 9 minimal needs these)
+# [Debian / Ubuntu]  apt update && apt install -y curl ca-certificates
+# [RHEL family]      dnf install -y curl ca-certificates
+
+# Install Docker
+curl -fsSL https://get.docker.com | sh                            # overseas
+curl -fsSL https://get.docker.com | sh -s docker --mirror Aliyun  # mainland China
+
+# Enable & start
 systemctl enable --now docker
+
+# RHEL with firewalld: restart docker so iptables NAT rules re-apply
+systemctl is-active --quiet firewalld && systemctl restart docker
+
+# Non-root sudo-less usage (takes effect after re-login)
+usermod -aG docker your-user
 ```
 
-**Verify:**
+### Verify
 
 ```bash
-docker version
+docker --version
 docker compose version
+docker run --rm hello-world    # prints "Hello from Docker!" on success
 ```
 
-Expect `Docker version 24.x.x` and `Docker Compose version v2.x.x`.
+No version output or `hello-world` failing? Jump to [10.3 Image pull failure](#103-image-pull-failure-pull-access-denied--failed-to-resolve-reference).
 
-> **Mainland China nodes: configure a registry mirror while you're at it** (avoids failed MariaDB pulls):
->
-> ```bash
-> mkdir -p /etc/docker
-> cat > /etc/docker/daemon.json <<'EOF'
-> {
->   "registry-mirrors": [
->     "https://docker.1ms.run",
->     "https://docker.xuanyuan.me"
->   ]
-> }
-> EOF
-> systemctl daemon-reload
-> systemctl restart docker
-> ```
+### Common gotchas
+
+- **A few RHEL 8/9 images shipped `podman-docker`**: the official script errors out; `bash scripts/install-docker.sh` removes it automatically. In manual mode, run `dnf remove -y podman-docker` first.
+- **Non-root user gets `permission denied` on `docker ps`**: add to the docker group or use `sudo`. After adding, **log out and back in** or run `newgrp docker`.
+- **firewalld blocks container egress on RHEL**: `systemctl restart docker` rebuilds Docker's iptables NAT chains.
 
 ---
 

@@ -107,54 +107,84 @@ ssh -i /path/to/your-key.pem root@123.45.67.89
 
 ---
 
-## 3. 装 Docker（一条命令搞定）
+## 3. 装 Docker（推荐用项目内脚本）
 
-> `get.docker.com` 官方脚本原生支持 Ubuntu / Debian / RHEL / CentOS Stream / Rocky / AlmaLinux / Fedora，无需区分发行版。
+支持的发行版：Debian 11+ / Ubuntu 20.04+ / RHEL 8+ / CentOS Stream 8+ / Rocky 8+ / AlmaLinux 8+ / Fedora 38+。
 
-**服务器海外节点** —— 用官方脚本：
+### 方式 A：一条命令跑项目内脚本（**推荐**）
+
+如果第 5 章还没做（还没 clone 项目），先克隆一下：
 
 ```bash
-curl -fsSL https://get.docker.com | sh
+# 装 git（如已装可跳过）
+# [Debian / Ubuntu]  apt update && apt install -y git
+# [RHEL 系]          dnf install -y git
+
+cd /opt
+git clone https://github.com/Dageling003/Dageling003-Homepage.git
+cd Dageling003-Homepage
 ```
 
-**服务器国内节点** —— 用阿里云镜像脚本（更快、更稳）：
+然后跑脚本：
 
 ```bash
-curl -fsSL https://get.docker.com | sh -s docker --mirror Aliyun
+# 海外节点
+bash scripts/install-docker.sh
+
+# 国内节点（Aliyun 源 + 自动配 registry mirror）
+bash scripts/install-docker.sh --cn
+
+# 顺手把某个非 root 用户加入 docker 组（免 sudo 用 docker）
+bash scripts/install-docker.sh --cn --user ubuntu
 ```
 
-> **RHEL 8/9 / Rocky 9 / AlmaLinux 9 系统自带 podman/podman-docker**，脚本会自动检测并处理冲突。如果脚本报 `podman-docker` 冲突，先卸掉：`dnf remove -y podman-docker buildah` 然后重跑。
+脚本会自动做这 6 件事：
 
-装完让 Docker 开机自启并立即启动：
+1. 识别发行版（Debian 家族 vs RHEL 家族）
+2. 装 `curl` / `ca-certificates` 前置依赖（RHEL 9 minimal 常缺）
+3. 清掉冲突包（`docker.io` / `podman-docker` / 老版 `runc`）
+4. 调 `get.docker.com` 官方脚本装 Engine + Compose plugin
+5. `systemctl enable --now docker`；RHEL 系上遇到 `firewalld` 时自动重启 docker 让 NAT 规则重建
+6. `--cn` 模式下写入 registry mirror（`docker.1ms.run` + `docker.xuanyuan.me`）并配好 log rotation
+
+跑完自动执行 `hello-world` 冒烟测试，成功就能进第 4 章。
+
+### 方式 B：不用脚本，手动走 get.docker.com
 
 ```bash
+# 前置（RHEL 9 minimal 需要）
+# [Debian / Ubuntu]  apt update && apt install -y curl ca-certificates
+# [RHEL 系]          dnf install -y curl ca-certificates
+
+# 装 Docker
+curl -fsSL https://get.docker.com | sh              # 海外
+curl -fsSL https://get.docker.com | sh -s docker --mirror Aliyun   # 国内
+
+# 启动
 systemctl enable --now docker
+
+# RHEL 系如果有 firewalld，重启一次 docker 让 iptables NAT 规则重建
+systemctl is-active --quiet firewalld && systemctl restart docker
+
+# 非 root 用户免 sudo（重登才生效）
+usermod -aG docker your-user
 ```
 
-**验证装好了：**
+### 验证装好了
 
 ```bash
-docker version
+docker --version
 docker compose version
+docker run --rm hello-world    # 打印一段 "Hello from Docker!" 就通了
 ```
 
-应能看到 `Docker version 24.x.x` 和 `Docker Compose version v2.x.x`。
+看不到版本号或 `hello-world` 报错，跳到 [10.3 镜像拉取失败](#103-镜像拉取失败pull-access-denied--failed-to-resolve-reference)。
 
-> **国内节点建议顺手配一个镜像加速器**（后面拉 MariaDB 会用到，配了之后拉镜像不会失败）：
->
-> ```bash
-> mkdir -p /etc/docker
-> cat > /etc/docker/daemon.json <<'EOF'
-> {
->   "registry-mirrors": [
->     "https://docker.1ms.run",
->     "https://docker.xuanyuan.me"
->   ]
-> }
-> EOF
-> systemctl daemon-reload
-> systemctl restart docker
-> ```
+### 常见坑
+
+- **RHEL 8/9 少数镜像装过 `podman-docker`**：官方脚本会失败，`bash scripts/install-docker.sh` 会自动移除；手动模式需要先 `dnf remove -y podman-docker`
+- **非 root 用户执行 `docker ps` 报 `permission denied`**：加入 docker 组或 `sudo docker`。加组后必须**重新登录 shell** 或跑 `newgrp docker`
+- **RHEL 系装完 firewalld 拦截容器出网**：`systemctl restart docker` 让 Docker 重建 iptables NAT 规则
 
 ---
 
