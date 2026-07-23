@@ -31,7 +31,11 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        globPatterns: ['**/*.{js,css,svg,png,woff2}'],
+        cacheId: 'homepage-v1.3.0',
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/api/],
+        disableDevLogs: true,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
