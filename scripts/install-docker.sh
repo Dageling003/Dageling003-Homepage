@@ -126,17 +126,7 @@ step "4/6  安装 Docker Engine + Compose plugin"
 if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
   ok "Docker 已安装，跳过 —— $(docker --version)"
 else
-  TMP_SCRIPT="$(mktemp)"
-  trap 'rm -f "$TMP_SCRIPT"' EXIT
-
-  info "下载 get.docker.com 脚本…"
-  if ! curl -fsSL --retry 3 --retry-delay 2 -o "$TMP_SCRIPT" https://get.docker.com; then
-    err "下载 get.docker.com 失败，请检查网络"; exit 1
-  fi
-
-  # RHEL 家族在国内节点常遇到 download.docker.com/linux/rocky/ 拉不到实际 rpm
-  # 的问题（repodata 能拿到、rpm 拿不到 / 或包名找不到）。
-  # 因此提供 "先试官方，失败自动回退 Aliyun" 的双重保护。
+  # 清理残留 repo，避免多次尝试互相污染
   cleanup_broken_repo() {
     if [[ "$PKG_FAMILY" == "rhel" ]]; then
       rm -f /etc/yum.repos.d/docker-ce.repo /etc/yum.repos.d/docker-ce-staging.repo
@@ -146,28 +136,94 @@ else
     fi
   }
 
-  install_ok=false
-  if $USE_CN_MIRROR; then
-    info "使用 Aliyun 镜像安装（国内节点）"
-    if sh "$TMP_SCRIPT" --mirror Aliyun; then
-      install_ok=true
-    else
-      warn "Aliyun 源失败，回退到官方源"
-      cleanup_broken_repo
-      sh "$TMP_SCRIPT" && install_ok=true
+  # ----- RHEL 家族：直接手动配 centos repo，跳过 get.docker.com 的 rocky/ 路径 -----
+  # 原因：
+  #   1) Aliyun 只有 centos/ 路径，rocky/ 路径 404
+  #   2) upstream download.docker.com/linux/rocky/ 部分 IP 只返回 repodata、
+  #      不返回实际 rpm，导致 "Unable to find a match"
+  # Rocky / AlmaLinux / CentOS Stream 与 CentOS 二进制兼容，用 centos repo 完全 OK。
+  install_rhel_from_repo() {
+    local repo_url="$1"
+    local repo_label="$2"
+    cleanup_broken_repo
+    info "尝试 $repo_label：$repo_url"
+    dnf install -y -q dnf-plugins-core >/dev/null 2>&1 || true
+    if ! dnf config-manager --add-repo "$repo_url" >/dev/null 2>&1; then
+      warn "$repo_label 添加 repo 失败"
+      return 1
     fi
-  else
-    if sh "$TMP_SCRIPT"; then
-      install_ok=true
+    if ! dnf makecache -q >/dev/null 2>&1; then
+      warn "$repo_label makecache 失败"
+      return 1
+    fi
+    if dnf install -y -q docker-ce docker-ce-cli containerd.io \
+         docker-buildx-plugin docker-compose-plugin; then
+      return 0
+    fi
+    warn "$repo_label 安装包失败"
+    return 1
+  }
+
+  install_debian_via_script() {
+    local mirror_arg="${1:-}"
+    local tmp; tmp="$(mktemp)"
+    curl -fsSL --retry 3 --retry-delay 2 -o "$tmp" https://get.docker.com || return 1
+    if [[ -n "$mirror_arg" ]]; then
+      sh "$tmp" --mirror "$mirror_arg"; local rc=$?
     else
-      warn "官方源失败，自动回退 Aliyun 镜像（Rocky/Alma 走 CentOS 路径）"
-      cleanup_broken_repo
-      sh "$TMP_SCRIPT" --mirror Aliyun && install_ok=true
+      sh "$tmp"; local rc=$?
+    fi
+    rm -f "$tmp"
+    return $rc
+  }
+
+  install_ok=false
+
+  if [[ "$PKG_FAMILY" == "rhel" ]]; then
+    # 定义候选源（按顺序尝试，直到成功）
+    if $USE_CN_MIRROR; then
+      REPOS=(
+        "https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo|Aliyun (centos)"
+        "https://mirrors.tuna.tsinghua.edu.cn/docker-ce/linux/centos/docker-ce.repo|TUNA (centos)"
+        "https://mirrors.ustc.edu.cn/docker-ce/linux/centos/docker-ce.repo|USTC (centos)"
+        "https://download.docker.com/linux/centos/docker-ce.repo|upstream (centos)"
+      )
+    else
+      REPOS=(
+        "https://download.docker.com/linux/centos/docker-ce.repo|upstream (centos)"
+        "https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo|Aliyun (centos)"
+      )
+    fi
+    for entry in "${REPOS[@]}"; do
+      url="${entry%%|*}"
+      label="${entry##*|}"
+      if install_rhel_from_repo "$url" "$label"; then
+        install_ok=true
+        break
+      fi
+    done
+  else
+    # Debian / Ubuntu 走 get.docker.com（该脚本对 debian/ubuntu 稳定）
+    info "下载 get.docker.com 脚本…"
+    if $USE_CN_MIRROR; then
+      install_debian_via_script "Aliyun" && install_ok=true
+      if ! $install_ok; then
+        warn "Aliyun 源失败，回退到官方源"
+        cleanup_broken_repo
+        install_debian_via_script "" && install_ok=true
+      fi
+    else
+      install_debian_via_script "" && install_ok=true
+      if ! $install_ok; then
+        warn "官方源失败，自动回退 Aliyun 镜像"
+        cleanup_broken_repo
+        install_debian_via_script "Aliyun" && install_ok=true
+      fi
     fi
   fi
 
   if ! $install_ok; then
-    err "官方源和 Aliyun 镜像均安装失败，请检查网络或手动排查"
+    err "所有候选源均安装失败，请检查网络或手动排查"
     exit 1
   fi
   ok "Docker Engine 安装完成"
