@@ -35,7 +35,7 @@ test_case() {
     TOTAL=$((TOTAL + 1))
     echo -n "  测试 ${TOTAL}: ${name} ... "
 
-    status=$(curl -s -o /dev/null -w "%{http_code}" "$url" 2>/dev/null || echo "000")
+    status=$(curl -s --connect-timeout 5 --max-time 15 -o /dev/null -w "%{http_code}" "$url" 2>/dev/null || echo "000")
 
     if [ "$status" = "$expected_status" ]; then
         echo -e "${GREEN}通过${NC}"
@@ -90,7 +90,7 @@ test_api "GET /files/uploads/" "/files/uploads/" "403"
 echo ""
 echo "6. CORS 测试"
 TOTAL=$((TOTAL + 1))
-CORS_HEADERS=$(curl -s -I -X OPTIONS "${BASE_URL}/api/config" \
+CORS_HEADERS=$(curl -s --connect-timeout 5 --max-time 15 -I -X OPTIONS "${BASE_URL}/api/config" \
     -H "Origin: http://example.com" \
     -H "Access-Control-Request-Method: GET" \
     2>/dev/null | grep -i "access-control-allow-origin" || echo "")
@@ -107,7 +107,7 @@ fi
 echo ""
 echo "7. 性能测试"
 TOTAL=$((TOTAL + 1))
-RESPONSE_TIME=$(curl -s -o /dev/null -w "%{time_total}" "${BASE_URL}/" 2>/dev/null || echo "0")
+RESPONSE_TIME=$(curl -s --connect-timeout 5 --max-time 15 -o /dev/null -w "%{time_total}" "${BASE_URL}/" 2>/dev/null || echo "0")
 RESPONSE_TIME_MS=$(echo "$RESPONSE_TIME * 1000" | bc 2>/dev/null | cut -d. -f1 || echo "0")
 
 if [ "${RESPONSE_TIME_MS:-0}" -lt 2000 ]; then

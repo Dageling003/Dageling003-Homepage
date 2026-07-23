@@ -5,7 +5,9 @@
 FROM node:22-slim AS builder
 WORKDIR /app
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Pin pnpm version to enable Docker layer cache.
+# Only bump this when you intentionally want a newer pnpm.
+RUN corepack enable && corepack prepare pnpm@11.5.2 --activate
 
 # Low-memory tuning for small VMs (1-2GB RAM, no swap).
 ENV PNPM_CONFIG_CHILD_CONCURRENCY=1 \

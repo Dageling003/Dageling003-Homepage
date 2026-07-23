@@ -34,14 +34,18 @@ info() { echo -e "  ${BLUE}→${NC} $1"; }
 
 # ====== 参数解析 ======
 CI_MODE=false
+NON_INTERACTIVE=false
+SHOW_HELP=false
 for arg in "$@"; do
     case "$arg" in
         -h|--help)
-            sed -n '2,8p' "$0" | sed 's/^# \?//'
-            exit 0
+            SHOW_HELP=true
             ;;
         -i|--interactive)
             # 兼容旧版 -i 参数，等同于默认向导模式
+            ;;
+        --non-interactive)
+            NON_INTERACTIVE=true
             ;;
         *)
             err "未知参数: $arg  (使用 -h 查看帮助)"
@@ -49,8 +53,12 @@ for arg in "$@"; do
             ;;
     esac
 done
+if "$SHOW_HELP"; then
+    sed -n '2,12p' "$0" | sed 's/^# \?//'
+    exit 0
+fi
 # CI 环境或显式 CI=true → 跳过所有交互
-if [ "${CI:-false}" = "true" ]; then
+if [ "${CI:-false}" = "true" ] || "$NON_INTERACTIVE"; then
     CI_MODE=true
 fi
 
@@ -317,19 +325,19 @@ build_app() {
     echo ""
     echo -e "${BOLD}==> 3/5 构建 Docker 镜像${NC}"
 
-    info "正在构建 homepage-app 镜像..."
-    if $COMPOSE_CMD --env-file .env.docker build app; then
+    info "正在构建 homepage-app 镜像... (首次/网络慢时可能需数分钟)"
+    if timeout 1800 $COMPOSE_CMD --env-file .env.docker build app; then
         ok "homepage-app 镜像构建完成"
     else
-        err "app 镜像构建失败"
+        err "app 镜像构建失败或超时 (30min)"
         exit 1
     fi
 
     info "正在构建 homepage-caddy 镜像..."
-    if $COMPOSE_CMD --env-file .env.docker build caddy; then
+    if timeout 600 $COMPOSE_CMD --env-file .env.docker build caddy; then
         ok "homepage-caddy 镜像构建完成"
     else
-        err "caddy 镜像构建失败"
+        err "caddy 镜像构建失败或超时 (10min)"
         exit 1
     fi
 }
@@ -348,16 +356,26 @@ start_services() {
     fi
 
     echo ""
-    info "等待服务就绪..."
+    info "等待服务就绪 (最多 60s)..."
     local attempts=0
+    local ready=false
     while [ $attempts -lt 30 ]; do
         if $COMPOSE_CMD --env-file .env.docker ps 2>/dev/null | grep -qE 'homepage-app.*healthy'; then
-            ok "所有服务就绪"
+            ready=true
             break
         fi
+        printf "."
         sleep 2
         attempts=$((attempts + 1))
     done
+    echo ""
+    if "$ready"; then
+        ok "服务就绪 (${attempts} 次检查)"
+    else
+        warn "服务未在 60s 内就绪，继续执行（可能是首次启动慢）"
+        info "手动检查：$COMPOSE_CMD --env-file .env.docker ps"
+        info "查看日志：$COMPOSE_CMD --env-file .env.docker logs"
+    fi
 }
 
 # ====== 5. 输出汇总 ======
