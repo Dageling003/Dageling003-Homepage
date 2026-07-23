@@ -134,14 +134,41 @@ else
     err "下载 get.docker.com 失败，请检查网络"; exit 1
   fi
 
+  # RHEL 家族在国内节点常遇到 download.docker.com/linux/rocky/ 拉不到实际 rpm
+  # 的问题（repodata 能拿到、rpm 拿不到 / 或包名找不到）。
+  # 因此提供 "先试官方，失败自动回退 Aliyun" 的双重保护。
+  cleanup_broken_repo() {
+    if [[ "$PKG_FAMILY" == "rhel" ]]; then
+      rm -f /etc/yum.repos.d/docker-ce.repo /etc/yum.repos.d/docker-ce-staging.repo
+      dnf clean all -q >/dev/null 2>&1 || yum clean all -q >/dev/null 2>&1 || true
+    else
+      rm -f /etc/apt/sources.list.d/docker.list /etc/apt/keyrings/docker.asc 2>/dev/null || true
+    fi
+  }
+
+  install_ok=false
   if $USE_CN_MIRROR; then
     info "使用 Aliyun 镜像安装（国内节点）"
-    if ! sh "$TMP_SCRIPT" --mirror Aliyun; then
+    if sh "$TMP_SCRIPT" --mirror Aliyun; then
+      install_ok=true
+    else
       warn "Aliyun 源失败，回退到官方源"
-      sh "$TMP_SCRIPT"
+      cleanup_broken_repo
+      sh "$TMP_SCRIPT" && install_ok=true
     fi
   else
-    sh "$TMP_SCRIPT"
+    if sh "$TMP_SCRIPT"; then
+      install_ok=true
+    else
+      warn "官方源失败，自动回退 Aliyun 镜像（Rocky/Alma 走 CentOS 路径）"
+      cleanup_broken_repo
+      sh "$TMP_SCRIPT" --mirror Aliyun && install_ok=true
+    fi
+  fi
+
+  if ! $install_ok; then
+    err "官方源和 Aliyun 镜像均安装失败，请检查网络或手动排查"
+    exit 1
   fi
   ok "Docker Engine 安装完成"
 fi
