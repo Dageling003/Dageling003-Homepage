@@ -51,7 +51,8 @@
 
 	# ====== Admin backend SPA ======
 	# Served directly by Caddy — no intermediate Node process
-	handle_path /admin* {
+	# 注意：Caddy 2 里没有 handle_path 指令，用 handle + path 前缀匹配。
+	handle /admin* {
 		header Cache-Control "no-cache"
 		root * /var/www/admin
 		try_files {path} /index.html
@@ -59,9 +60,11 @@
 	}
 
 	# ====== Uploads (block script execution) ======
-	handle_path /files/* {
+	# 用 path 前缀匹配 + respond 黑名单，避免依赖 http.matchers.ext
+	# 模块（默认 caddy 镜像不带该模块，会报 'module not registered'）。
+	handle /files/* {
 		root * /var/www
-		@blocked ext .php .phtml .pht .php5 .php7 .phps .cgi .pl .py .sh .asp .aspx .jsp .jspx
+		@blocked path /files/*.php /files/*.phtml /files/*.pht /files/*.php5 /files/*.php7 /files/*.phps /files/*.cgi /files/*.pl /files/*.py /files/*.sh /files/*.asp /files/*.aspx /files/*.jsp /files/*.jspx
 		respond @blocked 403
 		file_server
 	}
