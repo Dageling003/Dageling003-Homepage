@@ -1,6 +1,6 @@
 services:
   mariadb:
-    image: ${MARIADB_IMAGE:-docker.1ms.run/library/mariadb:11.4}
+    image: ${MARIADB_IMAGE:-mariadb:11.4}
     container_name: homepage-db
     restart: unless-stopped
     environment:
