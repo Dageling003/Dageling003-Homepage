@@ -7,6 +7,7 @@ import { json, urlencoded } from 'express';
 import { join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { AppModule } from './app.module';
+import { AuthService } from './auth/auth.service';
 
 async function bootstrap() {
   // Security check: JWT_SECRET must be set and not the default
@@ -83,6 +84,9 @@ async function bootstrap() {
   app.use(json({ limit: '1mb' }));
   app.use(urlencoded({ extended: true, limit: '1mb' }));
 
+  // NOTE: JWT-in-cookie parsing (SEC-002) is handled inside jwt.strategy.ts
+  // by reading the raw `Cookie` header. No cookie-parser middleware needed.
+
   // Auto-create public directories
   const publicDir = join(__dirname, '..', 'public');
   ['', 'uploads', 'uploads/avatar'].forEach((dir) => {
@@ -94,6 +98,7 @@ async function bootstrap() {
   app.useStaticAssets(publicDir, { prefix: '/files/' });
 
   const corsOriginEnv = process.env.CORS_ORIGIN;
+  const isProd = process.env.NODE_ENV === 'production';
   const allowedOrigins: string[] = corsOriginEnv
     ? corsOriginEnv.split(',').flatMap((s) => {
         const origin = s.trim();
@@ -101,8 +106,12 @@ async function bootstrap() {
         // If already a full URL (has scheme), use as-is
         if (origin.startsWith('http://') || origin.startsWith('https://'))
           return [origin];
-        // Bare domain/IP → allow both http and https
-        return [`http://${origin}`, `https://${origin}`];
+        // Bare domain/IP: production only allows https to prevent accidental
+        // http-based CORS trust. In development we still expose http for
+        // local reverse proxies / test envs. (SEC-004)
+        return isProd
+          ? [`https://${origin}`]
+          : [`http://${origin}`, `https://${origin}`];
       })
     : ['http://localhost:3000', 'http://localhost:3001'];
   app.enableCors({
@@ -152,6 +161,45 @@ async function bootstrap() {
       res.json({ status: 'ok', timestamp: new Date().toISOString() });
     },
   );
+
+  // SEC-003: in production, refuse to boot when the DB has no users AND
+  // SETUP_TOKEN is missing. Without this gate any anonymous request to
+  // POST /api/auth/create-first-admin during the brief window between
+  // container start and the operator opening /admin/setup can hijack
+  // the admin account (attacker discovers new hosts via CT logs).
+  //
+  // Mirrors the JWT_SECRET boot gate at the top of this file.
+  if (isProd) {
+    const setupToken = process.env.SETUP_TOKEN?.trim();
+    if (!setupToken) {
+      const authService = app.get(AuthService);
+      const hasAny = await authService.hasAnyUser();
+      if (!hasAny) {
+        console.error('');
+        console.error(
+          '  ⛔  SECURITY ERROR: no admin user exists and SETUP_TOKEN is not set.',
+        );
+        console.error('  ');
+        console.error(
+          '     During the window between server start and first setup,',
+        );
+        console.error(
+          '     anyone on the internet can call /api/auth/create-first-admin',
+        );
+        console.error(
+          '     and hijack the admin account. Set SETUP_TOKEN in your .env:',
+        );
+        console.error('     SETUP_TOKEN=$(openssl rand -hex 24)');
+        console.error('');
+        console.error(
+          '     After you finish /admin/setup, you may clear the variable.',
+        );
+        console.error('');
+        await app.close();
+        process.exit(1);
+      }
+    }
+  }
 
   const port = process.env.PORT || 8000;
   await app.listen(port);

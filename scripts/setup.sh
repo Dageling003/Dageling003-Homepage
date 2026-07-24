@@ -143,6 +143,9 @@ fi
 
 # 自动生成项
 JWT_SECRET=$(rand 32)
+# SEC-003: SETUP_TOKEN 必填 —— 生产环境 users 表为空且 SETUP_TOKEN 未设置时，
+# 后端启动会直接拒绝，防止公网部署到你完成初始化之间的窗口期被抢注管理员。
+SETUP_TOKEN=$(rand 24)
 DB_ROOT_PASSWORD=$(rand 20)
 DB_USERNAME="homepage"
 DB_PASSWORD=$(rand 20)
@@ -159,6 +162,9 @@ DOMAIN=${DOMAIN}
 
 # JWT 密钥
 JWT_SECRET=${JWT_SECRET}
+
+# 首次部署管理员抢注防护 token（初始化完成后可以删除）
+SETUP_TOKEN=${SETUP_TOKEN}
 
 # 管理员密码（留空则通过网页创建）
 DEFAULT_ADMIN_PASSWORD=${DEFAULT_ADMIN_PASSWORD}

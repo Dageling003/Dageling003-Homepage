@@ -5,12 +5,15 @@ import {
   Put,
   Body,
   Headers,
+  Res,
   UseGuards,
   Request,
   HttpCode,
   HttpStatus,
   ForbiddenException,
 } from '@nestjs/common';
+import type { Response } from 'express';
+import * as crypto from 'crypto';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
@@ -28,6 +31,34 @@ interface AuthenticatedRequest {
   user: { sub: number; username: string; role: string };
 }
 
+/**
+ * SEC-002: JWT is issued both as a Bearer token (for CI / curl) and as
+ * an HttpOnly cookie (for browser sessions). The cookie flavor cannot be
+ * read from JavaScript, so an XSS payload can no longer exfiltrate the
+ * session token via `localStorage.getItem('token')`.
+ *
+ * Cookie hardening:
+ *   HttpOnly           — invisible to document.cookie / XSS
+ *   Secure             — only sent over HTTPS in production
+ *   SameSite=Strict    — same-origin only; blocks CSRF from other sites
+ *   Path=/             — sent to the whole app (needed for /api and /admin)
+ *   Max-Age            — mirrors JWT expiry
+ */
+const AUTH_COOKIE = 'hp_token';
+const AUTH_COOKIE_MAX_AGE_SEC = 12 * 60 * 60; // 12h — matches JwtModule default
+function buildCookieAttrs(maxAgeSec: number): string {
+  const isProd = process.env.NODE_ENV === 'production';
+  return [
+    `Path=/`,
+    `HttpOnly`,
+    `SameSite=Strict`,
+    `Max-Age=${maxAgeSec}`,
+    isProd ? 'Secure' : '',
+  ]
+    .filter(Boolean)
+    .join('; ');
+}
+
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
@@ -37,8 +68,25 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @ApiOperation({ summary: '管理员登录' })
-  async login(@Body() dto: LoginDto) {
-    return this.authService.login(dto);
+  async login(
+    @Body() dto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.login(dto);
+    res.setHeader(
+      'Set-Cookie',
+      `${AUTH_COOKIE}=${encodeURIComponent(result.accessToken)}; ${buildCookieAttrs(AUTH_COOKIE_MAX_AGE_SEC)}`,
+    );
+    return result;
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '登出（清除会话 cookie）' })
+  logout(@Res({ passthrough: true }) res: Response) {
+    // Overwrite with an empty value and Max-Age=0 to force browser eviction.
+    res.setHeader('Set-Cookie', `${AUTH_COOKIE}=; ${buildCookieAttrs(0)}`);
+    return { message: '已登出' };
   }
 
   // ============================================================
@@ -97,12 +145,24 @@ export class AuthController {
   ) {
     const expected = process.env.SETUP_TOKEN?.trim();
     if (expected) {
-      if (!setupTokenHeader || setupTokenHeader.trim() !== expected) {
+      // SEC-007: constant-time compare to remove any theoretical timing
+      // side channel. Length-mismatch check first avoids exceptions from
+      // timingSafeEqual on unequal buffers.
+      const provided = setupTokenHeader?.trim() ?? '';
+      const providedBuf = Buffer.from(provided, 'utf8');
+      const expectedBuf = Buffer.from(expected, 'utf8');
+      const ok =
+        providedBuf.length === expectedBuf.length &&
+        crypto.timingSafeEqual(providedBuf, expectedBuf);
+      if (!ok) {
         throw new ForbiddenException(
           '缺少或错误的 SETUP_TOKEN。请在服务器 .env 中查看 SETUP_TOKEN，并在初始化页面输入。',
         );
       }
     }
+    // Do NOT auto-login here — the frontend still calls POST /auth/login
+    // right after this, which will set the cookie. Keeping create-first-admin
+    // cookie-free avoids leaking a session for the create-only flow.
     return this.authService.createFirstAdmin(dto.username, dto.password);
   }
 

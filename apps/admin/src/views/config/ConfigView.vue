@@ -116,10 +116,11 @@ async function handleAvatarUpload(file: File) {
   try {
     const form = new FormData()
     form.append('file', file)
-    const token = localStorage.getItem('token') || ''
+    // SEC-002: session cookie carries auth; no localStorage token to read.
     const res = await fetch('/api/config/upload/avatar', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
       body: form,
     })
     if (!res.ok) throw new Error('上传失败')

@@ -1,8 +1,13 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import { ExtractJwt, Strategy } from 'passport-jwt';
+import {
+  ExtractJwt,
+  Strategy,
+  type JwtFromRequestFunction,
+} from 'passport-jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import type { Request } from 'express';
 import { User } from '../users/user.entity';
 
 interface JwtPayload {
@@ -13,6 +18,36 @@ interface JwtPayload {
   exp: number;
 }
 
+/**
+ * SEC-002: prefer the HttpOnly `hp_token` cookie set by /auth/login,
+ * fall back to `Authorization: Bearer` for CI / curl / mobile clients.
+ * Browser sessions therefore never expose the JWT to JavaScript.
+ *
+ * We parse the raw Cookie header here instead of depending on a
+ * cookie-parser middleware in the request pipeline, which keeps the
+ * strategy self-contained and avoids type coupling with express's
+ * `Request.cookies` (which is `any` by default).
+ */
+const AUTH_COOKIE_NAME = 'hp_token';
+const fromCookie: JwtFromRequestFunction = (req: Request) => {
+  const raw = req.headers?.cookie;
+  if (typeof raw !== 'string' || raw.length === 0) return null;
+  for (const pair of raw.split(';')) {
+    const eq = pair.indexOf('=');
+    if (eq === -1) continue;
+    const name = pair.slice(0, eq).trim();
+    if (name !== AUTH_COOKIE_NAME) continue;
+    const value = pair.slice(eq + 1).trim();
+    if (!value) return null;
+    try {
+      return decodeURIComponent(value);
+    } catch {
+      return value;
+    }
+  }
+  return null;
+};
+
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
@@ -20,7 +55,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private readonly usersRepository: Repository<User>,
   ) {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        fromCookie,
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ]),
       ignoreExpiration: false,
       secretOrKey: process.env.JWT_SECRET!,
     });

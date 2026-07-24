@@ -118,6 +118,12 @@ const router = createRouter({
 router.beforeEach(async (to, _from, next) => {
   const authStore = useAuthStore()
 
+  // SEC-002: the JWT lives in an HttpOnly cookie now, so we must probe
+  // the backend once at startup to learn whether the browser is already
+  // signed in. checkAuth() is idempotent and caches its promise so this
+  // costs at most one /auth/profile round-trip per page load.
+  await authStore.checkAuth()
+
   // 1) guestOnly（登录/找回/重置）页面：已登录就跳到 dashboard
   if (to.meta.guestOnly && authStore.isAuthenticated) {
     next({ name: 'dashboard' })

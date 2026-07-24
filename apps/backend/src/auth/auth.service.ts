@@ -128,13 +128,28 @@ export class AuthService {
     );
 
     const resetUrl = this.buildResetUrl(rawToken);
+    // SEC-006: only send email when we actually have a verified recipient.
+    // Fabricating `${username}@${domain}` used to bounce to whoever happened
+    // to control that mailbox on your domain (a token leak if squatted), and
+    // polluted the SMTP sender reputation with hard bounces. If no email is
+    // stored for the user, degrade to log output so the operator can hand
+    // the reset link over out-of-band.
     const to = 'email' in user ? (user as { email?: string }).email : undefined;
-    await this.mailService.sendPasswordResetEmail(
-      to || `${user.username}@${this.deriveDomain()}`,
-      user.username,
-      resetUrl,
-      rawToken,
-    );
+    if (to) {
+      await this.mailService.sendPasswordResetEmail(
+        to,
+        user.username,
+        resetUrl,
+        rawToken,
+      );
+    } else {
+      this.mailService.logResetTokenFallback(
+        user.username,
+        resetUrl,
+        rawToken,
+        '用户未绑定邮箱',
+      );
+    }
 
     return {
       message: '如果该用户存在，重置链接已发送（请同时检查垃圾邮件）',
@@ -192,20 +207,6 @@ export class AuthService {
       ? cleanBase
       : `https://${cleanBase}`;
     return `${withScheme}${path}`;
-  }
-
-  private deriveDomain(): string {
-    const base = (
-      process.env.PUBLIC_ADMIN_URL ||
-      process.env.CORS_ORIGIN ||
-      'homepage.local'
-    ).trim();
-    try {
-      const withScheme = /^https?:\/\//.test(base) ? base : `http://${base}`;
-      return new URL(withScheme).hostname;
-    } catch {
-      return 'homepage.local';
-    }
   }
 
   // ============================================================

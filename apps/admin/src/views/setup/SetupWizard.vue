@@ -3,14 +3,16 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   getConfigsApi, updateConfigApi, createConfigApi,
-  hasUsersApi, createFirstAdminApi, loginApi,
+  hasUsersApi, createFirstAdminApi,
 } from '@/api'
+import { useAuthStore } from '@/stores/auth'
 import { message } from 'ant-design-vue'
 import {
   RightOutlined, LeftOutlined, CheckOutlined, SmileOutlined, UserAddOutlined,
 } from '@ant-design/icons-vue'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const step = ref(0)
 const saving = ref(false)
 const done = ref(false)
@@ -203,8 +205,10 @@ async function createFirstAdmin() {
       adminPassword.value,
       setupTokenRequired.value ? setupToken.value.trim() : undefined,
     )
-    const loginRes = await loginApi(adminUsername.value, adminPassword.value)
-    localStorage.setItem('token', loginRes.data.accessToken)
+    // SEC-002: login sets the HttpOnly session cookie server-side; no need
+    // to touch localStorage. Route it through the auth store so the SPA's
+    // reactive state (`isAuthenticated`, username) picks it up immediately.
+    await authStore.login(adminUsername.value, adminPassword.value)
     message.success('管理员账号已创建')
     adminPassword.value = ''
     adminPasswordConfirm.value = ''

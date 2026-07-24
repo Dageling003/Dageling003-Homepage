@@ -120,6 +120,26 @@ export class MailService {
     }
   }
 
+  /**
+   * Public wrapper used when the caller already knows email is unavailable
+   * (e.g. user has no email column). Emits the same masked banner as the
+   * SMTP-failure fallback path. See SEC-006.
+   */
+  logResetTokenFallback(
+    username: string,
+    resetUrl: string,
+    rawToken: string,
+    reason: string,
+  ): void {
+    this.logFallback({
+      to: '(no recipient)',
+      username,
+      resetUrl,
+      rawToken,
+      reason,
+    });
+  }
+
   private logFallback(params: {
     to: string;
     username: string;

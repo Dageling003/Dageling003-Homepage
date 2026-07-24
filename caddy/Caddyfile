@@ -16,10 +16,13 @@
 
 {$DOMAIN} {
 	# ====== Global security headers ======
-	# CSP 面向 SPA 静态资源。Vue/AntD 运行时会注入 inline <style>，
-	# 因此 style-src 需要 'unsafe-inline'；frontend 的 SEO JSON-LD
-	# 也是 inline <script>，因此 script-src 暂保留 'unsafe-inline'
-	# （下一步可通过 vite 生成 hash 收紧）。frame-ancestors 'none' 防点击劫持。
+	# Frontend (public homepage) still needs 'unsafe-inline' on script-src
+	# because index.html embeds a JSON-LD <script type="application/ld+json">
+	# block for SEO. That block is developer-controlled and never renders
+	# user input, but the CSP directive cannot distinguish. TODO: switch to
+	# 'sha256-<hash>' after wiring vite to emit the hash at build time.
+	# The /admin* handler below overrides this with a stricter policy that
+	# drops 'unsafe-inline' entirely for the admin bundle.
 	header {
 		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com data:; connect-src 'self' https://api.iconify.design https://fonts.googleapis.com https://api.dicebear.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 		X-Content-Type-Options "nosniff"
@@ -60,26 +63,35 @@
 	}
 
 	# ====== Admin backend SPA ======
-	# Served directly by Caddy — no intermediate Node process
-	# 注意：Caddy 2 里没有 handle_path 指令，用 handle + path 前缀匹配。
-	# root 用 /var/www（不是 /var/www/admin）：请求路径 /admin/setup + root /var/www = /var/www/admin/setup，
-	# try_files 找不到文件后 fallback 到 /index.html → /var/www/index.html（不存在），
-	# 所以这里用 try_files {path} /admin/index.html 确保正确回退。
+	# Served directly by Caddy — no intermediate Node process.
+	# SEC-001: admin bundle has no inline <script> (Vite ships ES modules only),
+	# so we override the global CSP with a stricter policy that removes
+	# 'unsafe-inline' from script-src. style-src still needs 'unsafe-inline'
+	# because ant-design-vue injects component styles at runtime via <style>.
 	handle /admin* {
 		header Cache-Control "no-cache"
+		header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com data:; connect-src 'self' https://api.iconify.design; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 		root * /var/www
 		try_files {path} /admin/index.html
 		file_server
 	}
 
-	# ====== Uploads (block script execution) ======
-	# 用 path 前缀匹配 + respond 黑名单，避免依赖 http.matchers.ext
-	# 模块（默认 caddy 镜像不带该模块，会报 'module not registered'）。
+	# ====== Uploads: strict allow-list on file extensions ======
+	# SEC-005: previous blocklist missed .svg, which browsers execute as
+	# active content when served as image/svg+xml. Any future upload path
+	# that forgets to normalize could then plant stored XSS. Switching to
+	# an allow-list of image extensions cuts that risk off at the edge.
+	# The current avatar upload only writes .webp; the rest are kept for
+	# forward-compat with UGC image features.
 	handle /files/* {
+		@allowed path *.webp *.jpg *.jpeg *.png *.gif
 		root * /var/www
-		@blocked path /files/*.php /files/*.phtml /files/*.pht /files/*.php5 /files/*.php7 /files/*.phps /files/*.cgi /files/*.pl /files/*.py /files/*.sh /files/*.asp /files/*.aspx /files/*.jsp /files/*.jspx
-		respond @blocked 403
-		file_server
+		# Extra hardening: uploads are static assets, never executable.
+		header Content-Security-Policy "default-src 'none'"
+		header X-Content-Type-Options "nosniff"
+		file_server @allowed
+		# Anything not on the allow-list gets a hard 403.
+		respond 403
 	}
 
 	# ====== Frontend homepage SPA (default landing) ======

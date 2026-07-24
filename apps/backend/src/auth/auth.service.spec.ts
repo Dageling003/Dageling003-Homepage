@@ -44,6 +44,7 @@ describe('AuthService', () => {
   const mockMailService = {
     isSmtpEnabled: jest.fn().mockReturnValue(false),
     sendPasswordResetEmail: jest.fn(),
+    logResetTokenFallback: jest.fn(),
   };
 
   beforeAll(async () => {

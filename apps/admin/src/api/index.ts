@@ -4,15 +4,15 @@ import { message } from 'ant-design-vue'
 const request = axios.create({
   baseURL: '/api',
   timeout: 10000,
-})
-
-// Request interceptor - attach token
-request.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
+  // SEC-002: session is carried by the HttpOnly `hp_token` cookie set by
+  // POST /api/auth/login. `withCredentials: true` ensures the browser sends
+  // the cookie on every same-origin request. `X-Requested-With` is a
+  // belt-and-suspenders CSRF hint: cross-site <form> POSTs cannot set custom
+  // headers, so a matching cookie without this header is a signal to reject.
+  withCredentials: true,
+  headers: {
+    'X-Requested-With': 'XMLHttpRequest',
+  },
 })
 
 // Response interceptor - error handling
@@ -24,8 +24,9 @@ request.interceptors.response.use(
       const status = error.response.status
 
       if (status === 401) {
-        // Token expired or invalid — clear and redirect
-        localStorage.removeItem('token')
+        // Session expired or invalid — cookie is HttpOnly so we cannot
+        // clear it from JS; just redirect to /login which will (a) show
+        // the login form and (b) let the user obtain a fresh cookie.
         const currentPath = window.location.pathname
         if (!currentPath.includes('/login')) {
           message.error('登录已过期，请重新登录')
@@ -51,6 +52,10 @@ request.interceptors.response.use(
 // Auth API
 export function loginApi(username: string, password: string) {
   return request.post('/auth/login', { username, password })
+}
+
+export function logoutApi() {
+  return request.post('/auth/logout')
 }
 
 export function getProfileApi() {
@@ -132,6 +137,7 @@ export function getAuditLogsApi(
 
 export interface LoginResponse {
   accessToken: string
+  username: string
 }
 
 export default request

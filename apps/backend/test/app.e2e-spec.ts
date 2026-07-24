@@ -22,9 +22,12 @@ describe('Homepage API (e2e)', () => {
       }),
     );
     const httpAdapter = app.getHttpAdapter();
-    httpAdapter.get('/health', (_req: unknown, res: { json: (body: unknown) => void }) => {
-      res.json({ status: 'ok', timestamp: new Date().toISOString() });
-    });
+    httpAdapter.get(
+      '/health',
+      (_req: unknown, res: { json: (body: unknown) => void }) => {
+        res.json({ status: 'ok', timestamp: new Date().toISOString() });
+      },
+    );
     await app.init();
   });
 

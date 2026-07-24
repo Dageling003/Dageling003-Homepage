@@ -68,10 +68,13 @@ async function handleAvatarUpload(file: File) {
   try {
     const form = new FormData()
     form.append('file', file)
-    const token = localStorage.getItem('token') || ''
+    // SEC-002: use `credentials: 'include'` so the browser sends the
+    // HttpOnly session cookie set by /auth/login. `X-Requested-With`
+    // mirrors the axios instance's CSRF hint.
     const res = await fetch('/api/config/upload/avatar', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
       body: form,
     })
     if (!res.ok) throw new Error('上传失败')
