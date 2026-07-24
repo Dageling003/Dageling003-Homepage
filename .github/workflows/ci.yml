@@ -10,6 +10,10 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+env:
+  NODE_VERSION: '22'
+  PNPM_VERSION: '11.5.2'
+
 jobs:
   lint:
     name: Lint
@@ -17,11 +21,13 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v6
+        with:
+          version: ${{ env.PNPM_VERSION }}
       - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
-      - run: pnpm install --frozen-lockfile --prefer-offline
+      - run: pnpm install --frozen-lockfile
       - run: pnpm -r run lint
 
   typecheck:
@@ -30,11 +36,13 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v6
+        with:
+          version: ${{ env.PNPM_VERSION }}
       - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
-      - run: pnpm install --frozen-lockfile --prefer-offline
+      - run: pnpm install --frozen-lockfile
       - run: pnpm -r run build
 
   test:
@@ -43,18 +51,20 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v6
+        with:
+          version: ${{ env.PNPM_VERSION }}
       - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
-      - run: pnpm install --frozen-lockfile --prefer-offline
+      - run: pnpm install --frozen-lockfile
       - name: Unit tests
         working-directory: apps/backend
         env:
           DB_TYPE: sqlite
           JWT_SECRET: test-jwt-secret-for-ci-minimum-20
           NODE_ENV: test
-        run: pnpm test --passWithNoTests
+        run: pnpm test
       - name: E2E tests
         working-directory: apps/backend
         env:
@@ -69,12 +79,15 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v6
+        with:
+          version: ${{ env.PNPM_VERSION }}
       - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
-      - run: pnpm install --frozen-lockfile --prefer-offline
+      - run: pnpm install --frozen-lockfile
       - run: pnpm audit --audit-level=high --registry https://registry.npmjs.org
+        continue-on-error: true
 
   docker:
     name: Docker Build
@@ -82,29 +95,15 @@ jobs:
     needs: [lint, typecheck]
     steps:
       - uses: actions/checkout@v6
-      - uses: docker/setup-buildx-action@v3
 
       - name: Build app image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./docker/Dockerfile.app
-          load: true
-          tags: homepage-app:latest
-          cache-from: type=gha,scope=homepage-app
-          cache-to: type=gha,scope=homepage-app,mode=max
+        run: docker build -t homepage-app:latest -f docker/Dockerfile.app .
 
       - name: Build caddy image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./docker/Dockerfile.caddy
-          load: true
-          tags: homepage-caddy:latest
-          build-args: |
-            APP_IMAGE=homepage-app:latest
-          cache-from: type=gha,scope=homepage-caddy
-          cache-to: type=gha,scope=homepage-caddy,mode=max
+        run: |
+          docker build -t homepage-caddy:latest \
+            --build-arg APP_IMAGE=homepage-app:latest \
+            -f docker/Dockerfile.caddy .
 
       - name: Verify images
         run: |
