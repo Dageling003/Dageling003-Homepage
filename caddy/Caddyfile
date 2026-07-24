@@ -15,16 +15,13 @@
 }
 
 {$DOMAIN} {
-	# ====== Global security headers ======
-	# Frontend (public homepage) still needs 'unsafe-inline' on script-src
-	# because index.html embeds a JSON-LD <script type="application/ld+json">
-	# block for SEO. That block is developer-controlled and never renders
-	# user input, but the CSP directive cannot distinguish. TODO: switch to
-	# 'sha256-<hash>' after wiring vite to emit the hash at build time.
-	# The /admin* handler below overrides this with a stricter policy that
-	# drops 'unsafe-inline' entirely for the admin bundle.
+	# ====== Global security headers (non-CSP) ======
+	# NOTE: CSP is set per-handle below, not here. Setting it globally then
+	# trying to override it inside a `handle` does NOT work in Caddy — the
+	# site-level header runs first and later `header` directives without
+	# the `>` (force-replace) prefix are treated as no-op when the field
+	# is already present. Splitting keeps intent explicit.
 	header {
-		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com data:; connect-src 'self' https://api.iconify.design https://fonts.googleapis.com https://api.dicebear.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 		X-Content-Type-Options "nosniff"
 		Referrer-Policy "strict-origin-when-cross-origin"
 		Permissions-Policy "camera=(), microphone=(), geolocation=(), interest-cohort=()"
@@ -40,6 +37,8 @@
 	# ====== API reverse proxy (backend only) ======
 	# 使用 handle 而非 handle_path：NestJS 设了 globalPrefix 'api'，
 	# 需要保留 /api 前缀转发给后端，否则后端匹配不到路由返回 404。
+	# API returns JSON — the CSP inherited from the backend's Helmet
+	# config already handles it; no CSP needed at the edge here.
 	handle /api/* {
 		header Cache-Control "no-store, no-cache, must-revalidate"
 		reverse_proxy app:8000
@@ -63,14 +62,15 @@
 	}
 
 	# ====== Admin backend SPA ======
-	# Served directly by Caddy — no intermediate Node process.
 	# SEC-001: admin bundle has no inline <script> (Vite ships ES modules only),
-	# so we override the global CSP with a stricter policy that removes
-	# 'unsafe-inline' from script-src. style-src still needs 'unsafe-inline'
-	# because ant-design-vue injects component styles at runtime via <style>.
+	# so we ship a strict CSP that removes 'unsafe-inline' from script-src.
+	# style-src still needs 'unsafe-inline' because ant-design-vue injects
+	# component styles at runtime via <style>. The `>` prefix forces Caddy
+	# to overwrite any inherited value — critical, otherwise a site-level
+	# CSP would silently win over this stricter one.
 	handle /admin* {
 		header Cache-Control "no-cache"
-		header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com data:; connect-src 'self' https://api.iconify.design; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+		header >Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com data:; connect-src 'self' https://api.iconify.design; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 		root * /var/www
 		try_files {path} /admin/index.html
 		file_server
@@ -87,17 +87,22 @@
 		@allowed path *.webp *.jpg *.jpeg *.png *.gif
 		root * /var/www
 		# Extra hardening: uploads are static assets, never executable.
-		header Content-Security-Policy "default-src 'none'"
-		header X-Content-Type-Options "nosniff"
+		# `>` prefix forces override of any inherited CSP.
+		header >Content-Security-Policy "default-src 'none'"
 		file_server @allowed
 		# Anything not on the allow-list gets a hard 403.
 		respond 403
 	}
 
 	# ====== Frontend homepage SPA (default landing) ======
-	# 根路径直接服务公开主页，未初始化时只显示布局/默认内容
+	# Public site still needs 'unsafe-inline' on script-src because
+	# index.html embeds a JSON-LD <script type="application/ld+json">
+	# block for SEO. That block is developer-controlled (never renders
+	# user input), but the CSP directive cannot distinguish. TODO:
+	# switch to 'sha256-<hash>' after wiring Vite to emit the hash.
 	handle {
 		header Cache-Control "no-cache"
+		header >Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com data:; connect-src 'self' https://api.iconify.design https://fonts.googleapis.com https://api.dicebear.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 		root * /var/www/frontend
 		try_files {path} /index.html
 		file_server
