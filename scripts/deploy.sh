@@ -326,18 +326,10 @@ build_app() {
     echo -e "${BOLD}==> 3/5 构建 Docker 镜像${NC}"
 
     info "正在构建 homepage-app 镜像... (首次/网络慢时可能需数分钟)"
-    if timeout 1800 $COMPOSE_CMD --env-file .env.docker build app; then
-        ok "homepage-app 镜像构建完成"
+    if timeout 1800 $COMPOSE_CMD --env-file .env.docker build; then
+        ok "全部镜像构建完成"
     else
-        err "app 镜像构建失败或超时 (30min)"
-        exit 1
-    fi
-
-    info "正在构建 homepage-caddy 镜像..."
-    if timeout 600 $COMPOSE_CMD --env-file .env.docker build caddy; then
-        ok "homepage-caddy 镜像构建完成"
-    else
-        err "caddy 镜像构建失败或超时 (10min)"
+        err "镜像构建失败或超时 (30min)"
         exit 1
     fi
 }

@@ -1,14 +1,9 @@
 #!/usr/bin/env bash
 # ===================================================
-# homepage — 一键启动（顺序构建 + 启动）
+# homepage — 一键启动
 # ===================================================
-# 为什么需要这个脚本？
-#   docker-compose.yml 里 caddy 依赖 app 的镜像（Dockerfile.caddy 有
-#   FROM homepage-app:latest），但 `docker compose up --build` 会并行构建，
-#   caddy 有时会先跑，因为本地找不到 homepage-app:latest 就去 docker.io 拉，
-#   触发 registry mirror 的 429 Too Many Requests / 404 Not Found。
-#
-#   本脚本按正确顺序执行：先 build app，再 up 全部。
+# 直接构建并启动全部服务。app 与 caddy 现在是各自独立构建，
+# 可安全并行；不再需要先 build app 才能 build caddy。
 # ===================================================
 set -euo pipefail
 
@@ -30,11 +25,7 @@ fi
 
 COMPOSE="docker compose --env-file $ENV_FILE"
 
-step "1/2  构建 app 镜像"
-$COMPOSE build app
-ok "homepage-app:latest 就绪"
-
-step "2/2  构建 caddy 并启动全部服务"
+step "构建并启动全部服务"
 $COMPOSE up -d --build
 
 echo

@@ -1,21 +1,41 @@
 # homepage — Caddy reverse proxy + static file server
-# This image includes the built frontend/admin static files,
-# so Caddy can serve them directly without going through the app container.
+# 自包含构建：不再依赖 homepage-app 镜像，避免 `docker compose up --build`
+# 并行构建时 caddy 抢跑触发去 Docker Hub 拉 homepage-app:latest 的 404。
 #
-# IMPORTANT: Build the app image first, then this one:
-#   docker compose build app
-#   docker compose build caddy
+# 复用与 Dockerfile.app 相同的 BUILDER_IMAGE，配合 BuildKit 层缓存，
+# 实际增量成本很低（依赖装一次、cache 命中后前端/管理端也秒过）。
 
-ARG APP_IMAGE=homepage-app:latest
-FROM ${APP_IMAGE} AS app-static
+ARG BUILDER_IMAGE=node:22-slim
 
+# ====== Stage 1: 构建前端 + 管理端静态资源 ======
+FROM ${BUILDER_IMAGE} AS builder
+WORKDIR /app
+
+RUN corepack enable && corepack prepare pnpm@11.5.2 --activate
+
+ENV PNPM_CONFIG_CHILD_CONCURRENCY=1 \
+    PNPM_CONFIG_NETWORK_CONCURRENCY=2 \
+    PNPM_CONFIG_REPORTER=append-only \
+    NODE_OPTIONS=--max-old-space-size=384
+
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json .npmrc ./
+COPY apps/backend/package.json apps/frontend/package.json apps/admin/package.json ./apps/
+RUN pnpm install --frozen-lockfile
+
+COPY apps/ apps/
+
+RUN pnpm --filter homepage-frontend build && \
+    pnpm --filter homepage-admin build && \
+    mkdir -p /static/frontend /static/admin && \
+    cp -r apps/frontend/dist/. /static/frontend/ && \
+    cp -r apps/admin/dist/. /static/admin/
+
+# ====== Stage 2: Caddy 运行时 ======
 FROM caddy:2-alpine
 
-# Copy built static files from the app image
-COPY --from=app-static /static/frontend /var/www/frontend
-COPY --from=app-static /static/admin /var/www/admin
+COPY --from=builder /static/frontend /var/www/frontend
+COPY --from=builder /static/admin /var/www/admin
 
-# Copy Caddy config and entrypoint
 COPY caddy/Caddyfile /etc/caddy/Caddyfile
 COPY caddy/entrypoint.sh /usr/local/bin/caddy-entrypoint.sh
 RUN chmod +x /usr/local/bin/caddy-entrypoint.sh

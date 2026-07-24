@@ -100,10 +100,7 @@ jobs:
         run: docker build -t homepage-app:latest -f docker/Dockerfile.app .
 
       - name: Build caddy image
-        run: |
-          docker build -t homepage-caddy:latest \
-            --build-arg APP_IMAGE=homepage-app:latest \
-            -f docker/Dockerfile.caddy .
+        run: docker build -t homepage-caddy:latest -f docker/Dockerfile.caddy .
 
       - name: Verify images
         run: |

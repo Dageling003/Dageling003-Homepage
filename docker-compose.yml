@@ -86,6 +86,8 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.caddy
+      args:
+        BUILDER_IMAGE: ${BUILDER_IMAGE:-node:22-slim}
     image: homepage-caddy:latest
     container_name: homepage-caddy
     restart: unless-stopped
