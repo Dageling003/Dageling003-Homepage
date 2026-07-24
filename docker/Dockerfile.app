@@ -1,8 +1,14 @@
 # homepage — Backend API image (production-optimized)
 # Build:  docker compose build app
+# Override base images with build-args for Chinese mirror:
+#   --build-arg BUILDER_IMAGE=docker.1ms.run/library/node:22-slim
+#   --build-arg RUNTIME_IMAGE=docker.1ms.run/gcr.io/distroless/nodejs22-debian12
+
+ARG BUILDER_IMAGE=node:22-slim
+ARG RUNTIME_IMAGE=gcr.io/distroless/nodejs22-debian12
 
 # ====== Stage 1: Build all three projects ======
-FROM node:22-slim AS builder
+FROM ${BUILDER_IMAGE} AS builder
 WORKDIR /app
 
 # Pin pnpm version to enable Docker layer cache.
@@ -34,7 +40,7 @@ RUN pnpm --filter homepage-backend build && \
     pnpm store prune
 
 # ====== Stage 2: Runtime (distroless, production-only) ======
-FROM gcr.io/distroless/nodejs22-debian12 AS runtime
+FROM ${RUNTIME_IMAGE} AS runtime
 WORKDIR /app
 
 COPY --from=builder --chown=65532:65532 /deploy /app
