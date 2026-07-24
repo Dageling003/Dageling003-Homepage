@@ -229,8 +229,8 @@ function handleLogout() {
 
       <!-- ====== FOOTER ====== -->
       <a-layout-footer v-if="!noSidebar" class="al-footer">
-        <span>© 2026 Homepage</span>
-        <span class="al-footer-ver">v0.6.1</span>
+        <span>Dageling003-Homepage</span>
+        <span class="al-footer-ver">v1.0.0</span>
       </a-layout-footer>
     </a-layout>
 
