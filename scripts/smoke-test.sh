@@ -10,6 +10,11 @@ RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
 
 # 参数
 TARGET="${1:-localhost}"
+# 允许跳过 TLS 校验（自签或证书刚签发未生效时）：INSECURE=1 bash scripts/smoke-test.sh domain
+CURL_OPTS=(-s --connect-timeout 5 --max-time 15)
+if [ "${INSECURE:-0}" = "1" ]; then
+    CURL_OPTS+=(-k)
+fi
 
 # 自动判断协议：已含 http(s):// 则直接使用，IP/localhost 用 http，域名用 https
 if [[ "$TARGET" =~ ^https?:// ]]; then
@@ -27,6 +32,7 @@ PASSED=0
 FAILED=0
 
 # 测试函数
+# expected_status 支持用 | 分隔的多个候选值，例如 "403|404"
 test_case() {
     local name="$1"
     local url="$2"
@@ -35,9 +41,9 @@ test_case() {
     TOTAL=$((TOTAL + 1))
     echo -n "  测试 ${TOTAL}: ${name} ... "
 
-    status=$(curl -s --connect-timeout 5 --max-time 15 -o /dev/null -w "%{http_code}" "$url" 2>/dev/null || echo "000")
+    status=$(curl "${CURL_OPTS[@]}" -o /dev/null -w "%{http_code}" "$url" 2>/dev/null || echo "000")
 
-    if [ "$status" = "$expected_status" ]; then
+    if [[ "|${expected_status}|" == *"|${status}|"* ]]; then
         echo -e "${GREEN}通过${NC}"
         PASSED=$((PASSED + 1))
     else
@@ -81,17 +87,22 @@ echo "4. API 认证端点（应返回 401）"
 test_api "GET /api/auth/profile" "/api/auth/profile" "401"
 test_api "PUT /api/auth/profile" "/api/auth/profile" "401"
 
-# 5. 文件上传目录（应禁止执行脚本）
+# 5. 文件上传目录（禁止列目录 / 禁止脚本执行）
+#    NestJS useStaticAssets 默认关闭目录索引，命中不到具体文件会返回 404，
+#    这与 403 一样都属于安全行为，因此两者都算通过。
 echo ""
 echo "5. 安全测试"
-test_api "GET /files/uploads/" "/files/uploads/" "403"
+test_api "GET /files/uploads/" "/files/uploads/" "403|404"
 
 # 6. CORS 测试
+#    用当前 BASE_URL 自身作为 Origin（属于白名单允许的来源）来验证 CORS 是否生效。
+#    之前用 http://example.com 会被后端 CORS 白名单拒绝、不回 CORS 头，这是安全的正确行为，
+#    不能用来判定 CORS 未配置。
 echo ""
 echo "6. CORS 测试"
 TOTAL=$((TOTAL + 1))
-CORS_HEADERS=$(curl -s --connect-timeout 5 --max-time 15 -I -X OPTIONS "${BASE_URL}/api/config" \
-    -H "Origin: http://example.com" \
+CORS_HEADERS=$(curl "${CURL_OPTS[@]}" -I -X OPTIONS "${BASE_URL}/api/config" \
+    -H "Origin: ${BASE_URL}" \
     -H "Access-Control-Request-Method: GET" \
     2>/dev/null | grep -i "access-control-allow-origin" || echo "")
 
@@ -107,7 +118,7 @@ fi
 echo ""
 echo "7. 性能测试"
 TOTAL=$((TOTAL + 1))
-RESPONSE_TIME=$(curl -s --connect-timeout 5 --max-time 15 -o /dev/null -w "%{time_total}" "${BASE_URL}/" 2>/dev/null || echo "0")
+RESPONSE_TIME=$(curl "${CURL_OPTS[@]}" -o /dev/null -w "%{time_total}" "${BASE_URL}/" 2>/dev/null || echo "0")
 RESPONSE_TIME_MS=$(echo "$RESPONSE_TIME * 1000" | bc 2>/dev/null | cut -d. -f1 || echo "0")
 
 if [ "${RESPONSE_TIME_MS:-0}" -lt 2000 ]; then
