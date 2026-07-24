@@ -18,8 +18,9 @@
 - [7. 一键构建并启动](#7-一键构建并启动)
 - [8. 首次访问：创建管理员](#8-首次访问创建管理员)
 - [9. 日常维护命令](#9-日常维护命令)
-- [10. 出问题了怎么办（避坑手册）](#10-出问题了怎么办避坑手册)
-- [11. 我想推倒重来](#11-我想推倒重来)
+- [10. 更新到最新版本](#10-更新到最新版本)
+- [11. 出问题了怎么办（避坑手册）](#11-出问题了怎么办避坑手册)
+- [12. 我想推倒重来](#12-我想推倒重来)
 
 ---
 
@@ -423,16 +424,215 @@ http://your-domain.com/admin/setup
 | 重启所有服务 | `docker compose --env-file .env.docker restart` |
 | 只重启后端 | `docker compose --env-file .env.docker restart app` |
 | 停掉所有服务 | `docker compose --env-file .env.docker down` |
-| 更新到最新代码 | `git pull && docker compose --env-file .env.docker up -d --build` |
 | 备份数据库 | `bash scripts/backup-db.sh` （备份到 `./backups/`） |
 | 定时备份（每天凌晨 2 点） | `crontab -e` 加一行：`0 2 * * * cd /opt/Dageling003-Homepage && bash scripts/backup-db.sh` |
 | 找回密码链接看不到？ | `docker logs homepage-app 2>&1 \| grep -A 6 '密码重置请求'` |
 
 ---
 
-## 10. 出问题了怎么办（避坑手册）
+## 10. 更新到最新版本
 
-### 10.1 `dependency failed to start: container homepage-app is unhealthy`
+日常最常做的事：作者仓库更新了新版本，你想把服务器同步到最新，**但不希望数据库、上传文件、HTTPS 证书丢**。项目里 `scripts/update.sh` 就是干这个的。
+
+### 10.1 一句话更新（推荐）
+
+在项目目录下（`cd /opt/Dageling003-Homepage`）执行：
+
+```bash
+bash scripts/update.sh
+```
+
+正常输出（成功场景）大概长这样：
+
+```
+==> 1. 拉取最新代码...
+Already up to date.
+==> 2. 重新构建 app 镜像...
+[+] Building 87.3s (16/16) FINISHED
+==> 3. 重新构建 caddy 镜像...
+[+] Building 4.2s (10/10) FINISHED
+==> 4. 重启容器...
+ ✔ Container homepage-db     Healthy
+ ✔ Container homepage-app    Healthy
+ ✔ Container homepage-caddy  Started
+==> 5. 等待服务就绪...
+==> 6. 运行冒烟测试...
+==> 7. 清理旧镜像...
+==> ✅ 更新完成！
+```
+
+### 10.2 update.sh 到底做了什么？
+
+脚本一共 7 步，每一步都拆开讲：
+
+| # | 命令 | 干什么 | 我该关心什么？ |
+|---|------|--------|----------------|
+| 1 | `git pull origin main` | 把 GitHub 上 main 分支最新代码拉到本地 | 如果你手改过项目文件（改过 Caddyfile 调参数 / 改过某个 tsx），这一步会冲突。见 10.4 |
+| 2 | `docker compose build app` | 基于最新代码 + 最新 base image 重建后端镜像 | 拉不到 gcr.io / Docker Hub 会挂在这一步。见 10.3 与 10.5 |
+| 3 | `docker compose build caddy` | 把新 app 镜像里的前后端静态文件抽出来，重打 caddy 镜像 | 顺序不能反 —— caddy 必须晚于 app |
+| 4 | `docker compose up -d` | 用新镜像**滚动替换**旧容器（几秒钟停机） | 容器起不来会一直 `Restarting`，见 10.6 |
+| 5 | `sleep 10` | 给 app 时间跑数据库 migration + 启动 | 无 |
+| 6 | `smoke-test.sh` | curl 主页 / 后台 / API 看是否 200 | 冒烟脚本用 `localhost`，如果你只允许特定 IP 会误报 |
+| 7 | `docker image prune -f` | 清掉本次 build 产生的悬挂 `<none>` 镜像，省磁盘 | 无 |
+
+**你需要记住的三件事**：
+
+- **不会丢数据**：数据库、上传文件、Caddy 证书都在 named volume（`mariadb_data` / `app_uploads` / `caddy_data`），脚本不动这些
+- **不会覆盖配置**：`.env.docker` 不动
+- **不会长时间停机**：`up -d` 滚动替换，一般 5~30 秒切完
+
+### 10.3 升级前建议先做的准备（生产环境强推）
+
+个人玩玩可以跳过；跑真实用户流量的话，一定按下面走：
+
+```bash
+# 1. 备份数据库
+bash scripts/backup-db.sh
+
+# 2. 记下当前版本（回滚要用）
+git rev-parse HEAD > .last-version
+cat .last-version                    # 类似 a1b2c3d...
+
+# 3. 看一眼新版本改了什么（可选，但推荐）
+git fetch origin main
+git log HEAD..origin/main --oneline
+
+# 4. 执行更新
+bash scripts/update.sh
+```
+
+看到 `docs/release-notes-*.md` 里明确写着"⚠️ 破坏性变更" / "需要手动数据迁移"的版本，**一定先看** release notes 再更新。
+
+### 10.4 第 1 步 `git pull` 报冲突怎么办？
+
+```
+error: Your local changes to the following files would be overwritten by merge
+```
+
+意思是：你（或者上次运维）手改过某些代码文件，但没 commit。Git 不敢直接拉最新代码覆盖你的改动。
+
+**先看改了什么**：
+
+```bash
+git status
+git diff                     # 具体改动
+```
+
+如果**改动重要**（比如临时改了 Caddyfile 加了个反代规则），先暂存：
+
+```bash
+git stash                    # 暂存改动
+git pull origin main         # 拉最新代码
+git stash pop                # 需要时把改动恢复回来
+```
+
+如果**改动是误改 / 无所谓**，直接丢弃：
+
+```bash
+git checkout .               # 丢弃所有未提交改动
+git pull origin main
+```
+
+然后重新跑 `bash scripts/update.sh`。
+
+### 10.5 第 2/3 步构建失败
+
+**先确定哪一步挂了**。看输出末尾：
+
+- 挂在 `load metadata for gcr.io/distroless/...` → gcr.io 拉不到，见 [11.3.2](#1132-是-gcriodistrolessnodejs22-debian12-拉不到)
+- 挂在 `load metadata for docker.1ms.run/library/node...` → Docker Hub 镜像加速挂了，换加速器或等一会
+- 报 `exit 137` / `signal: killed` → 服务器内存不够被 OOM Killer 杀了。加 swap（见 [11.5](#115-内存不够容器一直被-kill-oomkilled)）；或者临时停掉数据库腾出内存再构建：
+
+```bash
+docker compose --env-file .env.docker stop app caddy
+bash scripts/update.sh
+```
+
+### 10.6 第 4 步容器一直 unhealthy 或 Restarting
+
+```bash
+docker compose --env-file .env.docker ps
+docker logs homepage-app --tail 100
+docker logs homepage-caddy --tail 100
+```
+
+多数是**新版本引入了新的必填环境变量**你没配。查看该版本的 [CHANGELOG](../CHANGELOG.md) 或 `docs/release-notes-*.md`。
+
+如果服务确实活着但冒烟测试报错（第 6 步 ✘），手动验证：
+
+```bash
+curl -I http://localhost/                     # 应返回 200
+curl -I http://localhost/admin/               # 应返回 200
+curl -s  http://localhost/api/health          # 应返回 {"status":"ok"}
+```
+
+### 10.7 我要回滚到旧版本！
+
+情况 1：**新版本代码有 bug，但没有数据库结构变更** —— 只回代码就行：
+
+```bash
+# 用之前存下来的 commit hash
+cat .last-version
+git reset --hard $(cat .last-version)
+bash scripts/update.sh
+```
+
+情况 2：**新版本改了数据库结构**（比如加了字段、删了表）—— 单纯回代码不够，还要恢复数据库：
+
+```bash
+# 1. 停服务
+docker compose --env-file .env.docker down
+
+# 2. 找到升级前那次备份
+ls -lh backups/                      # 找日期最近的 .sql.gz
+
+# 3. 清掉当前数据库卷（⚠️ 不可逆）
+docker volume rm dageling003-homepage_mariadb_data
+
+# 4. 回滚代码
+git reset --hard $(cat .last-version)
+
+# 5. 只启动数据库
+docker compose --env-file .env.docker up -d mariadb
+sleep 15
+
+# 6. 恢复备份
+gunzip -c backups/homepage_YYYYMMDD_HHMMSS.sql.gz | \
+  docker exec -i homepage-db mariadb -uhomepage -p<DB_PASSWORD> homepage
+
+# 7. 启动全部
+bash scripts/update.sh
+```
+
+> **这也是为什么强推升级前备份**。备份就是你的"后悔药"。
+
+### 10.8 有没有更保守的更新方式？（比 update.sh 更慢但更安全）
+
+有。核心思路是：**先测试构建，成功了再切流量**。
+
+```bash
+# 1. 拉代码但不重启服务
+git pull origin main
+
+# 2. 只 build，不 up（build 挂了就没影响生产）
+docker compose --env-file .env.docker build app
+docker compose --env-file .env.docker build caddy
+
+# 3. build 通过了，再滚动替换
+docker compose --env-file .env.docker up -d
+
+# 4. 看状态
+docker compose --env-file .env.docker ps
+docker logs homepage-app --tail 50
+```
+
+个人博客场景一般不用这么谨慎，但如果你的主页每天有上千访问量，值得走这条路。
+
+---
+
+## 11. 出问题了怎么办（避坑手册）
+
+### 11.1 `dependency failed to start: container homepage-app is unhealthy`
 
 看后端日志找具体原因：
 
@@ -449,7 +649,7 @@ docker logs homepage-app --tail 100
 | `ECONNREFUSED mariadb:3306` | 数据库还没起来 App 就来连了 | 先 `docker compose --env-file .env.docker down`，再 `up -d`，让 healthcheck 重排 |
 | 容器直接 Exited、无日志、只显示 `Cannot find module '/app/dist/main.js'` | 构建产物路径不对（v1.2.0 之前的老坑） | 拉最新代码 `git pull`，重新 `up -d --build` |
 
-### 10.2 HTTPS 证书申请失败（Caddy 一直 `obtaining certificate` 或报 `unable to satisfy challenges`）
+### 11.2 HTTPS 证书申请失败（Caddy 一直 `obtaining certificate` 或报 `unable to satisfy challenges`）
 
 - ✅ DNS 是否解析到本机？在服务器上跑：`curl -s ifconfig.me` 拿到你的 IP，再跑 `dig +short your-domain.com` 或 `nslookup your-domain.com` 看是否一致。
 - ✅ 80 端口是否开放？云厂商安全组 + 系统防火墙都要放行 80（ACME HTTP-01 挑战靠 80）
@@ -460,9 +660,13 @@ docker logs homepage-app --tail 100
   ```
   然后 `docker compose --env-file .env.docker restart caddy`
 
-### 10.3 镜像拉取失败（`pull access denied` / `failed to resolve reference`）
+### 11.3 镜像拉取失败（`pull access denied` / `failed to resolve reference` / `not found`）
 
-国内节点最常见。参考第 3 章末尾配 Docker 镜像加速器，或在 `.env.docker` 里切 MariaDB 镜像源：
+国内节点最常见。先看**报错里到底提到哪个镜像**，对号入座：
+
+#### 11.3.1 是 `mariadb` 或 `node` 拉不到
+
+Docker Hub 类，配镜像加速器一般就好。参考第 3 章末尾配 Docker 镜像加速器，或在 `.env.docker` 里切 MariaDB 镜像源：
 
 ```dotenv
 MARIADB_IMAGE=mirrors.tuna.tsinghua.edu.cn/library/mariadb:11.4
@@ -474,7 +678,51 @@ MARIADB_IMAGE=mirrors.tuna.tsinghua.edu.cn/library/mariadb:11.4
 docker compose --env-file .env.docker up -d
 ```
 
-### 10.4 端口被占用（`bind: address already in use`）
+#### 11.3.2 是 `gcr.io/distroless/nodejs22-debian12` 拉不到
+
+这个坑要特别拿出来讲。你可能在网上抄到"设置 `docker.1ms.run` 加速就行"，然后自作聪明把 gcr.io 前面拼上 `docker.1ms.run`：
+
+```dotenv
+# ❌ 错的，一定 not found
+RUNTIME_IMAGE=docker.1ms.run/gcr.io/distroless/nodejs22-debian12
+```
+
+**原因**：`docker.1ms.run` 只代理 Docker Hub（`library/*`），**不代理** gcr.io。拼上 gcr.io 路径反而 404。
+
+**正确做法**（按顺序试）：
+
+**试法 A：删掉 RUNTIME_IMAGE 那一行，让它直连 gcr.io**
+
+```bash
+sed -i '/^RUNTIME_IMAGE/d' .env.docker
+bash scripts/update.sh
+```
+
+大多数腾讯云 / 华为云香港节点、任何海外节点都能直连 gcr.io。
+
+**试法 B：改用 node:22-slim 作为 runtime**（纯国内节点最省事）
+
+放弃 distroless，镜像会大一点但一定拉得到：
+
+```bash
+sed -i '/^RUNTIME_IMAGE/d' .env.docker
+echo 'RUNTIME_IMAGE=docker.1ms.run/library/node:22-slim' >> .env.docker
+bash scripts/update.sh
+```
+
+> ⚠️ 切成 slim 后，如果 app 一直 `unhealthy`，是 healthcheck 里的路径 `/nodejs/bin/node` 只在 distroless 里有。编辑 `docker/Dockerfile.app`，把 `HEALTHCHECK` 那行的 `/nodejs/bin/node` 改成 `node` 即可。
+
+**试法 C：换 gcr.io 公共镜像站**
+
+不稳定，最后的兜底：
+
+```bash
+echo 'RUNTIME_IMAGE=gcr.mirrors.ustc.edu.cn/distroless/nodejs22-debian12' >> .env.docker
+```
+
+如果 `bash scripts/update.sh` 直接报 `dial tcp: lookup xxx: no such host`，说明这个镜像站 DNS 都解析不出来（USTC 的 gcr 镜像站近期常挂），换用试法 A 或 B。
+
+### 11.4 端口被占用（`bind: address already in use`）
 
 看看是谁占了 80/443：
 
@@ -494,7 +742,7 @@ systemctl stop nginx httpd 2>/dev/null
 systemctl disable nginx httpd 2>/dev/null
 ```
 
-### 10.5 内存不够，容器一直被 kill（`OOMKilled`）
+### 11.5 内存不够，容器一直被 kill（`OOMKilled`）
 
 1G 机器的通病。加 swap：
 
@@ -514,7 +762,7 @@ free -h    # 验证 Swap 那一行不再是 0
 
 > **RHEL / Rocky / AlmaLinux 额外注意**：如果 `swapon` 报 `Insecure permissions` 或 `swap file has holes`，说明系统盘是 XFS，请改用上面 `dd` 那行创建。
 
-### 10.6 SELinux 挡住了容器读写宿主目录 [仅 RHEL 系]
+### 11.6 SELinux 挡住了容器读写宿主目录 [仅 RHEL 系]
 
 **症状**：容器启动正常但读写 `/opt/Dageling003-Homepage` 下的文件报 `Permission denied`；`docker logs` 看不出应用层错误，`ausearch -m avc` 或 `journalctl -t setroubleshoot` 能看到 AVC 拒绝。
 
@@ -535,7 +783,7 @@ volumes:
   - ./my-data:/data:Z
 ```
 
-### 10.7 我改了 `.env.docker` 里的数据库密码，重启后连不上
+### 11.7 我改了 `.env.docker` 里的数据库密码，重启后连不上
 
 **因为数据库容器第一次启动时把密码写进了数据卷 `mariadb_data`，之后改环境变量没用。**
 
@@ -554,7 +802,7 @@ volumes:
   ```
   然后同步 `.env.docker` 里的 `DB_PASSWORD`，重启 app：`docker compose --env-file .env.docker restart app`
 
-### 10.8 忘了管理员密码
+### 11.8 忘了管理员密码
 
 如果你还有服务器 SSH：进后台没法自助，但可以走"忘记密码"（前提是配了 SMTP）；否则直接删掉 admin 用户重新初始化：
 
@@ -575,7 +823,7 @@ docker compose --env-file .env.docker restart app
 
 后端启动会自动用新密码建 admin。
 
-### 10.9 首次部署一切正常，但访问网站显示 502 / Bad Gateway
+### 11.9 首次部署一切正常，但访问网站显示 502 / Bad Gateway
 
 Caddy 起来了但连不上 App。基本就是 App 还在启动或已经挂了。
 
@@ -588,7 +836,7 @@ docker logs homepage-app --tail 50
 
 ---
 
-## 11. 我想推倒重来
+## 12. 我想推倒重来
 
 **只清代码不清数据**（数据库还在）：
 
