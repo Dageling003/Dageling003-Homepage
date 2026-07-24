@@ -11,129 +11,86 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  lint-and-build:
-    name: Lint & Build
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v6
-
-      - name: Setup Node.js 22
-        uses: actions/setup-node@v6
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: pnpm
+      - run: pnpm install --frozen-lockfile --prefer-offline
+      - run: pnpm -r run lint
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile --prefer-offline
-
-      - name: Lint
-        run: pnpm lint
-
-      - name: Build all packages
-        run: pnpm build
+  typecheck:
+    name: TypeCheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --prefer-offline
+      - run: pnpm -r run build
 
   test:
-    name: Backend Tests
+    name: Tests
     runs-on: ubuntu-latest
-
-    services:
-      mariadb:
-        image: mariadb:11.4
-        env:
-          MARIADB_ROOT_PASSWORD: testroot
-          MARIADB_DATABASE: homepage_test
-          MARIADB_USER: homepage
-          MARIADB_PASSWORD: testpass
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mariadb-admin ping -h localhost"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile --prefer-offline
-
-      - name: Run unit tests
+      - run: pnpm install --frozen-lockfile --prefer-offline
+      - name: Unit tests
         working-directory: apps/backend
         env:
-          DB_HOST: localhost
-          DB_PORT: 3306
-          DB_USERNAME: homepage
-          DB_PASSWORD: testpass
-          DB_DATABASE: homepage_test
+          DB_TYPE: sqlite
           JWT_SECRET: test-jwt-secret-for-ci-minimum-20
           NODE_ENV: test
         run: pnpm test --passWithNoTests
+      - name: E2E tests
+        working-directory: apps/backend
+        env:
+          DB_TYPE: sqlite
+          JWT_SECRET: test-jwt-secret-for-ci-minimum-20
+          NODE_ENV: test
+        run: pnpm test:e2e
 
   security-audit:
     name: Security Audit
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: pnpm
+      - run: pnpm install --frozen-lockfile --prefer-offline
+      - run: pnpm audit --audit-level=high --registry https://registry.npmjs.org
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile --prefer-offline
-
-      - name: Run pnpm audit
-        run: pnpm audit --audit-level=high --registry https://registry.npmjs.org
-
-  docker-build:
-    name: Docker Build (app + caddy)
+  docker:
+    name: Docker Build
     runs-on: ubuntu-latest
-
-    services:
-      registry:
-        image: registry:2
-        ports:
-          - 5000:5000
-
+    needs: [lint, typecheck]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        with:
-          driver-opts: network=host
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v3
 
       - name: Build app image
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./docker/Dockerfile.app
-          push: true
-          tags: |
-            localhost:5000/homepage-app:latest
+          load: true
+          tags: homepage-app:latest
           cache-from: type=gha,scope=homepage-app
           cache-to: type=gha,scope=homepage-app,mode=max
 
@@ -142,17 +99,14 @@ jobs:
         with:
           context: .
           file: ./docker/Dockerfile.caddy
-          push: false
           load: true
           tags: homepage-caddy:latest
           build-args: |
-            APP_IMAGE=localhost:5000/homepage-app:latest
+            APP_IMAGE=homepage-app:latest
           cache-from: type=gha,scope=homepage-caddy
           cache-to: type=gha,scope=homepage-caddy,mode=max
 
       - name: Verify images
         run: |
-          docker pull localhost:5000/homepage-app:latest
-          docker tag localhost:5000/homepage-app:latest homepage-app:latest
           docker image inspect homepage-app:latest   --format 'app  : {{.Size}} bytes'
           docker image inspect homepage-caddy:latest --format 'caddy: {{.Size}} bytes'
