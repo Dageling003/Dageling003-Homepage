@@ -86,7 +86,7 @@ async function autoSaveSimpleField(key: string) {
     dirtyFields.value[key] = false
     if (configMap.value[key]) configMap.value[key].configValue = val
     clearSaveStatus(key)
-  } catch (e) {
+  } catch {
     savedFields.value[key] = 'error'
     clearSaveStatus(key)
   } finally {
@@ -347,7 +347,7 @@ async function saveList(key: string, data: any[]) {
     }
     savedFields.value[key] = 'done'
     clearSaveStatus(key)
-  } catch (e) {
+  } catch {
     savedFields.value[key] = 'error'
     clearSaveStatus(key)
   } finally { savingFields.value[key] = false }

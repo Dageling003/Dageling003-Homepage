@@ -217,8 +217,7 @@ export class SiteConfigService {
    * Safe to run on every boot.
    */
   async migrateLegacyAvatar(): Promise<void> {
-    const LEGACY_DEFAULT =
-      'https://api.dicebear.com/7.x/thumbs/svg?seed=cat';
+    const LEGACY_DEFAULT = 'https://api.dicebear.com/7.x/thumbs/svg?seed=cat';
     const row = await this.configRepository.findOne({
       where: { configKey: 'avatarUrl' },
     });
