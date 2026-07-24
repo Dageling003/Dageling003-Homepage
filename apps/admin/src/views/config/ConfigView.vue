@@ -40,7 +40,10 @@ const sectionMeta = computed(() => SECTION_META[filterCategory.value] || { icon:
 
 // ==================== Data ====================
 const loading = ref(false)
-const saving = ref(false)
+const savingFields = ref<Record<string, boolean>>({})
+const savedFields = ref<Record<string, string>>({})
+const dirtyFields = ref<Record<string, boolean>>({})
+const debounceTimers: Record<string, ReturnType<typeof setTimeout>> = {}
 
 // Raw configs from API keyed by configKey
 const configMap = ref<Record<string, ConfigItem>>({})
@@ -57,6 +60,52 @@ const todoItems = ref<TodoItem[]>([])
 const typewriterItems = ref<string[]>([])
 const linkItems = ref<LinkItem[]>([])
 const techItems = ref<TechItem[]>([])
+
+function clearSaveStatus(key: string) {
+  setTimeout(() => {
+    savedFields.value[key] = ''
+  }, 2000)
+}
+
+async function autoSaveSimpleField(key: string) {
+  if (!dirtyFields.value[key]) return
+  const val = key === 'professions' ? JSON.stringify(professionTags.value) : simpleFields.value[key]
+  savingFields.value[key] = true
+  try {
+    const existing = configMap.value[key]
+    if (existing && existing.id) {
+      await updateConfigApi(key, val, filterCategory.value)
+    } else {
+      try {
+        await updateConfigApi(key, val, filterCategory.value)
+      } catch {
+        await createConfigApi(key, val, filterCategory.value)
+      }
+    }
+    savedFields.value[key] = 'done'
+    dirtyFields.value[key] = false
+    if (configMap.value[key]) configMap.value[key].configValue = val
+    clearSaveStatus(key)
+  } catch (e) {
+    savedFields.value[key] = 'error'
+    clearSaveStatus(key)
+  } finally {
+    savingFields.value[key] = false
+  }
+}
+
+function debouncedSave(key: string, delay = 600) {
+  dirtyFields.value[key] = true
+  savedFields.value[key] = 'pending'
+  if (debounceTimers[key]) clearTimeout(debounceTimers[key])
+  debounceTimers[key] = setTimeout(() => autoSaveSimpleField(key), delay)
+}
+
+function immediateSave(key: string) {
+  dirtyFields.value[key] = true
+  if (debounceTimers[key]) clearTimeout(debounceTimers[key])
+  autoSaveSimpleField(key)
+}
 
 // ==================== Avatar upload ====================
 const avatarUploading = ref(false)
@@ -76,7 +125,7 @@ async function handleAvatarUpload(file: File) {
     if (!res.ok) throw new Error('上传失败')
     const json = await res.json()
     simpleFields.value['avatarUrl'] = json.data.url
-    message.success('头像上传成功，点击保存生效')
+    debouncedSave('avatarUrl', 200)
   } catch {
     message.error('头像上传失败')
   } finally {
@@ -276,31 +325,8 @@ function parseToForm(map: Record<string, ConfigItem>) {
 }
 
 // ==================== Save ====================
-async function saveSimpleField(key: string) {
-  // Professions: serialize tags to JSON
-  const val = key === 'professions' ? JSON.stringify(professionTags.value) : simpleFields.value[key]
-  saving.value = true
-  try {
-    const existing = configMap.value[key]
-    if (existing && existing.id) {
-      await updateConfigApi(key, val, filterCategory.value)
-    } else {
-      try {
-        await updateConfigApi(key, val, filterCategory.value)
-      } catch {
-        await createConfigApi(key, val, filterCategory.value)
-      }
-    }
-    message.success(`「${FIELD_DEFS[key]?.label || key}」已保存`)
-    await fetchData()
-  } catch (e) {
-    console.error('[ConfigView] saveSimpleField failed:', e)
-    message.error('保存失败')
-  } finally { saving.value = false }
-}
-
 async function saveList(key: string, data: any[]) {
-  saving.value = true
+  savingFields.value[key] = true
   try {
     const cleaned = data.filter((i: any) => {
       if (typeof i === 'string') return i.trim()
@@ -319,12 +345,12 @@ async function saveList(key: string, data: any[]) {
         await createConfigApi(key, val, filterCategory.value)
       }
     }
-    message.success(`「${FIELD_DEFS[key]?.label || key}」已保存`)
-    await fetchData()
+    savedFields.value[key] = 'done'
+    clearSaveStatus(key)
   } catch (e) {
-    console.error('[ConfigView] saveList failed:', e)
-    message.error('保存失败')
-  } finally { saving.value = false }
+    savedFields.value[key] = 'error'
+    clearSaveStatus(key)
+  } finally { savingFields.value[key] = false }
 }
 
 // ==================== Helpers ====================
@@ -374,19 +400,41 @@ watch(() => route.path, () => { fetchData() })
                 <div class="cp-field-label">
                   <span class="cp-field-name">{{ fieldLabel(key) }}</span>
                   <code class="cp-field-key">{{ key }}</code>
+                  <span
+                    v-if="savingFields[key]"
+                    class="cp-save-status cp-saving"
+                  >保存中…</span>
+                  <span
+                    v-else-if="savedFields[key] === 'done'"
+                    class="cp-save-status cp-saved"
+                  >✓ 已保存</span>
+                  <span
+                    v-else-if="savedFields[key] === 'error'"
+                    class="cp-save-status cp-error"
+                  >✕ 失败</span>
                 </div>
                 <p class="cp-field-desc" v-if="fieldDesc(key)">{{ fieldDesc(key) }}</p>
                 <div class="cp-field-row">
                   <!-- Gender: radio selector -->
                   <template v-if="key === 'infoSex'">
-                    <a-radio-group v-model:value="simpleFields[key]" class="cp-field-input" size="middle">
+                    <a-radio-group
+                      v-model:value="simpleFields[key]"
+                      class="cp-field-input"
+                      size="middle"
+                      @change="immediateSave(key)"
+                    >
                       <a-radio-button value="♂">♂ 男</a-radio-button>
                       <a-radio-button value="♀">♀ 女</a-radio-button>
                     </a-radio-group>
                   </template>
                   <!-- Gender display mode: radio selector -->
                   <template v-else-if="key === 'infoSexDisplay'">
-                    <a-radio-group v-model:value="simpleFields[key]" class="cp-field-input" size="middle">
+                    <a-radio-group
+                      v-model:value="simpleFields[key]"
+                      class="cp-field-input"
+                      size="middle"
+                      @change="immediateSave(key)"
+                    >
                       <a-radio-button value="symbol">仅符号 ♂</a-radio-button>
                       <a-radio-button value="text">仅文字 男</a-radio-button>
                       <a-radio-button value="both">符号+文字 ♂ 男</a-radio-button>
@@ -394,7 +442,11 @@ watch(() => route.path, () => { fetchData() })
                   </template>
                   <!-- Age display mode: radio selector -->
                   <template v-else-if="key === 'infoAgeDisplay'">
-                    <a-radio-group v-model:value="simpleFields[key]" class="cp-age-group">
+                    <a-radio-group
+                      v-model:value="simpleFields[key]"
+                      class="cp-age-group"
+                      @change="immediateSave(key)"
+                    >
                       <a-radio value="all">自我介绍+标签栏</a-radio>
                       <a-radio value="intro">仅自我介绍</a-radio>
                       <a-radio value="tag">仅标签栏</a-radio>
@@ -409,7 +461,7 @@ watch(() => route.path, () => { fetchData() })
                         <input
                           type="date"
                           :value="simpleFields[key]"
-                          @input="simpleFields[key] = ($event.target as HTMLInputElement).value"
+                          @input="simpleFields[key] = ($event.target as HTMLInputElement).value; debouncedSave(key, 400)"
                           class="cp-date-input"
                         />
                       </div>
@@ -438,6 +490,7 @@ watch(() => route.path, () => { fetchData() })
                       show-search
                       allow-clear
                       :filter-option="(input: string, option: any) => (option?.label as string || '').includes(input)"
+                      @change="immediateSave(key)"
                     >
                       <a-select-option v-for="p in PROVINCES" :key="p" :value="p" :label="p">{{ p }}</a-select-option>
                     </a-select>
@@ -451,6 +504,8 @@ watch(() => route.path, () => { fetchData() })
                       size="middle"
                       class="cp-field-input"
                       allow-clear
+                      @change="debouncedSave(key)"
+                      @blur="debouncedSave(key, 300)"
                     />
                   </template>
                   <!-- Avatar: upload + URL -->
@@ -469,6 +524,7 @@ watch(() => route.path, () => { fetchData() })
                         size="middle"
                         class="cp-field-input"
                         allow-clear
+                        @blur="debouncedSave(key, 300)"
                       />
                       <a-upload
                         :before-upload="(file: File) => { handleAvatarUpload(file); return false }"
@@ -490,6 +546,7 @@ watch(() => route.path, () => { fetchData() })
                       size="middle"
                       class="cp-field-input"
                       :open="false"
+                      @change="debouncedSave(key, 400)"
                     />
                   </template>
                   <!-- Boolean toggle switch -->
@@ -499,7 +556,7 @@ watch(() => route.path, () => { fetchData() })
                       checked-children="显示"
                       un-checked-children="隐藏"
                       size="middle"
-                      @change="(v: boolean) => simpleFields[key] = v ? '1' : '0'"
+                      @change="(v: boolean) => { simpleFields[key] = v ? '1' : '0'; immediateSave(key) }"
                     />
                   </template>
                   <!-- Default text input -->
@@ -510,16 +567,10 @@ watch(() => route.path, () => { fetchData() })
                       size="middle"
                       class="cp-field-input"
                       allow-clear
+                      @input="debouncedSave(key)"
+                      @blur="debouncedSave(key, 200)"
                     />
                   </template>
-                  <a-button
-                    type="primary"
-                    size="middle"
-                    :loading="saving"
-                    @click="saveSimpleField(key)"
-                  >
-                    <template #icon><SaveOutlined /></template>保存
-                  </a-button>
                 </div>
                 <!-- Province preview (outside flex row) -->
                 <div class="cp-prov-preview" v-if="key === 'infoProvince' && simpleFields['infoProvince']">
@@ -577,9 +628,11 @@ watch(() => route.path, () => { fetchData() })
                 <a-button type="dashed" size="small" @click="todoItems.push({ text: '', done: false })">
                   <template #icon><PlusOutlined /></template>添加待办
                 </a-button>
-                <a-button type="primary" size="middle" :loading="saving" @click="saveList('todos', todoItems)">
+                <a-button type="primary" size="middle" :loading="savingFields['todos']" @click="saveList('todos', todoItems)">
                   <template #icon><SaveOutlined /></template>保存全部
                 </a-button>
+                <span v-if="savedFields['todos'] === 'done'" class="cp-save-indicator">✓ 已保存</span>
+                <span v-else-if="savedFields['todos'] === 'error'" class="cp-save-indicator cp-error">保存失败</span>
               </div>
             </div>
             <p class="cp-field-updated" v-if="configMap['todos']?.updatedAt">
@@ -612,9 +665,10 @@ watch(() => route.path, () => { fetchData() })
                 <a-button type="dashed" size="small" @click="typewriterItems.push('')">
                   <template #icon><PlusOutlined /></template>添加文字
                 </a-button>
-                <a-button type="primary" size="middle" :loading="saving" @click="saveList('typewriterWords', typewriterItems)">
+                <a-button type="primary" size="middle" :loading="savingFields['typewriterWords']" @click="saveList('typewriterWords', typewriterItems)">
                   <template #icon><SaveOutlined /></template>保存全部
                 </a-button>
+                <span v-if="savedFields['typewriterWords'] === 'done'" class="cp-save-indicator">✓ 已保存</span>
               </div>
             </div>
             <p class="cp-field-updated" v-if="configMap['typewriterWords']?.updatedAt">
@@ -652,9 +706,10 @@ watch(() => route.path, () => { fetchData() })
                 <a-button type="dashed" size="small" @click="linkItems.push({ text: '', url: '', color: '#333' })">
                   <template #icon><PlusOutlined /></template>添加链接
                 </a-button>
-                <a-button type="primary" size="middle" :loading="saving" @click="saveList('links', linkItems)">
+                <a-button type="primary" size="middle" :loading="savingFields['links']" @click="saveList('links', linkItems)">
                   <template #icon><SaveOutlined /></template>保存全部
                 </a-button>
+                <span v-if="savedFields['links'] === 'done'" class="cp-save-indicator">✓ 已保存</span>
               </div>
             </div>
             <p class="cp-field-updated" v-if="configMap['links']?.updatedAt">
@@ -691,9 +746,10 @@ watch(() => route.path, () => { fetchData() })
                 <a-button type="dashed" size="small" @click="techItems.push({ name: '' })">
                   <template #icon><PlusOutlined /></template>添加技术
                 </a-button>
-                <a-button type="primary" size="middle" :loading="saving" @click="saveList('techs', techItems)">
+                <a-button type="primary" size="middle" :loading="savingFields['techs']" @click="saveList('techs', techItems)">
                   <template #icon><SaveOutlined /></template>保存全部
                 </a-button>
+                <span v-if="savedFields['techs'] === 'done'" class="cp-save-indicator">✓ 已保存</span>
               </div>
             </div>
             <p class="cp-field-updated" v-if="configMap['techs']?.updatedAt">
@@ -792,7 +848,7 @@ watch(() => route.path, () => { fetchData() })
   border-color: var(--admin-hairline-strong);
 }
 
-.cp-field-label { display: flex; align-items: center; gap: 0.55rem; margin-bottom: 0.25rem; }
+.cp-field-label { display: flex; align-items: center; gap: 0.55rem; margin-bottom: 0.25rem; flex-wrap: wrap; }
 .cp-field-name {
   font-weight: 600;
   font-size: 0.95rem;
@@ -808,6 +864,33 @@ watch(() => route.path, () => { fetchData() })
   padding: 1px 8px;
   border-radius: 999px;
   line-height: 1.5;
+}
+.cp-save-status {
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 1px 8px;
+  border-radius: 999px;
+  line-height: 1.5;
+}
+.cp-save-status.cp-saving {
+  color: var(--admin-primary);
+  background: var(--admin-primary-softer);
+}
+.cp-save-status.cp-saved {
+  color: var(--admin-success);
+  background: rgba(52, 199, 89, 0.12);
+}
+.cp-save-status.cp-error {
+  color: var(--admin-error);
+  background: rgba(255, 59, 48, 0.12);
+}
+.cp-save-indicator {
+  font-size: 0.72rem;
+  color: var(--admin-success);
+  font-weight: 500;
+}
+.cp-save-indicator.cp-error {
+  color: var(--admin-error);
 }
 .cp-field-desc {
   margin: 0 0 0.65rem;

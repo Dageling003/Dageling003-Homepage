@@ -14,9 +14,13 @@ const formState = reactive({
 })
 const loading = ref(false)
 const avatarUploading = ref(false)
+const avatarSaving = ref(false)
+const avatarSaved = ref(false)
+let avatarDebounce: ReturnType<typeof setTimeout> | null = null
 const profile = ref<{ username: string; role: string; avatarUrl?: string } | null>(null)
 const avatarInput = ref('')
 const avatarBroken = ref(false)
+const originalAvatar = ref('')
 
 watch(
   () => profile.value?.avatarUrl,
@@ -30,10 +34,34 @@ onMounted(async () => {
     const res = await getProfileApi()
     profile.value = (res.data as any)?.data || null
     avatarInput.value = profile.value?.avatarUrl || ''
+    originalAvatar.value = avatarInput.value
   } catch {
     // Offline or not logged in
   }
 })
+
+async function saveAvatarUrl(url: string) {
+  if (!url.trim() || url === originalAvatar.value) return
+  avatarSaving.value = true
+  try {
+    await updateProfileApi({ avatarUrl: url.trim() })
+    authStore.avatarUrl = url.trim()
+    if (profile.value) profile.value.avatarUrl = url.trim()
+    originalAvatar.value = url.trim()
+    avatarSaved.value = true
+    setTimeout(() => { avatarSaved.value = false }, 2000)
+  } catch {
+    message.error('头像保存失败')
+  } finally {
+    avatarSaving.value = false
+  }
+}
+
+function onAvatarInput(url: string) {
+  avatarInput.value = url
+  if (avatarDebounce) clearTimeout(avatarDebounce)
+  avatarDebounce = setTimeout(() => saveAvatarUrl(url), 500)
+}
 
 async function handleAvatarUpload(file: File) {
   avatarUploading.value = true
@@ -48,27 +76,12 @@ async function handleAvatarUpload(file: File) {
     })
     if (!res.ok) throw new Error('上传失败')
     const json = await res.json()
-    avatarInput.value = json.data.url
-    await updateProfileApi({ avatarUrl: json.data.url })
-    authStore.avatarUrl = json.data.url
-    if (profile.value) profile.value.avatarUrl = json.data.url
+    onAvatarInput(json.data.url)
     message.success('头像已更新')
   } catch {
     message.error('头像上传失败')
   } finally {
     avatarUploading.value = false
-  }
-}
-
-async function handleSaveAvatarUrl() {
-  if (!avatarInput.value.trim()) return
-  try {
-    await updateProfileApi({ avatarUrl: avatarInput.value.trim() })
-    authStore.avatarUrl = avatarInput.value.trim()
-    if (profile.value) profile.value.avatarUrl = avatarInput.value.trim()
-    message.success('头像已更新')
-  } catch {
-    message.error('保存失败')
   }
 }
 
@@ -128,9 +141,16 @@ async function handleSave() {
       <!-- Avatar URL / Upload -->
       <a-divider style="margin: 12px 0" />
       <div class="ac-avatar-set">
-        <a-input v-model:value="avatarInput" placeholder="头像 URL" size="middle">
+        <a-input
+          :value="avatarInput"
+          placeholder="头像 URL"
+          size="middle"
+          @input="onAvatarInput(($event.target as HTMLInputElement).value)"
+          @blur="saveAvatarUrl(avatarInput)"
+        >
           <template #addonAfter>
-            <a-button type="link" size="small" @click="handleSaveAvatarUrl" :disabled="!avatarInput.trim()">应用</a-button>
+            <span v-if="avatarSaving" class="ac-avatar-status ac-avatar-saving">保存中…</span>
+            <span v-else-if="avatarSaved" class="ac-avatar-status ac-avatar-saved">✓ 已保存</span>
           </template>
         </a-input>
         <a-upload
@@ -239,4 +259,15 @@ async function handleSave() {
   align-items: center;
 }
 .ac-avatar-set :deep(.ant-input-group-wrapper) { flex: 1; }
+.ac-avatar-status {
+  font-size: 0.72rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.ac-avatar-saving {
+  color: var(--admin-primary);
+}
+.ac-avatar-saved {
+  color: var(--admin-success);
+}
 </style>
