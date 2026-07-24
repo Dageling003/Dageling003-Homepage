@@ -31,10 +31,23 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,svg,png,woff2}'],
-        cacheId: 'homepage-v1.3.0',
+        // Include index.html in precache — navigateFallback below points
+        // at it, and workbox refuses to serve a fallback URL that isn't
+        // in the precache manifest. Prior config (js/css/svg/png/woff2
+        // only) worked by luck: some workbox builds precache the HTML
+        // implicitly; recent ones fail with `non-precached-url :: {url:
+        // /index.html}` on SW activation.
+        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        cacheId: 'homepage-v1.3.1',
         navigateFallback: '/index.html',
+        // Never let the SW touch API traffic — /api responses are
+        // cookie-authenticated (SEC-002) and cache hits could either
+        // leak private data across sessions or serve stale 401/403.
         navigateFallbackDenylist: [/^\/api/],
+        // Force the new SW to activate immediately so users don't get
+        // stuck on the broken previous SW after this deploy.
+        clientsClaim: true,
+        skipWaiting: true,
         disableDevLogs: true,
         runtimeCaching: [
           {
@@ -64,16 +77,8 @@ export default defineConfig({
               cacheableResponse: { statuses: [0, 200] },
             },
           },
-          {
-            urlPattern: /\/api\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api',
-              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 },
-              cacheableResponse: { statuses: [0, 200] },
-              networkTimeoutSeconds: 5,
-            },
-          },
+          // NOTE: previously we had a NetworkFirst rule for /api/*.
+          // Removed intentionally — see navigateFallbackDenylist above.
         ],
       },
     }),
