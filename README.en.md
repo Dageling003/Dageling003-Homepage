@@ -127,11 +127,35 @@ The iteration path was equally plain: **get the full stack running → migrate t
 
 ## 🚀 Quick start
 
+### One-liner (production / fresh server)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | bash
+```
+
+The script will: **check Docker/git** → **clone the repo** → **run the wizard** (domain / SMTP / admin password) → **build images** → **spin up containers** → **smoke test** → **print URLs**.
+
+Skip all prompts (CI / fully automated):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh \
+  | CI=true DOMAIN=your-domain.com bash
+```
+
+If you already `git clone`d:
+
+```bash
+make up          # = bash scripts/deploy.sh
+make logs        # tail logs
+make down        # stop
+make update      # pull latest + rebuild
+```
+
 ### Prerequisites
 
-- Node.js ≥ 22.13.0
-- pnpm ≥ 11.0.0
-- MariaDB ≥ 10.5 (production only; local dev can use SQLite with zero setup)
+- Server: any Linux with Docker (≥ 2 GB RAM)
+- Ports 80 / 443 free
+- Local dev additionally needs: Node.js ≥ 22.13 · pnpm ≥ 11
 
 ### Local dev (SQLite, no database needed)
 
@@ -177,21 +201,24 @@ npx ts-node -r tsconfig-paths/register node_modules/.bin/typeorm migration:gener
 **Zero-experience walkthrough** → [docs/deploy-beginner.md](./docs/deploy-beginner.md)
 **Full reference** → [docs/deployment.md](./docs/deployment.md)
 
-### Wizard deploy (recommended)
+### Three entry points — pick any
 
 ```bash
-bash scripts/deploy.sh                          # interactive
-DOMAIN=your-domain.com bash scripts/deploy.sh   # skip the domain prompt
+# 1. Remote one-liner (recommended, works on a bare server)
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | bash
+
+# 2. Already cloned
+make up
+
+# 3. Classic script
+bash scripts/deploy.sh
+DOMAIN=your-domain.com bash scripts/deploy.sh   # skip domain prompt
 CI=true bash scripts/deploy.sh                  # non-interactive (CI/CD)
 ```
 
-The wizard collects **domain / IP → ACME email → SMTP (optional) → admin password (auto / custom / empty)**, writes `.env.docker`, then a single command boots everything:
+All three converge on the same deploy wizard: **domain / IP → ACME email → SMTP (optional) → admin password**, writes `.env.docker`, then automatically runs `up -d --build`.
 
-```bash
-docker compose --env-file .env.docker up -d --build
-```
-
-### Manual deploy
+### Manual deploy (skip the wizard, fill .env yourself)
 
 ```bash
 cp docker/.env.example .env.docker
@@ -225,19 +252,31 @@ ACME_CA=https://acme-v02.api.letsencrypt.org/directory
 ## 🛠 Common commands
 
 ```bash
-# Dev
+# Makefile (recommended)
+make help        # list every target
+make up          # deploy / start
+make down        # stop
+make logs        # tail logs
+make ps          # container status
+make update      # pull latest + rebuild
+make backup      # dump the database
+make smoke       # smoke test
+make dev         # local pnpm three-in-one
+make clean       # stop + wipe volumes (dangerous, asks for y)
+
+# Raw pnpm
 pnpm dev / dev:backend / dev:frontend / dev:admin
 pnpm build
 pnpm lint
 pnpm format
 
-# Docker
+# Raw docker compose
 docker compose --env-file .env.docker ps
 docker compose --env-file .env.docker logs -f app
 docker compose --env-file .env.docker restart app
 docker compose --env-file .env.docker down
 
-# Backup / update / smoke
+# Standalone scripts
 bash scripts/backup-db.sh [output_dir]
 bash scripts/update.sh
 bash scripts/smoke-test.sh [domain]

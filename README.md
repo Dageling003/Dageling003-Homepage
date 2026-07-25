@@ -127,11 +127,35 @@
 
 ## 🚀 快速开始
 
+### 一条命令上线（生产 / 全新服务器）
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | bash
+```
+
+脚本会：**检查 Docker/git** → **克隆代码** → **启动向导**（域名 / SMTP / 管理员密码）→ **构建镜像** → **拉起容器** → **冒烟测试** → **打印访问地址**。
+
+想跳过所有交互（CI / 全自动）：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh \
+  | CI=true DOMAIN=your-domain.com bash
+```
+
+已经 `git clone` 过的老手：
+
+```bash
+make up          # = bash scripts/deploy.sh
+make logs        # 看日志
+make down        # 停止
+make update      # 拉最新代码重建
+```
+
 ### 前置
 
-- Node.js ≥ 22.13.0
-- pnpm ≥ 11.0.0
-- MariaDB ≥ 10.5（仅生产；本地开发可用 SQLite 免装）
+- 服务器：任何能跑 Docker 的 Linux（内存 ≥ 2 GB）
+- 端口：80 / 443 未被占用
+- 本地开发额外需要：Node.js ≥ 22.13 · pnpm ≥ 11
 
 ### 本地开发（SQLite，无需数据库）
 
@@ -177,21 +201,24 @@ npx ts-node -r tsconfig-paths/register node_modules/.bin/typeorm migration:gener
 **零基础一步一步走** → [docs/deploy-beginner.md](./docs/deploy-beginner.md)
 **完整参考** → [docs/deployment.md](./docs/deployment.md)
 
-### 向导部署（推荐）
+### 三种入口，任选其一
 
 ```bash
-bash scripts/deploy.sh                          # 交互式
+# ① 远程一键（推荐，裸机可用）
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | bash
+
+# ② 已 clone 的老手
+make up
+
+# ③ 传统脚本
+bash scripts/deploy.sh
 DOMAIN=your-domain.com bash scripts/deploy.sh   # 跳过域名交互
 CI=true bash scripts/deploy.sh                  # 零交互（CI/CD）
 ```
 
-脚本依次询问：**域名 / IP → ACME 邮箱 → SMTP（可选）→ 管理员密码（自动 / 自定义 / 留空）**，生成 `.env.docker` 后可用一条命令启动：
+三条路径最终都会执行相同的 deploy 向导：**域名 / IP → ACME 邮箱 → SMTP（可选）→ 管理员密码**，生成 `.env.docker` 后自动 `up -d --build`。
 
-```bash
-docker compose --env-file .env.docker up -d --build
-```
-
-### 手动部署
+### 手动部署（不走向导，自己填 .env）
 
 ```bash
 cp docker/.env.example .env.docker
@@ -225,19 +252,31 @@ ACME_CA=https://acme-v02.api.letsencrypt.org/directory
 ## 🛠 常用命令
 
 ```bash
-# 开发
+# Makefile（推荐）
+make help        # 列出所有命令
+make up          # 部署 / 启动
+make down        # 停止
+make logs        # 实时日志
+make ps          # 容器状态
+make update      # 拉最新代码 + 重建
+make backup      # 备份数据库
+make smoke       # 冒烟测试
+make dev         # 本地 pnpm 三端并行
+make clean       # 停并清卷（危险，需 y 确认）
+
+# 原生 pnpm
 pnpm dev / dev:backend / dev:frontend / dev:admin
 pnpm build
 pnpm lint
 pnpm format
 
-# Docker
+# 原生 docker compose
 docker compose --env-file .env.docker ps
 docker compose --env-file .env.docker logs -f app
 docker compose --env-file .env.docker restart app
 docker compose --env-file .env.docker down
 
-# 备份 / 更新 / 冒烟
+# 独立脚本
 bash scripts/backup-db.sh [output_dir]
 bash scripts/update.sh
 bash scripts/smoke-test.sh [domain]
