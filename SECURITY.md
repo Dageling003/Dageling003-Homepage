@@ -31,8 +31,9 @@
 
 - **GitHub Security Advisory**（推荐）：<https://github.com/Dageling003/Dageling003-Homepage/security/advisories/new>
   - 私密、可协作、可分配 CVE
-- **邮件**：`security@dageling003.top`
+- **邮件**：`2505472941@qq.com`
   - 建议使用邮件正文，避免加密附件；如果内容敏感可先发无信息邮件确认联系方式后再补发详情
+  - ⚠️ 我可能不会立即查看邮件，但会尽力及时处理，请耐心等待
 
 ### 请在上报中包含
 

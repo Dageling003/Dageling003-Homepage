@@ -39,26 +39,34 @@ function makeMailMock(captured: Captured): Partial<MailService> {
   return {
     isSmtpEnabled: () => false,
     sendPasswordResetEmail: jest.fn(
-      async (_to: string, _username: string, _url: string, rawToken: string) => {
+      (_to: string, _username: string, _url: string, rawToken: string) => {
         captured.emailSent = true;
         captured.rawToken = rawToken;
+        return Promise.resolve();
       },
-    ) as unknown as MailService['sendPasswordResetEmail'],
+    ),
     logResetTokenFallback: jest.fn(
       (_username: string, _url: string, rawToken: string) => {
         captured.fallbackHits += 1;
         captured.rawToken = rawToken;
       },
-    ) as unknown as MailService['logResetTokenFallback'],
+    ),
   };
 }
 
 describe('Auth flow (e2e)', () => {
   let app: INestApplication<App>;
-  const captured: Captured = { emailSent: false, rawToken: null, fallbackHits: 0 };
+  const captured: Captured = {
+    emailSent: false,
+    rawToken: null,
+    fallbackHits: 0,
+  };
   // sqljs 的 autoSave 会把 :memory: 也当作路径持久化到 cwd 下，导致跨次 e2e
   // 运行数据串。这里给每次运行一个 tmpdir 里的唯一路径，afterAll 清理。
-  const dbPath = join(tmpdir(), `homepage-e2e-${Date.now()}-${process.pid}.sqlite`);
+  const dbPath = join(
+    tmpdir(),
+    `homepage-e2e-${Date.now()}-${process.pid}.sqlite`,
+  );
 
   beforeAll(async () => {
     // ConfigModule.forRoot() 默认只 fill 尚未定义的 env，所以 beforeAll 里
@@ -121,8 +129,11 @@ describe('Auth flow (e2e)', () => {
       const res = await request(app.getHttpServer())
         .get('/api/auth/has-users')
         .expect(200);
-      expect(res.body.data.hasUsers).toBe(false);
-      expect(res.body.data.setupTokenRequired).toBe(false);
+      const body = res.body as {
+        data: { hasUsers: boolean; setupTokenRequired: boolean };
+      };
+      expect(body.data.hasUsers).toBe(false);
+      expect(body.data.setupTokenRequired).toBe(false);
     });
 
     it('POST /api/auth/login (no user) → 401', async () => {
@@ -152,21 +163,17 @@ describe('Auth flow (e2e)', () => {
       const res = await request(app.getHttpServer())
         .get('/api/auth/has-users')
         .expect(200);
-      expect(res.body.data.hasUsers).toBe(true);
+      const body = res.body as { data: { hasUsers: boolean } };
+      expect(body.data.hasUsers).toBe(true);
     });
 
     it('POST /api/auth/create-first-admin (第二次) → 应该被 service 拒绝', async () => {
       // 第一位创建后应该返回业务错误（4xx），不允许再无授权创建
-      await request(app.getHttpServer())
+      const res = await request(app.getHttpServer())
         .post('/api/auth/create-first-admin')
-        .send({ username: 'another', password: 'another-password-8+' })
-        .expect((res) => {
-          if (res.status < 400 || res.status >= 500) {
-            throw new Error(
-              `expected 4xx, got ${res.status}: ${JSON.stringify(res.body)}`,
-            );
-          }
-        });
+        .send({ username: 'another', password: 'another-password-8+' });
+      expect(res.status).toBeGreaterThanOrEqual(400);
+      expect(res.status).toBeLessThan(500);
     });
   });
 
@@ -182,17 +189,18 @@ describe('Auth flow (e2e)', () => {
         .post('/api/auth/login')
         .send({ username: ADMIN_USERNAME, password: ADMIN_PASSWORD })
         .expect(200);
-      expect(typeof res.body.accessToken).toBe('string');
-      expect(res.body.accessToken.length).toBeGreaterThan(20);
-      bearerToken = res.body.accessToken;
+      const body = res.body as { accessToken: string };
+      expect(typeof body.accessToken).toBe('string');
+      expect(body.accessToken.length).toBeGreaterThan(20);
+      bearerToken = body.accessToken;
 
-      const setCookie = res.headers['set-cookie'];
-      const cookies = Array.isArray(setCookie) ? setCookie : [setCookie];
-      const authCookie = cookies.find((c: string) => c?.startsWith('hp_token='));
+      const setCookie = res.headers['set-cookie'] as string[] | undefined;
+      const cookies = Array.isArray(setCookie) ? setCookie : [];
+      const authCookie = cookies.find((c) => c.startsWith('hp_token='));
       expect(authCookie).toBeDefined();
       expect(authCookie).toMatch(/HttpOnly/);
       expect(authCookie).toMatch(/SameSite=Strict/);
-      cookieHeader = authCookie!.split(';')[0]; // 'hp_token=xxxxx'
+      cookieHeader = (authCookie as string).split(';')[0]; // 'hp_token=xxxxx'
     });
 
     it('POST /api/auth/login (wrong password) → 401', async () => {
@@ -204,10 +212,10 @@ describe('Auth flow (e2e)', () => {
 
     it('POST /api/auth/login (short password) → 400 by DTO', async () => {
       // login.dto MinLength(8)
-      await request(app.getHttpServer())
+      const res = await request(app.getHttpServer())
         .post('/api/auth/login')
-        .send({ username: ADMIN_USERNAME, password: 'short' })
-        .expect(400);
+        .send({ username: ADMIN_USERNAME, password: 'short' });
+      expect(res.status).toBe(400);
     });
 
     it('GET /api/auth/profile with Bearer → 200', async () => {
@@ -216,10 +224,14 @@ describe('Auth flow (e2e)', () => {
         .set('Authorization', `Bearer ${bearerToken}`)
         .expect(200);
       // service.getProfile 直接返回 user 对象（不含密码字段）
-      const body = res.body as { username?: string; password?: string };
-      expect(body.username ?? (res.body.data && res.body.data.username)).toBe(
-        ADMIN_USERNAME,
-      );
+      type ProfileResp = {
+        username?: string;
+        password?: string;
+        data?: { username?: string };
+      };
+      const body = res.body as ProfileResp;
+      const username = body.username ?? body.data?.username;
+      expect(username).toBe(ADMIN_USERNAME);
       // 关键：不能把 hash 泄出去
       const flat = JSON.stringify(res.body);
       expect(flat).not.toMatch(/\$2[aby]?\$/); // bcrypt hash 特征
@@ -237,9 +249,9 @@ describe('Auth flow (e2e)', () => {
         .post('/api/auth/logout')
         .set('Cookie', cookieHeader)
         .expect(200);
-      const setCookie = res.headers['set-cookie'];
-      const cookies = Array.isArray(setCookie) ? setCookie : [setCookie];
-      const cleared = cookies.find((c: string) => c?.startsWith('hp_token='));
+      const setCookie = res.headers['set-cookie'] as string[] | undefined;
+      const cookies = Array.isArray(setCookie) ? setCookie : [];
+      const cleared = cookies.find((c) => c.startsWith('hp_token='));
       expect(cleared).toBeDefined();
       expect(cleared).toMatch(/Max-Age=0/);
     });
@@ -269,7 +281,8 @@ describe('Auth flow (e2e)', () => {
         .post('/api/auth/login')
         .send({ username: ADMIN_USERNAME, password: NEW_PASSWORD })
         .expect(200);
-      bearerToken = res.body.accessToken;
+      const body = res.body as { accessToken: string };
+      bearerToken = body.accessToken;
     });
   });
 
@@ -288,7 +301,8 @@ describe('Auth flow (e2e)', () => {
         .post('/api/auth/forgot-password')
         .send({ username: 'does-not-exist' })
         .expect(200);
-      expect(res.body.message).toContain('如果该用户存在');
+      const body = res.body as { message?: string };
+      expect(body.message).toContain('如果该用户存在');
       expect(captured.rawToken).toBeNull(); // 没有为不存在的用户生成 token
     });
 
@@ -358,7 +372,8 @@ describe('Auth flow (e2e)', () => {
         .post('/api/auth/login')
         .send({ username: ADMIN_USERNAME, password: RESET_PASSWORD })
         .expect(200);
-      expect(typeof res.body.accessToken).toBe('string');
+      const loginBody = res.body as { accessToken: string };
+      expect(typeof loginBody.accessToken).toBe('string');
 
       // 同一个 token 不能二次使用
       await request(app.getHttpServer())

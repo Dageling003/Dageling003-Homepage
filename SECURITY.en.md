@@ -31,7 +31,7 @@ Check your version: `cat package.json | grep version` or see [CHANGELOG.md](./CH
 
 - **GitHub Security Advisory** (recommended): <https://github.com/Dageling003/Dageling003-Homepage/security/advisories/new>
   - Private, collaborative, CVE-capable
-- **Email**: `security@dageling003.top`
+- **Email**: `2505472941@qq.com`
   - Prefer plain-text email; if the content is sensitive, send an empty introductory email first to confirm the contact channel
 
 ### Please include

@@ -21,6 +21,7 @@ describe('AuditService', () => {
   const repo = { findAndCount, save, create };
 
   beforeEach(async () => {
+    process.env.AUDIT_ENABLED = 'true';
     const mod: TestingModule = await Test.createTestingModule({
       providers: [
         AuditService,
