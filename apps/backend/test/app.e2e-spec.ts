@@ -1,13 +1,33 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { existsSync, unlinkSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 
 describe('Homepage API (e2e)', () => {
   let app: INestApplication<App>;
+  // 与 auth-flow.e2e-spec.ts 同思路：给本 suite 独立 sqljs 数据库，
+  // 避免被本地 apps/backend/.env（DB_TYPE=mariadb）串场。
+  const dbPath = join(tmpdir(), `homepage-e2e-app-${Date.now()}-${process.pid}.sqlite`);
 
   beforeAll(async () => {
+    // NODE_ENV=test 触发 app.module 里 ThrottlerModule.skipIf，避免 @Throttle 命中
+    process.env.NODE_ENV = 'test';
+    process.env.JWT_SECRET = 'e2e-jwt-secret-key-do-not-use-in-prod';
+    process.env.DB_TYPE = 'sqljs';
+    process.env.DB_SQLITE_PATH = dbPath;
+    process.env.DB_SYNCHRONIZE = 'true';
+    // 显式启用密码重置，让 POST /auth/forgot-password 走真实业务路径
+    // （返回 200 + anti-enumeration message），而不是被 controller 挡成 404
+    process.env.PASSWORD_RESET_ENABLED = 'true';
+    process.env.SETUP_TOKEN = '';
+    process.env.DEFAULT_ADMIN_PASSWORD = '';
+    process.env.SMTP_HOST = '';
+    process.env.SMTP_PORT = '';
+
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -33,6 +53,13 @@ describe('Homepage API (e2e)', () => {
 
   afterAll(async () => {
     await app.close();
+    if (existsSync(dbPath)) {
+      try {
+        unlinkSync(dbPath);
+      } catch {
+        // 忽略清理失败
+      }
+    }
   });
 
   // ============================================================
