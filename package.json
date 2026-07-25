@@ -19,5 +19,9 @@
   "engines": {
     "node": ">=22.13.0",
     "pnpm": ">=11.0.0"
+  },
+  "devDependencies": {
+    "sharp": "^0.35.3",
+    "svgo": "^4.0.2"
   }
 }
