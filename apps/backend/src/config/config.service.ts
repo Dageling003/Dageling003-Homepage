@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -10,6 +11,7 @@ import { SiteConfig } from './entities/config.entity';
 import { CreateConfigDto } from './dto/create-config.dto';
 import { UpdateConfigDto } from './dto/update-config.dto';
 import { AuditService } from '../audit/audit.service';
+import { assertConfigValueShape } from './dto/config-value.validators';
 
 @Injectable()
 export class SiteConfigService {
@@ -53,6 +55,14 @@ export class SiteConfigService {
     });
     if (existing) {
       throw new ConflictException(`配置项 '${dto.configKey}' 已存在`);
+    }
+    // BUG-006 修复：对已知 JSON shape 的 key 做结构校验，脏数据无法入库
+    try {
+      assertConfigValueShape(dto.configKey, dto.configValue);
+    } catch (err) {
+      throw new BadRequestException(
+        err instanceof Error ? err.message : String(err),
+      );
     }
     const config = this.configRepository.create(dto);
     const saved = await this.configRepository.save(config);
@@ -99,6 +109,16 @@ export class SiteConfigService {
     operator?: string,
   ): Promise<SiteConfig> {
     const config = await this.findByKey(key);
+    // BUG-006 修复：更新链路同样阻断脏 JSON 入库
+    if (dto.configValue !== undefined) {
+      try {
+        assertConfigValueShape(key, dto.configValue);
+      } catch (err) {
+        throw new BadRequestException(
+          err instanceof Error ? err.message : String(err),
+        );
+      }
+    }
     // 截断旧值用于审计日志，避免泄露完整个人信息
     const truncate = (v: string) =>
       v.length > 100 ? v.slice(0, 100) + '…' : v;
@@ -149,17 +169,20 @@ export class SiteConfigService {
     const count = await this.configRepository.count();
     if (count > 0) return;
 
+    // BUG-004 修复：seed 数据一律使用占位符，避免任何人 fork 部署后未配置
+    // 就把原作者姓名/生日/学校/省份泄露到公网首页。占位内容与 README 说的
+    // 「截图中隐私信息已替换为占位符」保持同一口径。
     const defaults: {
       configKey: string;
       configValue: string;
       category: string;
     }[] = [
-      { configKey: 'name', configValue: '鹊楠', category: 'info' },
+      { configKey: 'name', configValue: '示例姓名', category: 'info' },
       { configKey: 'infoSex', configValue: '♂', category: 'info' },
       { configKey: 'infoSexDisplay', configValue: 'symbol', category: 'info' },
-      { configKey: 'infoBirth', configValue: '2001-06-15', category: 'info' }, // 自动计算年龄和星座
-      { configKey: 'infoProvince', configValue: '江苏省', category: 'info' },
-      { configKey: 'infoSchool', configValue: '南通大学', category: 'info' },
+      { configKey: 'infoBirth', configValue: '2000-01-01', category: 'info' }, // 自动计算年龄和星座
+      { configKey: 'infoProvince', configValue: '示例省份', category: 'info' },
+      { configKey: 'infoSchool', configValue: '示例大学', category: 'info' },
       {
         configKey: 'avatarUrl',
         configValue: '/default-avatar.svg',
@@ -167,7 +190,7 @@ export class SiteConfigService {
       },
       {
         configKey: 'professions',
-        configValue: '["前端切图仔","摄影爱好者","猫猫教"]',
+        configValue: '["示例职业 A","示例职业 B","示例爱好"]',
         category: 'info',
       },
       { configKey: 'infoShowName', configValue: '1', category: 'info' },
