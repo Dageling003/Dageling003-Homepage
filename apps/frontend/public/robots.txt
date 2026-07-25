@@ -1,0 +1,20 @@
+# robots.txt — 鹊楠的个人主页
+# 规则很简单：整站允许收录，管理后台与 API 拒绝，指向 sitemap。
+# 详细语法：https://www.robotstxt.org/robotstxt.html
+
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /api/
+Disallow: /files/
+
+# 常见 SEO 骚扰爬虫可按需拉黑：
+# User-agent: AhrefsBot
+# Disallow: /
+# User-agent: SemrushBot
+# Disallow: /
+
+# 站点地图 —— 部署前请把 example.com 替换成实际域名，
+# 或直接使用 VITE_SITE_URL 构建生成的绝对地址。
+Sitemap: https://example.com/sitemap.xml

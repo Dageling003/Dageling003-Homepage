@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@iconify/vue": "5.0.0",
+    "@unhead/vue": "^3.2.3",
     "@unocss/reset": "^66.7.0",
     "@vueuse/core": "^12.0.0",
     "axios": "^1.18.1",

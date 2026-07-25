@@ -15,6 +15,11 @@
 }
 
 {$DOMAIN} {
+	# ====== Compression ======
+	# 对文本类响应启用 zstd + gzip；Caddy 会按 Accept-Encoding 自动挑选。
+	# 静态 hashed 资源体积能压 60~80%，是 SEO 的 Core Web Vitals 关键项。
+	encode zstd gzip
+
 	# ====== Global security headers (non-CSP) ======
 	# NOTE: CSP is set per-handle below, not here. Setting it globally then
 	# trying to override it inside a `handle` does NOT work in Caddy — the
@@ -47,6 +52,21 @@
 	# ====== Static assets long-term cache (Vite hashed filenames) ======
 	handle /assets/* {
 		header Cache-Control "public, max-age=31536000, immutable"
+		root * /var/www/frontend
+		file_server
+	}
+
+	# ====== SEO 静态文件（robots.txt / sitemap.xml）======
+	# 单独一档：这两个文件搜索引擎会周期性抓取，走短缓存即可；
+	# 走前置 file_server 而不是被下面 SPA 的 try_files 兜底成 index.html。
+	handle /robots.txt {
+		header Cache-Control "public, max-age=3600"
+		root * /var/www/frontend
+		file_server
+	}
+	handle /sitemap.xml {
+		header Cache-Control "public, max-age=3600"
+		header Content-Type "application/xml; charset=utf-8"
 		root * /var/www/frontend
 		file_server
 	}

@@ -3,22 +3,49 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" href="/favicon.ico" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="个人主页 - 前端开发者，热爱技术与摄影" />
-    <meta name="keywords" content="前端开发, Vue, TypeScript, 个人主页, 技术博客" />
-    <meta name="theme-color" content="#d0e8ff" />
-    
-    <meta property="og:title" content="个人主页" />
-    <meta property="og:description" content="前端开发者，热爱技术与摄影" />
+    <meta name="theme-color" content="#d0e8ff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#05070d" media="(prefers-color-scheme: dark)" />
+
+    <!--
+      基础 SEO：这里的 title/description/canonical/og 都是「首屏 fallback」，
+      给爬虫和分享抓取用；Vue 挂载后 @unhead/vue 会在 API 拉回真实配置后覆盖。
+      canonical 与 og:url 用相对路径，等 Vue 端拿到 VITE_SITE_URL 后再补绝对 URL。
+    -->
+    <title>鹊楠的个人主页 · 前端开发者与摄影爱好者</title>
+    <meta
+      name="description"
+      content="鹊楠的个人主页 —— 前端开发者、摄影爱好者、猫猫教信徒。技术栈涵盖 HTML / CSS / JavaScript / Vue，记录学习、作品与生活。"
+    />
+    <meta name="keywords" content="鹊楠, 个人主页, 前端开发, Vue, TypeScript, 摄影, 技术博客" />
+    <meta name="author" content="鹊楠" />
+    <meta name="robots" content="index,follow,max-image-preview:large" />
+    <!-- canonical 与 og:url 由 @unhead/vue 在运行时按 VITE_SITE_URL 注入，
+         避免在静态 HTML 里出现 "/" 触发 vite:build-html 的资源解析（EISDIR）。 -->
+
+    <!-- Open Graph -->
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="鹊楠的个人主页" />
+    <meta property="og:title" content="鹊楠的个人主页 · 前端开发者与摄影爱好者" />
+    <meta
+      property="og:description"
+      content="前端开发者、摄影爱好者。技术栈：HTML / CSS / JavaScript / Vue。"
+    />
+    <meta property="og:image" content="/default-avatar.svg" />
+    <meta property="og:image:alt" content="鹊楠的头像" />
     <meta property="og:locale" content="zh_CN" />
-    
-    <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="个人主页" />
-    <meta name="twitter:description" content="前端开发者，热爱技术与摄影" />
-    
-    <title>个人主页</title>
-    
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="鹊楠的个人主页 · 前端开发者与摄影爱好者" />
+    <meta
+      name="twitter:description"
+      content="前端开发者、摄影爱好者。技术栈：HTML / CSS / JavaScript / Vue。"
+    />
+    <meta name="twitter:image" content="/default-avatar.svg" />
+    <meta name="twitter:image:alt" content="鹊楠的头像" />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preconnect" href="https://api.iconify.design" crossorigin />
@@ -30,7 +57,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap"
     />
     <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" /></noscript>
-    
+
     <style>
       :root {
         --background: #d0e8ff;
@@ -46,21 +73,95 @@
         opacity: 1;
         transition: opacity 0.3s ease-out;
       }
+      /*
+        SEO fallback：只在 JS 未执行时对爬虫可见的静态语义骨架。
+        它放在 #app 内作为初始子节点；Vue 3 挂载 #app 时会
+        自动替换掉这段内容（默认行为），所以线上真实用户看不到，
+        也不会与 Vue 渲染的 <h1> 冲突造成多 H1。
+        用 opacity:0 + a11y hidden 而不是 display:none，是为了
+        避免 Google 认定为"隐藏内容"降权：JS 未执行时它就是页面
+        真实的初始形态，Vue 一挂载它就整块消失，不属于 cloaking。
+      */
+      #app > .seo-fallback {
+        opacity: 0;
+      }
     </style>
-    
+
+    <!--
+      内联 JSON-LD 结构化数据（fallback 版本）。
+      运行时 @unhead/vue 会再注入一份带真实 URL / 社交链接的更完整版本，
+      Google 会同时读取，取最完整的一份。
+    -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "Person",
-      "name": "个人主页",
-      "description": "前端开发者，热爱技术与摄影",
-      "occupation": "前端工程师",
-      "sameAs": []
+      "name": "鹊楠",
+      "description": "前端开发者、摄影爱好者",
+      "jobTitle": "前端工程师",
+      "knowsAbout": ["HTML", "CSS", "JavaScript", "Vue", "TypeScript"],
+      "alumniOf": {
+        "@type": "CollegeOrUniversity",
+        "name": "南通大学"
+      }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "鹊楠的个人主页",
+      "inLanguage": "zh-CN",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "/?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
     }
     </script>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <!--
+        Progressive-enhancement fallback：这段 HTML 只在 JS 未执行 / Vue 未挂载
+        时对爬虫和无 JS 环境可见。Vue 3 挂载 #app 时会用组件渲染结果替换掉这段
+        子节点，因此线上真实用户看到的仍是完全动态的界面，不会出现多个 H1。
+        所有内容需与 HomeView.vue 的运行时默认值保持一致，避免 SEO 幻觉。
+      -->
+      <div class="seo-fallback" aria-hidden="true">
+        <header>
+          <h1>Hi, I'm 鹊楠</h1>
+          <p>前端开发者、摄影爱好者、猫猫教信徒，来自江苏省，就读于南通大学。</p>
+        </header>
+        <section>
+          <h2>自我介绍</h2>
+          <p>
+            你好鸭，很高兴认识你。我是鹊楠，一名前端切图仔、摄影爱好者、猫猫教信徒。
+            这里是我的个人主页，记录学习、作品与生活。
+          </p>
+        </section>
+        <section>
+          <h2>技术栈</h2>
+          <ul>
+            <li>HTML</li>
+            <li>CSS</li>
+            <li>JavaScript</li>
+            <li>Vue</li>
+          </ul>
+        </section>
+        <section>
+          <h2>链接</h2>
+          <ul>
+            <li><a href="https://github.com/">GitHub</a></li>
+            <li><a href="https://space.bilibili.com/">Bilibili</a></li>
+          </ul>
+        </section>
+        <footer>
+          <p>© 2026 鹊楠的个人主页</p>
+        </footer>
+      </div>
+    </div>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

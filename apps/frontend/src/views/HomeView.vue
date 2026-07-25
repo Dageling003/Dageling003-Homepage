@@ -1,12 +1,21 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { Icon } from '@iconify/vue'
+import { useHead, useSeoMeta } from '@unhead/vue'
 import { getAllConfigs } from '@/api'
 import TypewriterText from '@/components/TypewriterText.vue'
 import QuickLinks from '@/components/QuickLinks.vue'
 import TimeGreeting from '@/components/TimeGreeting.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import AnimatedLogo from '@/components/AnimatedLogo.vue'
+
+const SITE_URL = (import.meta.env.VITE_SITE_URL || '').replace(/\/$/, '')
+function absUrl(path: string): string {
+  if (!path) return SITE_URL || '/'
+  if (/^https?:\/\//i.test(path)) return path
+  const p = path.startsWith('/') ? path : `/${path}`
+  return SITE_URL ? `${SITE_URL}${p}` : p
+}
 
 const TECH_ICONS: Record<string, string> = {
   HTML: 'logos:html-5',
@@ -115,6 +124,86 @@ const typewriterWords = ref([
   'May you happy every day ✨',
 ])
 
+const siteTitle = ref('鹊楠的个人主页 · 前端开发者与摄影爱好者')
+const siteDescription = ref('前端开发者、摄影爱好者、猫猫教信徒。技术栈：HTML / CSS / JavaScript / Vue。')
+
+const seoTitle = computed(() => siteTitle.value)
+const seoDescription = computed(() => {
+  const profs = professions.value?.length ? professions.value.join('、') : '前端开发者'
+  return `${name.value} —— ${profs}。${siteDescription.value}`
+})
+const seoImage = computed(() => absUrl(avatarUrl.value || '/default-avatar.svg'))
+const seoUrl = computed(() => absUrl('/'))
+
+useSeoMeta({
+  title: seoTitle,
+  description: seoDescription,
+  ogTitle: seoTitle,
+  ogDescription: seoDescription,
+  ogImage: seoImage,
+  ogImageAlt: computed(() => `${name.value}的头像`),
+  ogUrl: seoUrl,
+  ogType: 'website',
+  ogSiteName: siteTitle,
+  ogLocale: 'zh_CN',
+  twitterCard: 'summary_large_image',
+  twitterTitle: seoTitle,
+  twitterDescription: seoDescription,
+  twitterImage: seoImage,
+  twitterImageAlt: computed(() => `${name.value}的头像`),
+})
+
+useHead({
+  link: [{ rel: 'canonical', href: seoUrl }],
+  script: [
+    {
+      type: 'application/ld+json',
+      key: 'ld-person',
+      innerHTML: computed(() =>
+        JSON.stringify({
+          '@context': 'https://schema.org',
+          '@type': 'Person',
+          name: name.value,
+          description: siteDescription.value,
+          jobTitle: professions.value?.[0] || '前端工程师',
+          url: seoUrl.value,
+          image: seoImage.value,
+          knowsAbout: techs.value.map(t => t.name),
+          alumniOf: infoSchool.value
+            ? { '@type': 'CollegeOrUniversity', name: infoSchool.value }
+            : undefined,
+          address: infoProvince.value
+            ? { '@type': 'PostalAddress', addressRegion: infoProvince.value, addressCountry: 'CN' }
+            : undefined,
+          sameAs: links.value.map(l => l.url).filter(u => /^https?:\/\//i.test(u)),
+        }),
+      ),
+    },
+    {
+      type: 'application/ld+json',
+      key: 'ld-website',
+      innerHTML: computed(() =>
+        JSON.stringify({
+          '@context': 'https://schema.org',
+          '@type': 'WebSite',
+          name: siteTitle.value,
+          url: seoUrl.value,
+          inLanguage: 'zh-CN',
+          potentialAction: {
+            '@type': 'SearchAction',
+            target: `${seoUrl.value}?q={search_term_string}`,
+            'query-input': 'required name=search_term_string',
+          },
+          author: {
+            '@type': 'Person',
+            name: name.value,
+          },
+        }),
+      ),
+    },
+  ],
+})
+
 function calcAgeFromBirth(birthStr: string): number | null {
   if (!birthStr) return null
   const birth = new Date(birthStr)
@@ -178,8 +267,10 @@ function genderLabel(): string {
 
 const configHandlers: Record<string, (val: string) => void> = {
   siteTitle: (v) => {
-    const title = v || '个人主页'
-    document.title = title
+    siteTitle.value = v || '鹊楠的个人主页 · 前端开发者与摄影爱好者'
+  },
+  siteDescription: (v) => {
+    if (v) siteDescription.value = v
   },
   name: (v) => { name.value = v },
   infoSex: (v) => { infoSex.value = v },
@@ -232,7 +323,9 @@ onMounted(async () => {
           <img
             :src="avatarUrl"
             :alt="`${name}的头像`"
-            loading="lazy"
+            loading="eager"
+            fetchpriority="high"
+            decoding="async"
             width="144"
             height="144"
             @error="onAvatarError"

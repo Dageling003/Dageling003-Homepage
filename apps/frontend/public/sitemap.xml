@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  sitemap.xml 模板 — 鹊楠的个人主页
+  单页应用只需要一条主 URL；等未来加了博客/项目页再补 <url> 节点。
+  部署前请把 example.com 替换成实际域名（或用构建脚本按 VITE_SITE_URL 生成）。
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://example.com/</loc>
+    <lastmod>2026-07-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>
