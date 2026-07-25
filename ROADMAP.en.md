@@ -4,93 +4,87 @@
   <a href="./ROADMAP.md">简体中文</a> · <strong>English</strong>
 </p>
 
-> This roadmap is not a promise — it's a **statement of product intent**. Items ship in priority order and get reshuffled based on community feedback.
-> Every shipped item leaves a trail in [CHANGELOG.md](./CHANGELOG.md), moving from `[Unreleased]` into `[x.y.z]`.
->
-> Last updated: 2026-07-25 · Current: v1.0.0
+Records what is currently in progress, what is planned, and what is intentionally out of scope.
+Shipped items leave a trail in [CHANGELOG.md](./CHANGELOG.md), moving from `[Unreleased]` into a version section.
+
+Last updated: 2026-07-25 · Current: v1.0.0
 
 ---
 
-## 🎯 Product positioning (important)
+## Project scope
 
-Dageling003-Homepage is not trying to "do everything". The project grew out of [Simple-Homepage](https://github.com/QNquenan/Simple-Homepage) and stays focused on one thing:
+Dageling003-Homepage is forked from [Simple-Homepage](https://github.com/QNquenan/Simple-Homepage). It targets a single use case:
 
-> **Give one person a long-lived personal homepage that never needs a JSON edit.**
+> A long-lived personal homepage where configuration goes through admin forms rather than direct JSON edits.
 
-That's why this roadmap also lists **what we won't build** — "won't" is as important as "will".
-
----
-
-## 🟢 Short term (0–3 months, v1.x)
-
-Focus: **stability + lower barrier**.
-
-| Theme | Goal | Status |
-|-------|------|--------|
-| **One-command deploy** | `curl \| bash` from bare metal to HTTPS in ≤ 5 min | ✅ Shipped in v1.1 |
-| **Fill in the admin UI** | Every remaining hard-coded field goes into forms (social icons, footer copyright, SEO meta) | 🚧 In progress |
-| **Avatar: local + image bucket** | Self-host, Qiniu, S3, or direct URL — all supported | 📋 Planned |
-| **Theme presets** | At least 5 first-party themes (beyond light/dark), switchable from admin | 📋 Planned |
-| **Public i18n** | Frontend i18n (zh / en); admin stays Chinese-first for now | 📋 Planned |
-| **Health self-check panel** | Admin dashboard shows SMTP / DB / disk / cert expiry | 📋 Planned |
-| **One-click upgrade** | `make update` diffs image tags, runs migrations, rolls containers | ✅ Partial |
+This roadmap also lists what is intentionally out of scope.
 
 ---
 
-## 🟡 Mid term (3–9 months, v1.5–v2.0)
+## Short term (v1.x)
 
-Focus: **evolve from "personal homepage" to "personal-brand landing page"**.
+Focus: stability and lowering the barrier to entry.
 
-| Theme | Goal | Notes |
-|-------|------|-------|
-| **Blog / posts module** | Markdown feed, not a heavyweight CMS — the point is "post a status update" | Decide: separate table vs reuse config? |
-| **Visitor comments / feedback** | Email delivery or admin aggregation; anti-bot + simple anti-spam | Depends on SMTP (already shipped) |
-| **Visitor analytics** | Privacy-first (no GA); lightweight self-hosted PV/UV | Data stays in local DB |
-| **RSS feed** | If the blog module ships, expose RSS 2.0 alongside | Depends on blog module |
-| **2FA / TOTP** | Second factor for admin login | See "Known limits" in [SECURITY.md](./SECURITY.md) |
-| **Theme marketplace** | Load community theme packs from a GitHub URL | Needs a theme package spec |
-| **API stabilization → v1** | Freeze `/api/v1/*`; breaking changes go to `/api/v2/*` | Prerequisite: publish an OpenAPI schema |
-
----
-
-## 🔵 Long term (9 months+, v2.x)
-
-Focus: **decouple from the current monorepo assumptions + grow the ecosystem**.
-
-| Theme | Goal | Notes |
-|-------|------|-------|
-| **Pluggable data sources** | Support Postgres / MySQL alongside MariaDB / SQLite | Requires abstracting TypeORM DataSource |
-| **Docker-free deploy** | systemd unit + static build artifacts, for VPS / NAS boxes without Docker | Lower priority |
-| **Import / export** | One-click import from Simple-Homepage, Hexo, Astro homepages | **PM debt: kind to legacy users** |
-| **CLI tooling** | `homepage-cli` for daily ops (content / backup / upgrade) | For terminal-native users |
-| **SSR / prerender** | Crawler-friendly first paint; social preview cards (OG images) | Decide: Nuxt vs custom |
+| Theme | Description | Status |
+|-------|-------------|--------|
+| One-command deploy | Run a single command to bring up an HTTPS service from bare metal | ✅ Shipped in v1.1 |
+| Admin UI coverage | Move remaining hard-coded fields (social icons, footer, SEO meta) into forms | 🚧 In progress |
+| Avatar sources | Self-hosted, Qiniu, S3, and image-bed URLs all supported | 📋 Planned |
+| Theme presets | 5 first-party themes, switchable from admin | 📋 Planned |
+| Public i18n | Frontend zh / en switching; admin stays Chinese-first | 📋 Planned |
+| Health self-check | Admin dashboard shows SMTP / DB / disk / cert expiry | 📋 Planned |
+| One-click upgrade | `make update` diffs image tags, runs migrations, restarts containers | ✅ Partial |
 
 ---
 
-## 🚫 Non-goals
+## Mid term (v1.5–v2.0)
 
-The following items are **intentionally out of scope**. If you need them, please fork or start a separate project.
+Focus: extend from "personal homepage" to "personal-brand landing page".
 
-- ❌ **Multi-user / multi-tenant**: this project serves "one person's homepage". Use Ghost / WordPress if you need shared editors.
-- ❌ **Heavyweight CMS**: category trees, threaded comments, editorial workflows … not happening. The blog module (mid term) stays minimal.
-- ❌ **Drag-and-drop visual editor**: layout comes from **convention + forms**, not a Notion-style page builder.
-- ❌ **Mobile apps**: admin is already responsive; no iOS / Android clients.
-- ❌ **Closed-source commercial features**: everything stays under MIT.
-- ❌ **Baked-in LLM integrations**: any AI capability, if we build one, ships as an optional plugin — it will not sit in the core.
-- ❌ **IE / legacy-browser support**: only the two most recent major versions of modern browsers.
-
----
-
-## 🤝 How to participate
-
-- **Vote**: give issues a 👍 to signal priority
-- **Propose**: open a thread in [Discussions](https://github.com/Dageling003/Dageling003-Homepage/discussions)
-- **Claim**: 📋 items are up for PRs — please open an issue first to align on design
-- **Report bugs / security**: see the [issue templates](https://github.com/Dageling003/Dageling003-Homepage/issues/new/choose) or [SECURITY.md](./SECURITY.md)
+| Theme | Description |
+|-------|-------------|
+| Blog / posts | Markdown feed aimed at short status updates; no category trees, threaded comments, or editorial workflow |
+| Visitor feedback | Email notification or admin aggregation, with anti-spam |
+| Visitor analytics | Self-hosted lightweight PV/UV; no Google Analytics |
+| RSS | RSS 2.0 feed once the blog module ships |
+| 2FA / TOTP | Second factor for admin login; see [SECURITY.md](./SECURITY.md) |
+| Theme marketplace | Load community theme packs from a GitHub URL; requires a theme package spec |
+| API v1 stabilization | Freeze `/api/v1/*`; publish an OpenAPI schema first |
 
 ---
 
-## 📚 Related docs
+## Long term (v2.x)
+
+- Pluggable data sources: abstract the TypeORM DataSource to support Postgres / MySQL
+- Docker-free deploy: systemd unit + static build artifacts; lower priority
+- Import / export: migrate content from Simple-Homepage, Hexo, Astro homepages
+- CLI tooling: `homepage-cli` for content / backup / upgrade from the terminal
+- SSR / prerender: crawler-friendly first paint, OG preview cards; Nuxt vs custom TBD
+
+---
+
+## Non-goals
+
+- Multi-user / multi-tenant: serves one person only.
+- Heavyweight CMS: no category trees, threaded comments, or editorial workflows.
+- Drag-and-drop visual editor: layout comes from conventions and forms.
+- Mobile apps: the responsive admin is sufficient.
+- Closed-source commercial features: stays under MIT.
+- Built-in LLM integrations: any AI capability, if added, ships as an optional plugin.
+- Legacy browser support: only the two most recent major versions of modern browsers.
+
+---
+
+## How to participate
+
+- Vote: 👍 on issues to signal priority
+- Propose: open a thread in [Discussions](https://github.com/Dageling003/Dageling003-Homepage/discussions)
+- Claim: planned items are open for PRs; open an issue first to align on design
+- Report bugs / security: see the [issue templates](https://github.com/Dageling003/Dageling003-Homepage/issues/new/choose) and [SECURITY.md](./SECURITY.md)
+
+---
+
+## Related docs
 
 - [CHANGELOG.md](./CHANGELOG.md) — shipped versions
 - [SECURITY.md](./SECURITY.md) — reporting + baseline

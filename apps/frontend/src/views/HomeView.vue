@@ -139,6 +139,12 @@ const typewriterWords = ref([
 
 const siteTitle = ref('鹊楠的个人主页 · 前端开发者与摄影爱好者')
 const siteDescription = ref('前端开发者、摄影爱好者、猫猫教信徒。技术栈：HTML / CSS / JavaScript / Vue。')
+const footerText = ref('© 2026 鹊楠的个人主页')
+const seoOgLocale = ref('zh_CN')
+const seoTwitterCard = ref<'summary' | 'summary_large_image'>('summary_large_image')
+const introGreeting = ref('你好鸭，很高兴认识你👋')
+const cardHeaderTech = ref('🛠️ 技术栈')
+const cardHeaderTodo = ref('📃 鸽子计划')
 
 const seoTitle = computed(() => siteTitle.value)
 const seoDescription = computed(() => {
@@ -158,8 +164,8 @@ useSeoMeta({
   ogUrl: seoUrl,
   ogType: 'website',
   ogSiteName: siteTitle,
-  ogLocale: 'zh_CN',
-  twitterCard: 'summary_large_image',
+  ogLocale: seoOgLocale,
+  twitterCard: seoTwitterCard,
   twitterTitle: seoTitle,
   twitterDescription: seoDescription,
   twitterImage: seoImage,
@@ -301,6 +307,12 @@ const configHandlers: Record<string, (val: string) => void> = {
   techs: (v) => { try { techs.value = JSON.parse(v) } catch (e) { console.error('[HomeView] techs parse failed:', e) } },
   todos: (v) => { try { todos.value = JSON.parse(v) } catch (e) { console.error('[HomeView] todos parse failed:', e) } },
   typewriterWords: (v) => { try { typewriterWords.value = JSON.parse(v) } catch (e) { console.error('[HomeView] typewriterWords parse failed:', e) } },
+  footerText: (v) => { footerText.value = v },
+  seoOgLocale: (v) => { seoOgLocale.value = v },
+  seoTwitterCard: (v) => { seoTwitterCard.value = v as 'summary' | 'summary_large_image' },
+  introGreeting: (v) => { introGreeting.value = v },
+  cardHeaderTech: (v) => { cardHeaderTech.value = v },
+  cardHeaderTodo: (v) => { cardHeaderTodo.value = v },
 }
 
 onMounted(async () => {
@@ -359,7 +371,7 @@ onMounted(async () => {
 
       <section class="content" role="main">
         <div class="card hover intro-card" role="region" aria-label="自我介绍">
-          <p class="intro-line">你好鸭，很高兴认识你👋</p>
+          <p class="intro-line">{{ introGreeting }}</p>
           <p class="intro-line">
             <template v-if="infoShowName === '1'">我叫 <b>{{ name }}</b></template>
             <template v-if="infoShowZodiac === '1' && displayZodiac">（ {{ displayZodiac }} ）</template>
@@ -375,7 +387,7 @@ onMounted(async () => {
 
         <div class="card-grid">
           <div class="card hover" role="region" aria-label="技术栈">
-            <div class="cardHeader">🛠️ 技术栈</div>
+             <div class="cardHeader">{{ cardHeaderTech }}</div>
             <div class="techStack" role="list">
               <div
                 v-for="(t, i) in techs"
@@ -391,7 +403,7 @@ onMounted(async () => {
           </div>
 
           <div class="card hover" role="region" aria-label="待办事项">
-            <div class="cardHeader">📃 鸽子计划</div>
+             <div class="cardHeader">{{ cardHeaderTodo }}</div>
             <div class="todoList" role="list">
               <div
                 v-for="(item, i) in todos"
@@ -426,7 +438,7 @@ onMounted(async () => {
       </section>
 
       <footer class="footer" role="contentinfo">
-        <p>© 2026 鹊楠的个人主页</p>
+        <p>{{ footerText }}</p>
       </footer>
     </article>
   </main>

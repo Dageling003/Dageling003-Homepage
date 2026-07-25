@@ -25,4 +25,10 @@ export const FIELD_DEFS: Record<string, {
   techs:          { label: '技术栈',      section: 'techs', desc: '技术栈方块，每个 {name} 对应一个彩色图标',  example: '[{"name":"Vue"},{"name":"HTML"},{"name":"CSS"}]', jsonType: 'json-techs', frontendLocation: '自我介绍 → 技术栈区域' },
   todos:          { label: '待办事项',    section: 'todos', desc: '"我的一些鸽子计划" 列表',              example: '[{"text":"学Java","done":false},{"text":"回顾首页","done":true}]', jsonType: 'json-todos', frontendLocation: '左侧 Todo 卡片' },
   typewriterWords:{ label: '打字机文字',  section: 'todos', desc: '打字机效果轮播的文字列表',               example: '["欢迎来到我的主页 🎉","累了就休息一下吧~ 😊"]', jsonType: 'json-array', frontendLocation: '右侧打字机卡片' },
+  footerText:     { label: '页脚文案',   section: 'info',  desc: '首页底部版权信息，如 © 2026 我的主页',      example: '© 2026 示例站点', frontendLocation: '页脚' },
+  seoOgLocale:    { label: 'OG 语言区域', section: 'info',  desc: 'Open Graph og:locale 值，控制社交预览语言', example: 'zh_CN',      frontendLocation: 'SEO meta' },
+  seoTwitterCard: { label: 'Twitter 卡片',section: 'info',  desc: 'Twitter Card 类型：summary 或 summary_large_image', example: 'summary_large_image', frontendLocation: 'SEO meta' },
+  introGreeting:  { label: '问候语',     section: 'info',  desc: '首页自我介绍上方的问候文字',                  example: '你好鸭，很高兴认识你👋', frontendLocation: '自我介绍' },
+  cardHeaderTech: { label: '技术栈标题', section: 'info',  desc: '技术栈卡片的标题文字',                       example: '🛠️ 技术栈',    frontendLocation: '技术栈卡片' },
+  cardHeaderTodo: { label: '待办卡片标题',section: 'info',  desc: '待办/计划卡片的标题文字',                    example: '📃 鸽子计划',  frontendLocation: '待办卡片' },
 }

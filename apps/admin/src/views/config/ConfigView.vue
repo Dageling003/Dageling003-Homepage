@@ -145,6 +145,10 @@ const INFO_GROUPS = [
   { label: '职业标签', keys: ['professions'] },
   { label: '头像', keys: ['avatarUrl'] },
   { label: '前台展示开关', keys: ['infoShowName', 'infoShowZodiac', 'infoShowBirth'] },
+  { label: '问候语', keys: ['introGreeting'] },
+  { label: '卡片标题', keys: ['cardHeaderTech', 'cardHeaderTodo'] },
+  { label: '页脚', keys: ['footerText'] },
+  { label: 'SEO', keys: ['seoOgLocale', 'seoTwitterCard'] },
 ]
 
 // Boolean (1/0) toggle keys
