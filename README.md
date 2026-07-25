@@ -5,7 +5,7 @@
 <h1 align="center">Dageling003-Homepage</h1>
 
 <p align="center">
-  轻量、可自托管的个人主页与可视化管理后台 —— 用表单驱动主页内容，无需硬编码 JSON。
+  站在 <a href="https://github.com/QNquenan/Simple-Homepage">Simple-Homepage</a> 的肩膀上 —— 保留极简个人主页的美学基因，加一个<strong>可视化管理后台</strong>，让「改主页」从改 JSON 变成点几下鼠标。
 </p>
 
 <p align="center">
@@ -26,6 +26,31 @@
 - **在线预览**：<https://dageling003.top/>（徽章离线时以仓库截图为准）
 - **技术栈**：Vue 3 + Vite 前台/后台 · NestJS 11 + TypeORM API · MariaDB / SQLite 双数据源 · Caddy 反代 + 自动 HTTPS
 - **交付形态**：pnpm monorepo（前台 / 后台 / API 三包）+ Docker Compose 三服务（app / caddy / mariadb）
+
+---
+
+## 💡 缘起：为什么又造一个「个人主页」
+
+一开始只是想给自己搭个主页，翻到 [Simple-Homepage](https://github.com/QNquenan/Simple-Homepage)——审美在线、部署轻，但两个问题挡住了我：
+
+1. **改内容要动 JSON**：换个头像、加个链接、改句签名，都得回到编辑器手撸配置、重新发布
+2. **没有「后台」这层**：多人、多端、临时改内容都不顺手，也没法记录谁在什么时候改过什么
+
+于是决定沿着它的思路重做一次：**主页的美学不动，把「配置」变成「产品」**。
+
+| 维度 | Simple-Homepage | Dageling003-Homepage |
+|------|-----------------|----------------------|
+| 主页形态 | 极简单页 · 静态 | 极简单页 · 动态渲染 |
+| 内容管理 | 手改 JSON + 重新部署 | 可视化后台表单，即改即生效 |
+| 技术栈 | 纯静态 | Vue 3 + NestJS 全栈（前台 / 后台 / API 三包） |
+| 数据存储 | 无（写死配置） | MariaDB / SQLite 双源，审计留痕 |
+| 部署 | 静态托管 | Docker Compose 一键 + 自动 HTTPS |
+| 安全 | 无鉴权需求 | JWT + bcrypt + helmet + 限流 |
+
+迭代路线也很朴素：**跑通全栈 → 换成自己熟悉的 Vue 3 技术栈 → UI 迭代美化 → 加审计 / 向导 / 忘记密码等生产化能力**。所以你会看到这个仓库里既有极简主页的影子，也有一整套可自托管的后台产品。
+
+> 如果你只想要**一个 5 分钟能挂上线的静态主页**，Simple-Homepage 就够了，去点个 ⭐。<br />
+> 如果你想要**长期维护、多人协作、可视化改内容**的主页，欢迎继续往下看。
 
 ---
 
@@ -359,6 +384,7 @@ CSR SPA，`index.html` 内置 `<meta description/keywords>`、Open Graph、Twitt
 
 ## 🙏 致谢
 
+- **灵感来源**：[QNquenan/Simple-Homepage](https://github.com/QNquenan/Simple-Homepage) —— 本项目的起点，主页美学与「极简单页」的思路都从这里发芽
 - **前端**：Vue 3 · Vite · Pinia · UnoCSS · Ant Design Vue · ECharts · Iconify · VueUse · Axios · Day.js
 - **后端**：NestJS · TypeORM · MariaDB / sql.js · Passport · @nestjs/jwt · bcryptjs · class-validator · helmet · @nestjs/throttler · sharp · Multer · Nodemailer · Swagger
 - **部署**：Docker · Caddy · ZeroSSL / Let's Encrypt · PM2

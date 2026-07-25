@@ -5,7 +5,7 @@
 <h1 align="center">Dageling003-Homepage</h1>
 
 <p align="center">
-  A lightweight, self-hostable personal homepage with a visual admin dashboard — drive your homepage with forms, no hard-coded JSON.
+  Standing on the shoulders of <a href="https://github.com/QNquenan/Simple-Homepage">Simple-Homepage</a> — keeping the minimalist homepage DNA, adding a <strong>visual admin dashboard</strong> so editing your homepage becomes a few clicks instead of hand-editing JSON.
 </p>
 
 <p align="center">
@@ -26,6 +26,31 @@
 - **Live preview**: <https://dageling003.top/> (fall back to in-repo screenshots when the badge shows offline)
 - **Stack**: Vue 3 + Vite for the public site & admin · NestJS 11 + TypeORM API · MariaDB / SQLite dual data source · Caddy reverse proxy with automatic HTTPS
 - **Delivery**: pnpm monorepo (frontend / admin / backend) + Docker Compose with three services (app / caddy / mariadb)
+
+---
+
+## 💡 Origin: why another "personal homepage"
+
+I just wanted to build my own homepage. Then I found [Simple-Homepage](https://github.com/QNquenan/Simple-Homepage) — great taste, dead-simple to deploy. But two things kept getting in the way:
+
+1. **Editing means touching JSON**: swap an avatar, add a link, tweak a tagline → open the editor, hand-edit the config, redeploy
+2. **No "admin" layer**: multi-user, multi-device, quick edits are all awkward, and there is no record of who changed what and when
+
+So I decided to rebuild along the same idea: **keep the homepage aesthetic, turn "config" into a product.**
+
+| Dimension | Simple-Homepage | Dageling003-Homepage |
+|-----------|-----------------|----------------------|
+| Homepage form | Minimalist single page · static | Minimalist single page · dynamic |
+| Content management | Hand-edit JSON + redeploy | Visual admin forms, edits go live instantly |
+| Tech stack | Pure static | Full-stack Vue 3 + NestJS (frontend / admin / API) |
+| Data storage | None (config hard-coded) | MariaDB / SQLite dual source with audit trail |
+| Deployment | Static hosting | One-shot Docker Compose + automatic HTTPS |
+| Security | Not needed | JWT + bcrypt + helmet + rate limiting |
+
+The iteration path was equally plain: **get the full stack running → migrate to my familiar Vue 3 toolchain → iterate on UI polish → add audit log / setup wizard / password reset and other production hardening**. That is why this repo carries both a minimalist homepage DNA and a full self-hostable admin product.
+
+> Want **a 5-minute static homepage online**? Simple-Homepage is enough — go give it a ⭐.<br />
+> Want **a long-lived, multi-user, visually-managed homepage**? Read on.
 
 ---
 
@@ -359,6 +384,7 @@ Flow and conventions live in [`CONTRIBUTING.en.md`](./CONTRIBUTING.en.md) (Skill
 
 ## 🙏 Acknowledgements
 
+- **Inspiration**: [QNquenan/Simple-Homepage](https://github.com/QNquenan/Simple-Homepage) — the seed of this project; the homepage aesthetic and the "minimalist single page" idea both sprouted from here
 - **Frontend**: Vue 3 · Vite · Pinia · UnoCSS · Ant Design Vue · ECharts · Iconify · VueUse · Axios · Day.js
 - **Backend**: NestJS · TypeORM · MariaDB / sql.js · Passport · @nestjs/jwt · bcryptjs · class-validator · helmet · @nestjs/throttler · sharp · Multer · Nodemailer · Swagger
 - **Ops**: Docker · Caddy · ZeroSSL / Let's Encrypt · PM2
