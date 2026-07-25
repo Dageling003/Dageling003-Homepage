@@ -95,16 +95,29 @@ const RAW_LINKS = [
   { text: '邮箱', color: '#ea4335', url: 'mailto:hello@example.com' },
 ]
 
-const PLACEHOLDER_HOSTS = ['example.com', 'www.example.com']
+const PLACEHOLDER_HOSTS = ['example.com', 'www.example.com', 'example.org', 'example.net']
+
+function extractHost(url: string): string | null {
+  if (!url) return null
+  // mailto: / tel: 等 URL 的 hostname 是空的，需要从 pathname 中截取域名部分
+  const lower = url.toLowerCase().trim()
+  if (lower.startsWith('mailto:')) {
+    const addr = lower.slice(7).split('?')[0]
+    const at = addr.lastIndexOf('@')
+    return at >= 0 ? addr.slice(at + 1) : null
+  }
+  try {
+    return new URL(url).hostname.toLowerCase() || null
+  } catch {
+    return null
+  }
+}
 
 function isPlaceholderUrl(url: string): boolean {
   if (!url) return true
-  try {
-    const host = new URL(url).hostname.toLowerCase()
-    return PLACEHOLDER_HOSTS.includes(host)
-  } catch {
-    return false
-  }
+  const host = extractHost(url)
+  if (!host) return false
+  return PLACEHOLDER_HOSTS.includes(host)
 }
 
 const links = ref(RAW_LINKS.filter(l => !isPlaceholderUrl(l.url)))
