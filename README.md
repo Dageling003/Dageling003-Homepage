@@ -87,14 +87,29 @@
 
 - **前台展示**：亮/暗主题、打字机欢迎语、时光进度条、响应式布局（≥1024px 三栏 / <1024px 单栏）
 - **可视化后台**：Ant Design Vue 表单驱动，个人信息 / 快捷链接 / 技术栈 / 待办 / 打字机文字全表单化
-- **JWT + bcrypt**：12 rounds 哈希、无状态会话、路由守卫、`JWT_SECRET` 启动强校验
-- **审计日志**：每次配置变更落库，可按操作人 / 时间 / 模块筛选
-- **头像上传**：MIME + sharp metadata 双重校验，统一转 200×200 WebP
-- **智能填报**：生日 → 自动计算年龄 / 星座；34 省选择器 + 2909 所院校搜索
+- **JWT + bcrypt**：默认阈值新手友好（bcrypt=10、JWT≥16、密码≥8），全部可通过环境变量调高
+- **头像上传**：MIME + magic bytes 双重校验，统一转 200×200 WebP
+- **智能填报**：生日 → 自动计算年龄 / 星座；34 省选择器
 - **首次设置向导**：`/admin/setup` 图形化引导创建管理员 + 配置全站内容
-- **忘记密码**：SMTP 发信；未配置时降级写入 `docker logs`
 - **一键部署**：`bash scripts/deploy.sh` 向导 → `docker compose up -d --build`，自动 HTTPS（ZeroSSL 默认，国内可用）
-- **生产级安全**：helmet 安全头 + API 限流 + 请求体 1MB 限制 + 生产禁用 Swagger
+- **默认极简**：SQLite 单文件持久化（无需 MariaDB 容器）；限流 / 严格 CSP / 审计 / 忘记密码 / PWA / 背景动效等**重量级功能默认关闭**，需要时用户在 `.env` 显式开启
+
+### 可选功能开关（默认全关，需要时开启）
+
+后端 `.env.docker`：
+
+| 变量 | 说明 |
+|------|------|
+| `AUDIT_ENABLED=true` | 审计日志：登录 / 改密 / 配置变更落库，前后台 UI 显示「操作日志」入口 |
+| `PASSWORD_RESET_ENABLED=true` | 忘记密码 + SMTP：需同时配 `SMTP_*` 才能发邮件 |
+| `THROTTLE_ENABLED=true` | 全局限流 120/min（登录接口 5/min 硬限一直生效） |
+| `SECURITY_HEADERS_STRICT=true` | 严格 CSP + HSTS preload + COEP（默认关：允许 iframe / 跨域） |
+| `BCRYPT_ROUNDS=12` `MIN_PASSWORD_LENGTH=12` `MIN_JWT_LENGTH=20` | 安全阈值调高 |
+| `DB_TYPE=mariadb` | 用 MariaDB 替代默认 SQLite（同时 `docker compose --profile mariadb up`） |
+
+前端（`apps/admin/.env`）：`VITE_AUDIT_ENABLED` / `VITE_PASSWORD_RESET_ENABLED`
+
+前台（`apps/frontend/.env`）：`VITE_PWA_ENABLED` / `VITE_AMBIENT_ENABLED`（磨砂玻璃背景 orbs + grain）
 
 ---
 
@@ -111,8 +126,8 @@
                   ▼ [frontend network]
                 NestJS API (:8000)
                   │
-                  ▼ [backend network]
-                MariaDB (:3306)
+                  ▼ SQLite 单文件（默认，挂载到 app_data 卷）
+                   或 MariaDB（高级：`docker compose --profile mariadb up`）
 ```
 
 | 子项目 | 技术栈 | 开发端口 | 对外路径 |
@@ -153,7 +168,7 @@ make update      # 拉最新代码重建
 
 ### 前置
 
-- 服务器：任何能跑 Docker 的 Linux（内存 ≥ 2 GB）
+- 服务器：任何能跑 Docker 的 Linux（内存 ≥ 512 MB，默认走 SQLite 无 MariaDB）
 - 端口：80 / 443 未被占用
 - 本地开发额外需要：Node.js ≥ 22.13 · pnpm ≥ 11
 
@@ -164,7 +179,7 @@ git clone https://github.com/Dageling003/Dageling003-Homepage.git
 cd Dageling003-Homepage
 pnpm install
 cp apps/backend/.env.example apps/backend/.env
-# 编辑 .env：DB_TYPE=sqlite，设置 JWT_SECRET（≥20 位）和 DEFAULT_ADMIN_PASSWORD（≥12 位）
+# 编辑 .env：DB_TYPE=sqlite（默认），设置 JWT_SECRET（≥16 位）和 DEFAULT_ADMIN_PASSWORD（≥8 位）
 pnpm dev
 ```
 
@@ -257,12 +272,8 @@ make help        # 列出所有命令
 make up          # 部署 / 启动
 make down        # 停止
 make logs        # 实时日志
-make ps          # 容器状态
-make update      # 拉最新代码 + 重建
 make backup      # 备份数据库
-make smoke       # 冒烟测试
 make dev         # 本地 pnpm 三端并行
-make clean       # 停并清卷（危险，需 y 确认）
 
 # 原生 pnpm
 pnpm dev / dev:backend / dev:frontend / dev:admin
@@ -276,12 +287,13 @@ docker compose --env-file .env.docker logs -f app
 docker compose --env-file .env.docker restart app
 docker compose --env-file .env.docker down
 
-# 独立脚本
-bash scripts/backup-db.sh [output_dir]
-bash scripts/update.sh
-bash scripts/smoke-test.sh [domain]
-bash scripts/docker-health.sh
-bash scripts/domain-check.sh
+# 独立脚本（保留 6 个核心脚本）
+bash scripts/install.sh          # 远程一键
+bash scripts/install-docker.sh   # 只装 Docker
+bash scripts/deploy.sh           # 部署向导
+bash scripts/update.sh           # 更新
+bash scripts/backup-db.sh        # 备份
+bash scripts/smoke-test.sh       # 冒烟测试
 ```
 
 ---
@@ -311,12 +323,14 @@ bash scripts/domain-check.sh
 
 ## 🔒 安全
 
-- `JWT_SECRET` 启动强校验（≥20 位、非默认占位）
-- 密码 bcrypt 12 rounds；管理员密码 ≥12 位
-- helmet：CSP / HSTS 1y / cross-origin 策略
-- 限流：全局 120 req/min，登录 5 req/min
+**默认阈值对个人主页友好**，可通过环境变量随时调高：
+
+- `JWT_SECRET` 启动强校验（默认 ≥16 位、非默认占位，可用 `MIN_JWT_LENGTH` 调整）
+- 密码 bcrypt 默认 10 rounds（可用 `BCRYPT_ROUNDS` 调整）；密码默认 ≥8 位（`MIN_PASSWORD_LENGTH`）
+- helmet：默认关闭严格 CSP / COEP / HSTS preload；想要更严设 `SECURITY_HEADERS_STRICT=true`
+- 限流：登录 5 req/min 硬限；全局 120 req/min 需 `THROTTLE_ENABLED=true`
 - 请求体 1MB 上限
-- 头像上传：MIME + sharp metadata 双重校验，统一 200×200 WebP，≤5MB
+- 头像上传：MIME + magic bytes 双校验，统一 200×200 WebP，≤5MB
 - 生产环境禁用 Swagger
 - `.env` / `.env.docker` 未纳入版本控制
 
@@ -374,7 +388,7 @@ gunzip -c ./backups/homepage_YYYYMMDD_HHMMSS.sql.gz | \
 | `/admin/` | 后台登录页 | ❌ |
 | `/admin/dashboard` | 仪表盘 | ✅ |
 | `/admin/config` | 站点配置 | ✅ |
-| `/admin/audit` | 审计日志 | ✅ |
+| `/admin/audit` | 操作日志（需 `AUDIT_ENABLED=true`） | ✅ |
 | `/admin/account` | 账号设置 | ✅ |
 | `/api/*` | RESTful API | 部分 |
 | `/health` | 健康检查 | ❌ |

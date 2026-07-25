@@ -56,9 +56,9 @@ function formatDate(dateStr: string) {
 <template>
   <div>
     <!-- ====== Toolbar ====== -->
-    <div class="flex items-center justify-between mb-6">
-      <div class="flex items-center gap-3">
-        <h2 class="text-xl font-semibold">配置管理</h2>
+    <div class="ct-toolbar">
+      <div class="ct-toolbar-left">
+        <h2 class="ct-title">配置管理</h2>
         <a-select
           :value="filterCategory"
           placeholder="全部分类"
@@ -178,6 +178,23 @@ function formatDate(dateStr: string) {
 }
 
 /* ====== Top row ====== */
+.ct-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+.ct-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ct-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+}
+
 .card-top {
   display: flex;
   align-items: center;

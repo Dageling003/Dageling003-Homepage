@@ -153,7 +153,9 @@ export class SiteConfigController {
   async uploadAvatar(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('请选择图片文件');
 
-    // Magic Bytes 校验 — 识别真实文件类型，防伪造扩展名
+    // 双层校验：MIME + Magic Bytes（识别真实文件类型，防伪造扩展名）。
+    // 之前额外还跑了一次 sharp.metadata()，实际是冗余：sharp 在后面 resize
+    // 时会自然抛错，那时用 try/catch 一次性拦住即可。
     const { fileTypeFromBuffer } = await import('file-type');
     const type = await fileTypeFromBuffer(file.buffer);
     const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -163,23 +165,17 @@ export class SiteConfigController {
       );
     }
 
-    // 额外验证：sharp 能正确解析文件
-    let format: string | undefined;
+    // Compress with sharp — 一步到位 resize + 转 WebP。
+    // 如果输入是损坏的图像，sharp 会在这里抛错，被 BadRequestException 包住。
+    let buffer: Buffer;
     try {
-      const meta = await sharp(file.buffer).metadata();
-      format = meta.format;
+      buffer = await sharp(file.buffer)
+        .resize(200, 200, { fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 85 })
+        .toBuffer();
     } catch {
       throw new BadRequestException('无效的图片文件');
     }
-    if (!format || !['jpeg', 'png', 'gif', 'webp'].includes(format)) {
-      throw new BadRequestException('仅支持 jpg/png/gif/webp 格式');
-    }
-
-    // Compress with sharp — 重新从 buffer 处理（不在磁盘写原始文件）
-    const buffer = await sharp(file.buffer)
-      .resize(200, 200, { fit: 'inside', withoutEnlargement: true })
-      .webp({ quality: 70 })
-      .toBuffer();
 
     // 写入磁盘（已压缩为安全的 WebP）
     const uploadPath = join(

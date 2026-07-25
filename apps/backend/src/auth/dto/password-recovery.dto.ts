@@ -16,12 +16,12 @@ export class ResetPasswordDto {
   token: string;
 
   @ApiProperty({
-    description: '新密码（至少 12 位）',
-    minLength: 12,
-    example: 'new-strong-password-12-chars',
+    description: '新密码（至少 8 位）',
+    minLength: 8,
+    example: 'new-password',
   })
   @IsString()
-  @MinLength(12)
+  @MinLength(8)
   @MaxLength(128)
   newPassword: string;
 }
@@ -36,9 +36,9 @@ export class CreateFirstAdminDto {
   })
   username: string;
 
-  @ApiProperty({ description: '密码（至少 12 位）', minLength: 12 })
+  @ApiProperty({ description: '密码（至少 8 位）', minLength: 8 })
   @IsString()
-  @MinLength(12)
+  @MinLength(8)
   @MaxLength(128)
   password: string;
 }

@@ -21,6 +21,12 @@ export class MailService {
   }
 
   private init() {
+    // 未启用 PASSWORD_RESET_ENABLED 时完全不初始化 SMTP，也不打印 warning。
+    if (process.env.PASSWORD_RESET_ENABLED !== 'true') {
+      this.smtpEnabled = false;
+      return;
+    }
+
     const host = process.env.SMTP_HOST;
     const port = Number(process.env.SMTP_PORT || 465);
     const user = process.env.SMTP_USER;

@@ -3,6 +3,7 @@ import type { RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { checkInitializedApi, hasUsersApi } from '@/api'
 import AdminLayout from '@/layouts/AdminLayout.vue'
+import { isAuditEnabled, isPasswordResetEnabled } from '@/utils/features'
 
 /**
  * 路由 meta 约定：
@@ -117,6 +118,16 @@ const router = createRouter({
 
 router.beforeEach(async (to, _from, next) => {
   const authStore = useAuthStore()
+
+  // Feature-flag gate: 关闭的功能页直接 404
+  if (to.name === 'audit' && !isAuditEnabled()) {
+    next({ name: '404' })
+    return
+  }
+  if ((to.name === 'forgot-password' || to.name === 'reset-password') && !isPasswordResetEnabled()) {
+    next({ name: '404' })
+    return
+  }
 
   // SEC-002: the JWT lives in an HttpOnly cookie now, so we must probe
   // the backend once at startup to learn whether the browser is already

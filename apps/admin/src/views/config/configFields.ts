@@ -14,7 +14,7 @@ export const FIELD_DEFS: Record<string, {
   infoSexDisplay: { label: '性别展示',   section: 'info',  desc: '前台标签栏显示格式：symbol(仅符号) / text(仅文字) / both(符号+文字)', example: 'symbol', frontendLocation: '标签栏' },
   infoBirth:      { label: '出生日期',   section: 'info',  desc: '只需填写此项，年龄和星座自动计算',        example: '2001-06-15',  frontendLocation: '标签栏 / 自我介绍' },
   infoProvince:   { label: '省份',       section: 'info',  desc: '标签栏第三项，从34个省级行政区中选择',    example: '江苏省',       frontendLocation: '标签栏' },
-  infoSchool:     { label: '学校',       section: 'info',  desc: '标签栏第四项。搜索数据源于教育部承认的全国高等学校名单（截至2024年6月20日）', example: '南通大学', frontendLocation: '标签栏' },
+  infoSchool:     { label: '学校',       section: 'info',  desc: '标签栏第四项。手动输入你的学校名称', example: '南通大学', frontendLocation: '标签栏' },
   avatarUrl:      { label: '头像 URL',   section: 'info',  desc: '左侧圆形头像图片地址',                  example: '/default-avatar.svg', frontendLocation: '头像' },
   professions:    { label: '职业标签',    section: 'info',  desc: '"我是一名 ___" 后的标签列表',           example: '["前端切图仔","摄影爱好者","猫猫教"]', jsonType: 'json-array', frontendLocation: '自我介绍' },
   infoShowName:   { label: '展示姓名',   section: 'info',  desc: '前台是否展示"我叫 xxx"',                example: '1',           frontendLocation: '自我介绍' },

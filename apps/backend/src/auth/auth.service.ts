@@ -20,6 +20,16 @@ import { AuditService } from '../audit/audit.service';
 /** 密码重置 token 有效期（毫秒）：15 分钟 */
 const RESET_TOKEN_TTL_MS = 15 * 60 * 1000;
 
+/**
+ * bcrypt 强度：默认 10（业界推荐，登录 <100ms）。
+ * 想更严：设置 BCRYPT_ROUNDS=12 或以上（会显著拖慢登录）。
+ */
+function bcryptRounds(): number {
+  const raw = Number(process.env.BCRYPT_ROUNDS);
+  if (Number.isFinite(raw) && raw >= 4 && raw <= 15) return raw;
+  return 10;
+}
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -122,7 +132,7 @@ export class AuthService {
       throw new BadRequestException('新密码不能与旧密码相同');
     }
 
-    user.password = await bcrypt.hash(dto.newPassword, 12);
+    user.password = await bcrypt.hash(dto.newPassword, bcryptRounds());
     user.passwordChangedAt = new Date();
     await this.usersRepository.save(user);
     // BUG-003 fix: 密码变更进入审计，便于事后追溯账号被谁改过。
@@ -232,7 +242,7 @@ export class AuthService {
     });
     if (!user) throw new BadRequestException('用户不存在');
 
-    user.password = await bcrypt.hash(newPassword, 12);
+    user.password = await bcrypt.hash(newPassword, bcryptRounds());
     user.passwordChangedAt = new Date();
     await this.usersRepository.save(user);
     record.usedAt = new Date();
@@ -293,8 +303,9 @@ export class AuthService {
     if (count > 0) return; // 已有用户，什么也不做
 
     const defaultPassword = process.env.DEFAULT_ADMIN_PASSWORD;
-    if (defaultPassword && defaultPassword.length >= 12) {
-      const hashedPassword = await bcrypt.hash(defaultPassword, 12);
+    const minPwdLen = Number(process.env.MIN_PASSWORD_LENGTH || 8);
+    if (defaultPassword && defaultPassword.length >= minPwdLen) {
+      const hashedPassword = await bcrypt.hash(defaultPassword, bcryptRounds());
       await this.usersRepository.save(
         this.usersRepository.create({
           username: 'admin',
@@ -325,7 +336,7 @@ export class AuthService {
         '系统已存在管理员账号，请使用登录或找回密码流程',
       );
     }
-    const hashed = await bcrypt.hash(password, 12);
+    const hashed = await bcrypt.hash(password, bcryptRounds());
     const admin = this.usersRepository.create({
       username,
       password: hashed,

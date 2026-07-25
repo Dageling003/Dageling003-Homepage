@@ -9,9 +9,7 @@ import {
   SettingOutlined, CloudUploadOutlined,
 } from '@ant-design/icons-vue'
 import { FIELD_DEFS } from './configFields'
-// BUG-007 修复：SCHOOLS 是 2909 所院校的静态数组，一次性 import 会打进 admin
-// 主 bundle（未 gzip 数百 KB），显著拉高首屏 TTI。改成动态 import：用户点开
-// 「就读学校」输入框时才加载。加载失败降级为空数组，不阻塞其他配置项。
+// 学校字段已改为普通输入框（原 2909 所院校静态列表已移除，减少 admin bundle）。
 
 interface ConfigItem {
   id: number
@@ -152,29 +150,7 @@ const INFO_GROUPS = [
 // Boolean (1/0) toggle keys
 const TOGGLE_KEYS = new Set(['infoShowName', 'infoShowZodiac', 'infoShowAge', 'infoShowBirth'])
 
-// School auto-complete options — 数据源懒加载
-const schoolsCache = ref<string[] | null>(null)
-const schoolsLoading = ref(false)
-async function ensureSchoolsLoaded() {
-  if (schoolsCache.value || schoolsLoading.value) return
-  schoolsLoading.value = true
-  try {
-    const mod = await import('./data/schools')
-    schoolsCache.value = mod.SCHOOLS
-  } catch {
-    // 加载失败不阻断用户输入，仅让 auto-complete 空掉
-    schoolsCache.value = []
-  } finally {
-    schoolsLoading.value = false
-  }
-}
-const schoolOptions = computed(() => {
-  const list = schoolsCache.value
-  if (!list) return [] as { value: string }[]
-  const val = simpleFields.value['infoSchool'] || ''
-  if (!val) return list.slice(0, 80).map(s => ({ value: s }))
-  return list.filter(s => s.includes(val)).slice(0, 60).map(s => ({ value: s }))
-})
+// School field: 已改为普通输入框；不再打包 2909 所院校静态列表。
 
 // China 34 provincial-level administrative divisions
 const PROVINCES = [
@@ -515,17 +491,15 @@ watch(() => route.path, () => { fetchData() })
                       <a-select-option v-for="p in PROVINCES" :key="p" :value="p" :label="p">{{ p }}</a-select-option>
                     </a-select>
                   </template>
-                  <!-- School auto-complete -->
+                  <!-- School: plain input (auto-complete removed) -->
                   <template v-else-if="key === 'infoSchool'">
-                    <a-auto-complete
+                    <a-input
                       v-model:value="simpleFields[key]"
-                      :options="schoolOptions"
-                      placeholder="输入学校名称搜索（支持自定义输入）"
+                      placeholder="输入学校名称"
                       size="middle"
                       class="cp-field-input"
                       allow-clear
-                      @focus="ensureSchoolsLoaded"
-                      @change="() => { ensureSchoolsLoaded(); debouncedSave(key) }"
+                      @change="debouncedSave(key)"
                       @blur="debouncedSave(key, 300)"
                     />
                   </template>

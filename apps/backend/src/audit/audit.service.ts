@@ -40,16 +40,31 @@ export interface LogMeta {
 @Injectable()
 export class AuditService {
   private readonly logger = new Logger(AuditService.name);
+  private readonly enabled: boolean;
   constructor(
     @InjectRepository(AuditLog)
     private auditRepository: Repository<AuditLog>,
-  ) {}
+  ) {
+    // 默认关闭。想开启：设置 AUDIT_ENABLED=true。
+    // 关闭时 log() 直接 no-op，findAll() 返回空集，不产生任何 DB 写入 / 读取。
+    this.enabled = process.env.AUDIT_ENABLED === 'true';
+    if (!this.enabled) {
+      this.logger.log(
+        'Audit logging is DISABLED (default). Set AUDIT_ENABLED=true to turn it on.',
+      );
+    }
+  }
+
+  isEnabled(): boolean {
+    return this.enabled;
+  }
 
   /**
    * 写审计日志。故意不抛错：审计失败绝不能把主业务流程拖垮
    * （例如登录成功后写审计日志失败不能让用户拿不到 token）。
    */
   async log(meta: LogMeta): Promise<AuditLog | null> {
+    if (!this.enabled) return null;
     try {
       const entry = this.auditRepository.create(meta);
       return await this.auditRepository.save(entry);
@@ -73,6 +88,7 @@ export class AuditService {
       endDate?: string;
     },
   ): Promise<{ items: AuditLog[]; total: number }> {
+    if (!this.enabled) return { items: [], total: 0 };
     const where: FindOptionsWhere<AuditLog> = {};
     if (filters?.action) where.action = filters.action;
     if (filters?.operator) where.operator = filters.operator;

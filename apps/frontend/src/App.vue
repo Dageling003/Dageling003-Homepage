@@ -5,6 +5,9 @@ import { ref, onMounted, onBeforeMount } from 'vue'
 const themeStore = useThemeStore()
 const loaded = ref(false)
 
+// Ambient orbs + grain 默认关闭；想开启：设置 VITE_AMBIENT_ENABLED=true
+const ambientEnabled = import.meta.env.VITE_AMBIENT_ENABLED === 'true'
+
 onBeforeMount(() => {
   themeStore.initTheme()
 })
@@ -19,7 +22,7 @@ onMounted(() => {
 
 <template>
   <div class="app" :class="{ loaded }">
-    <div class="ambient" aria-hidden="true">
+    <div v-if="ambientEnabled" class="ambient" aria-hidden="true">
       <div class="orb orb-a" />
       <div class="orb orb-b" />
       <div class="orb orb-c" />

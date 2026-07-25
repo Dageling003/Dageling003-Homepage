@@ -4,18 +4,24 @@ import { useRouter } from 'vue-router'
 import {
   SettingOutlined, UserOutlined, AuditOutlined, RocketOutlined, EyeOutlined,
 } from '@ant-design/icons-vue'
+import { isAuditEnabled } from '@/utils/features'
 
 defineOptions({ name: 'DashboardQuickActions' })
 
 const router = useRouter()
 
-const actions = computed(() => [
-  { label: '查看站点', icon: EyeOutlined, to: '', type: 'primary' as const, external: true },
-  { label: '管理配置', icon: SettingOutlined, to: '/config/personal', type: 'primary' as const, external: false },
-  { label: '账号设置', icon: UserOutlined, to: '/account', external: false },
-  { label: '操作日志', icon: AuditOutlined, to: '/audit', external: false },
-  { label: '初始设置', icon: RocketOutlined, to: '/setup', external: false },
-])
+const actions = computed(() => {
+  const items = [
+    { label: '查看站点', icon: EyeOutlined, to: '', type: 'primary' as const, external: true },
+    { label: '管理配置', icon: SettingOutlined, to: '/config/personal', type: 'primary' as const, external: false },
+    { label: '账号设置', icon: UserOutlined, to: '/account', external: false },
+  ]
+  if (isAuditEnabled()) {
+    items.push({ label: '操作日志', icon: AuditOutlined, to: '/audit', external: false })
+  }
+  items.push({ label: '初始设置', icon: RocketOutlined, to: '/setup', external: false })
+  return items
+})
 
 function handleAction(to: string, external: boolean) {
   if (external) {

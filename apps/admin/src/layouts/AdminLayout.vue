@@ -24,6 +24,7 @@ import {
 import AppBreadcrumb from '@/components/AppBreadcrumb.vue'
 import AppTab from '@/components/AppTab.vue'
 import ThemeSettings from '@/components/ThemeSettings.vue'
+import { isAuditEnabled } from '@/utils/features'
 
 const authStore = useAuthStore()
 const tabStore = useTabStore()
@@ -97,11 +98,13 @@ const menuItems = [
     icon: () => h(UserOutlined),
     label: '账号设置',
   },
-  {
-    key: '/audit',
-    icon: () => h(AuditOutlined),
-    label: '操作日志',
-  },
+  ...(isAuditEnabled()
+    ? [{
+        key: '/audit',
+        icon: () => h(AuditOutlined),
+        label: '操作日志',
+      }]
+    : []),
   {
     key: 'visit-site',
     icon: () => h(ExportOutlined),

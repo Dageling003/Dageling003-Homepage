@@ -10,36 +10,38 @@ import { AppModule } from './app.module';
 import { AuthService } from './auth/auth.service';
 
 async function bootstrap() {
-  // Security check: JWT_SECRET must be set and not the default
+  // Security check: JWT_SECRET must be set and not the default.
+  // 长度阈值默认 16 位（对个人主页足够）；想更严：MIN_JWT_LENGTH=20 或 32。
+  const minJwtLen = Number(process.env.MIN_JWT_LENGTH || 16);
   if (
     !process.env.JWT_SECRET ||
     process.env.JWT_SECRET === 'replace-with-a-strong-random-secret' ||
-    process.env.JWT_SECRET.length < 20
+    process.env.JWT_SECRET.length < minJwtLen
   ) {
     console.error('');
     console.error(
       '  ⛔  SECURITY ERROR: JWT_SECRET is not properly configured.',
     );
     console.error('  ');
-    console.error('     Please set a strong JWT_SECRET in apps/backend/.env:');
+    console.error(
+      `     Please set a JWT_SECRET (>= ${minJwtLen} chars) in apps/backend/.env:`,
+    );
     console.error('     JWT_SECRET=$(openssl rand -base64 32)');
     console.error('');
     process.exit(1);
   }
 
-  // Fail-fast: DB_SYNCHRONIZE=true in production is a data-loss footgun
-  // (TypeORM will happily drop columns to match the ORM shape). Align with
-  // the JWT_SECRET boot gate above and refuse to start rather than only warn.
-  // If you genuinely need schema sync in prod (e.g. first bring-up), unset
-  // NODE_ENV=production for that one boot.
+  // Fail-fast: DB_SYNCHRONIZE=true in production with MariaDB is a data-loss
+  // footgun (TypeORM will happily drop columns to match the ORM shape).
+  // sqlite 场景下 synchronize 是安全的（个人主页规模），不做拦截。
   if (
-    process.env.DB_TYPE !== 'sqlite' &&
+    process.env.DB_TYPE === 'mariadb' &&
     process.env.NODE_ENV === 'production' &&
     process.env.DB_SYNCHRONIZE === 'true'
   ) {
     console.error('');
     console.error(
-      '  ⛔  SECURITY ERROR: DB_SYNCHRONIZE=true in production mode.',
+      '  ⛔  SECURITY ERROR: DB_SYNCHRONIZE=true in production with MariaDB.',
     );
     console.error('  ');
     console.error(
@@ -54,66 +56,54 @@ async function bootstrap() {
     process.exit(1);
   }
 
-  // Also refuse sqljs in production — see BUG note in app.module.ts.
-  if (
-    process.env.NODE_ENV === 'production' &&
-    process.env.DB_TYPE === 'sqlite'
-  ) {
-    console.error('');
-    console.error(
-      '  ⛔  SECURITY ERROR: DB_TYPE=sqlite is disabled in production.',
-    );
-    console.error(
-      '     The sqljs driver keeps the entire database in memory and',
-    );
-    console.error(
-      '     rewrites the file on every commit; a crash mid-write can',
-    );
-    console.error(
-      '     truncate data. Use DB_TYPE=mariadb (or an on-disk sqlite',
-    );
-    console.error('     driver via a future migration) for production.');
-    console.error('');
-    process.exit(1);
-  }
-
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  // Security headers — hardened for production
+  // Security headers — 默认走 helmet 默认预设（对个人主页足够）。
+  // 想开启严格模式（严格 CSP + HSTS preload + COEP）：SECURITY_HEADERS_STRICT=true
+  const strictHeaders = process.env.SECURITY_HEADERS_STRICT === 'true';
   app.use(
-    helmet({
-      contentSecurityPolicy:
-        process.env.NODE_ENV === 'production'
-          ? {
-              directives: {
-                defaultSrc: ["'self'"],
-                // Vite 产物是 ES modules，不注入内联脚本；样式全部走独立 CSS
-                scriptSrc: ["'self'"],
-                // ant-design-vue 运行时会通过 dynamic <style> 注入组件级样式，
-                // 因此 style-src 允许 'unsafe-inline'；后续可用 style-src-elem +
-                // hash 或 CSP nonce 收紧
-                styleSrc: ["'self'", "'unsafe-inline'"],
-                imgSrc: ["'self'", 'data:', 'https:'],
-                connectSrc: ["'self'"],
-                fontSrc: ["'self'", 'data:'],
-                objectSrc: ["'none'"],
-                mediaSrc: ["'self'"],
-                frameSrc: ["'none'"],
-                baseUri: ["'self'"],
-                formAction: ["'self'"],
-                frameAncestors: ["'none'"],
-              },
-            }
-          : false,
-      crossOriginEmbedderPolicy: true,
-      crossOriginOpenerPolicy: { policy: 'same-origin' },
-      crossOriginResourcePolicy: { policy: 'same-origin' },
-      hsts: {
-        maxAge: 31536000,
-        includeSubDomains: true,
-        preload: true,
-      },
-    }),
+    helmet(
+      strictHeaders
+        ? {
+            contentSecurityPolicy:
+              process.env.NODE_ENV === 'production'
+                ? {
+                    directives: {
+                      defaultSrc: ["'self'"],
+                      scriptSrc: ["'self'"],
+                      styleSrc: ["'self'", "'unsafe-inline'"],
+                      imgSrc: ["'self'", 'data:', 'https:'],
+                      connectSrc: ["'self'"],
+                      fontSrc: ["'self'", 'data:'],
+                      objectSrc: ["'none'"],
+                      mediaSrc: ["'self'"],
+                      frameSrc: ["'none'"],
+                      baseUri: ["'self'"],
+                      formAction: ["'self'"],
+                      frameAncestors: ["'none'"],
+                    },
+                  }
+                : false,
+            crossOriginEmbedderPolicy: true,
+            crossOriginOpenerPolicy: { policy: 'same-origin' },
+            crossOriginResourcePolicy: { policy: 'same-origin' },
+            hsts: {
+              maxAge: 31536000,
+              includeSubDomains: true,
+              preload: true,
+            },
+          }
+        : {
+            // helmet 默认预设（不含 preload / COEP=true / 自定义 CSP），
+            // 允许网站正常嵌 iframe / 被外链引用。
+            contentSecurityPolicy: false,
+            crossOriginEmbedderPolicy: false,
+            hsts:
+              process.env.NODE_ENV === 'production'
+                ? { maxAge: 15552000, includeSubDomains: false, preload: false }
+                : false,
+          },
+    ),
   );
 
   // Global body size limits to prevent large payload attacks

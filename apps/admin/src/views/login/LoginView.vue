@@ -4,6 +4,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { message } from 'ant-design-vue'
 import { UserOutlined, LockOutlined } from '@ant-design/icons-vue'
+import { isPasswordResetEnabled } from '@/utils/features'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -90,7 +91,7 @@ function goForgot() {
         </a-form-item>
       </a-form>
 
-      <div class="lg-extra">
+      <div v-if="isPasswordResetEnabled()" class="lg-extra">
         <a-button type="link" size="small" @click="goForgot" class="lg-forgot">
           忘记密码？
         </a-button>

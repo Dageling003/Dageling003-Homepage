@@ -78,6 +78,8 @@ Desktop.ini
 # AI / CLI tool metadata
 .claude/
 .opencode/
+.agents/
+skills-lock.json
 apps/*/skills/
 apps/*/.skills_store_lock.json
 

@@ -11,6 +11,7 @@ import {
   HttpCode,
   HttpStatus,
   ForbiddenException,
+  NotFoundException,
 } from '@nestjs/common';
 import type { Request as ExpressRequest, Response } from 'express';
 import * as crypto from 'crypto';
@@ -99,26 +100,40 @@ export class AuthController {
   }
 
   // ============================================================
-  //  找回密码 / 重置密码（公开接口）
+  //  找回密码 / 重置密码（公开接口，需 PASSWORD_RESET_ENABLED=true 开启）
   // ============================================================
+
+  private assertPasswordResetEnabled() {
+    if (process.env.PASSWORD_RESET_ENABLED !== 'true') {
+      throw new NotFoundException(
+        '忘记密码功能未启用。请在服务器上设置 PASSWORD_RESET_ENABLED=true 后重启，' +
+          '或直接使用 docker exec 手动重置管理员密码。',
+      );
+    }
+  }
 
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @ApiOperation({
-    summary: '申请密码重置（公开）',
+    summary: '申请密码重置（公开，需 PASSWORD_RESET_ENABLED=true）',
     description:
       '提交用户名，系统生成一次性 token。若配置了 SMTP 则发送邮件，否则写入服务器日志。',
   })
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    this.assertPasswordResetEnabled();
     return this.authService.requestPasswordReset(dto.username);
   }
 
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 5, ttl: 60000 } })
-  @ApiOperation({ summary: '使用重置 token 设置新密码（公开）' })
+  @ApiOperation({
+    summary:
+      '使用重置 token 设置新密码（公开，需 PASSWORD_RESET_ENABLED=true）',
+  })
   async resetPassword(@Body() dto: ResetPasswordDto) {
+    this.assertPasswordResetEnabled();
     return this.authService.resetPassword(dto.token, dto.newPassword);
   }
 
