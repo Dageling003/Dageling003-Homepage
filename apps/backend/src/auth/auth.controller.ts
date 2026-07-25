@@ -12,7 +12,7 @@ import {
   HttpStatus,
   ForbiddenException,
 } from '@nestjs/common';
-import type { Response } from 'express';
+import type { Request as ExpressRequest, Response } from 'express';
 import * as crypto from 'crypto';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
@@ -71,8 +71,17 @@ export class AuthController {
   async login(
     @Body() dto: LoginDto,
     @Res({ passthrough: true }) res: Response,
+    @Request() req: ExpressRequest,
   ) {
-    const result = await this.authService.login(dto);
+    // BUG-003: 传 IP 给 service 层，让审计日志记录来源；X-Forwarded-For
+    // 只在配置了信任代理时才可信，这里保守取直接连接方 IP 或首个 XFF。
+    const forwarded = req.headers['x-forwarded-for'];
+    const ip =
+      (Array.isArray(forwarded) ? forwarded[0] : forwarded?.split(',')[0]) ||
+      req.ip ||
+      req.socket?.remoteAddress ||
+      undefined;
+    const result = await this.authService.login(dto, { ip: ip?.trim() });
     res.setHeader(
       'Set-Cookie',
       `${AUTH_COOKIE}=${encodeURIComponent(result.accessToken)}; ${buildCookieAttrs(AUTH_COOKIE_MAX_AGE_SEC)}`,

@@ -14,6 +14,16 @@ export class User {
   @Column({ length: 50, unique: true })
   username: string;
 
+  /**
+   * 用户邮箱：用于密码重置邮件收件人（BUG-002 修复）。
+   * - 可空：老用户升级后无邮箱，密码重置流程会自动降级到日志输出
+   * - 未加 unique：管理员可能共享同一个运维邮箱；如后续开放注册再考虑收紧
+   * - 显式声明 `type: 'varchar'`：TS 联合类型 `string | null` 会让 TypeORM
+   *   把列类型推断成 "Object"，sqljs 会直接报 DataTypeNotSupportedError
+   */
+  @Column({ type: 'varchar', length: 254, nullable: true })
+  email: string | null;
+
   @Column()
   password: string;
 

@@ -6,6 +6,7 @@ import { AuthService } from './auth.service';
 import { User } from '../users/user.entity';
 import { PasswordResetToken } from './entities/password-reset-token.entity';
 import { MailService } from '../common/mail.service';
+import { AuditService } from '../audit/audit.service';
 import * as bcrypt from 'bcryptjs';
 
 describe('AuthService', () => {
@@ -47,6 +48,11 @@ describe('AuthService', () => {
     logResetTokenFallback: jest.fn(),
   };
 
+  const mockAuditService = {
+    // 审计写入不能拖垮主流程；测试里默认成功即可，个别用例可临时改抛错
+    log: jest.fn().mockResolvedValue(null),
+  };
+
   beforeAll(async () => {
     mockUser.password = await bcrypt.hash('password123456', 12);
   });
@@ -62,6 +68,7 @@ describe('AuthService', () => {
         },
         { provide: JwtService, useValue: mockJwtService },
         { provide: MailService, useValue: mockMailService },
+        { provide: AuditService, useValue: mockAuditService },
       ],
     }).compile();
 
@@ -114,6 +121,51 @@ describe('AuthService', () => {
       expect(result).toHaveProperty('accessToken');
       expect(result.username).toBe('admin');
       expect(mockJwtService.sign).toHaveBeenCalled();
+    });
+
+    // BUG-003 回归：登录成功要写 LOGIN_SUCCESS
+    it('should write LOGIN_SUCCESS audit on successful login', async () => {
+      mockUsersRepo.findOne.mockResolvedValue(mockUser);
+      await service.login(
+        { username: 'admin', password: 'password123456' },
+        { ip: '10.0.0.1' },
+      );
+      expect(mockAuditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'LOGIN_SUCCESS',
+          operator: 'admin',
+        }),
+      );
+    });
+
+    // BUG-003 回归：登录失败要写 LOGIN_FAILED（先写审计再抛错）
+    it('should write LOGIN_FAILED audit before throwing on wrong password', async () => {
+      mockUsersRepo.findOne.mockResolvedValue(mockUser);
+      await expect(
+        service.login(
+          { username: 'admin', password: 'wrong' },
+          { ip: '10.0.0.2' },
+        ),
+      ).rejects.toThrow(UnauthorizedException);
+      expect(mockAuditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'LOGIN_FAILED',
+          operator: 'admin',
+        }),
+      );
+    });
+
+    it('should write LOGIN_FAILED audit when username does not exist', async () => {
+      mockUsersRepo.findOne.mockResolvedValue(null);
+      await expect(
+        service.login({ username: 'ghost', password: 'x' }),
+      ).rejects.toThrow(UnauthorizedException);
+      expect(mockAuditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'LOGIN_FAILED',
+          operator: 'ghost',
+        }),
+      );
     });
   });
 
@@ -168,6 +220,48 @@ describe('AuthService', () => {
       const result = await service.requestPasswordReset('admin');
       expect(result.message).toContain('重置链接已发送');
       expect(mockResetTokenRepo.create).toHaveBeenCalled();
+    });
+
+    // BUG-002 回归：user.email 有值 → 走 SMTP 发送分支；空 → 走 log 降级
+    it('should send SMTP email when user.email is present', async () => {
+      mockUsersRepo.findOne.mockResolvedValue({
+        ...mockUser,
+        email: 'admin@example.com',
+      });
+      mockResetTokenRepo.save.mockResolvedValue(true);
+      await service.requestPasswordReset('admin');
+      expect(mockMailService.sendPasswordResetEmail).toHaveBeenCalledTimes(1);
+      expect(mockMailService.logResetTokenFallback).not.toHaveBeenCalled();
+      const firstCall = mockMailService.sendPasswordResetEmail.mock
+        .calls[0] as unknown as [string, string, string, string];
+      expect(firstCall[0]).toBe('admin@example.com');
+    });
+
+    it('should fall back to log when user.email is empty', async () => {
+      mockUsersRepo.findOne.mockResolvedValue({ ...mockUser, email: null });
+      mockResetTokenRepo.save.mockResolvedValue(true);
+      await service.requestPasswordReset('admin');
+      expect(mockMailService.sendPasswordResetEmail).not.toHaveBeenCalled();
+      expect(mockMailService.logResetTokenFallback).toHaveBeenCalledTimes(1);
+    });
+
+    // BUG-003 回归：不管用户是否存在都要写 PASSWORD_RESET_REQUEST 审计
+    it('should write audit for both hit and miss', async () => {
+      mockUsersRepo.findOne.mockResolvedValueOnce(null);
+      await service.requestPasswordReset('nope');
+      expect(mockAuditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'PASSWORD_RESET_REQUEST' }),
+      );
+      mockAuditService.log.mockClear();
+      mockUsersRepo.findOne.mockResolvedValueOnce({
+        ...mockUser,
+        email: null,
+      });
+      mockResetTokenRepo.save.mockResolvedValue(true);
+      await service.requestPasswordReset('admin');
+      expect(mockAuditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'PASSWORD_RESET_REQUEST' }),
+      );
     });
   });
 

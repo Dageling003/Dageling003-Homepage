@@ -15,6 +15,7 @@ import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { PasswordResetToken } from './entities/password-reset-token.entity';
 import { MailService } from '../common/mail.service';
+import { AuditService } from '../audit/audit.service';
 
 /** 密码重置 token 有效期（毫秒）：15 分钟 */
 const RESET_TOKEN_TTL_MS = 15 * 60 * 1000;
@@ -29,6 +30,7 @@ export class AuthService {
     private resetTokenRepository: Repository<PasswordResetToken>,
     private jwtService: JwtService,
     private mailService: MailService,
+    private auditService: AuditService,
   ) {}
 
   // ============================================================
@@ -49,9 +51,36 @@ export class AuthService {
     return user;
   }
 
-  async login(dto: LoginDto) {
-    const user = await this.validateUser(dto);
+  async login(dto: LoginDto, context?: { ip?: string }) {
+    // BUG-003 fix: 登录事件是安全审计最有价值的对象。这里同时记录成功与
+    // 失败：失败只记 attemptedUsername（避免把猜到的密码带进日志），成功
+    // 记 userId + username。抛错前先写审计，保证「用户名或密码错误」也进表。
+    let user: User;
+    try {
+      user = await this.validateUser(dto);
+    } catch (err) {
+      await this.auditService.log({
+        action: 'LOGIN_FAILED',
+        entity: 'user',
+        entityKey: dto.username,
+        detail: JSON.stringify({
+          reason: err instanceof Error ? err.message : String(err),
+          ip: context?.ip,
+        }),
+        operator: dto.username,
+      });
+      throw err;
+    }
+
     const payload = { sub: user.id, username: user.username, role: user.role };
+    await this.auditService.log({
+      action: 'LOGIN_SUCCESS',
+      entity: 'user',
+      entityKey: String(user.id),
+      detail: JSON.stringify({ username: user.username, ip: context?.ip }),
+      operator: user.username,
+    });
+
     return {
       accessToken: this.jwtService.sign(payload),
       username: user.username,
@@ -65,10 +94,18 @@ export class AuthService {
     return profile;
   }
 
-  async updateProfile(userId: number, data: { avatarUrl?: string }) {
+  async updateProfile(
+    userId: number,
+    data: { avatarUrl?: string; email?: string },
+  ) {
     const user = await this.usersRepository.findOne({ where: { id: userId } });
     if (!user) throw new UnauthorizedException('用户不存在');
     if (data.avatarUrl !== undefined) user.avatarUrl = data.avatarUrl;
+    if (data.email !== undefined) {
+      // 允许空字符串显式清空邮箱；否则做基本规范化（去空白 + 小写域名部分）
+      const trimmed = data.email.trim();
+      user.email = trimmed ? trimmed : null;
+    }
     await this.usersRepository.save(user);
     const { password: _, ...profile } = user;
     return profile;
@@ -88,6 +125,14 @@ export class AuthService {
     user.password = await bcrypt.hash(dto.newPassword, 12);
     user.passwordChangedAt = new Date();
     await this.usersRepository.save(user);
+    // BUG-003 fix: 密码变更进入审计，便于事后追溯账号被谁改过。
+    await this.auditService.log({
+      action: 'PASSWORD_CHANGE',
+      entity: 'user',
+      entityKey: String(user.id),
+      detail: JSON.stringify({ username: user.username }),
+      operator: user.username,
+    });
     return { message: '密码修改成功' };
   }
 
@@ -100,7 +145,16 @@ export class AuthService {
    * 邮件是「最佳努力」：发不出去就降级到日志，业务层不感知。
    */
   async requestPasswordReset(username: string) {
+    // BUG-003 fix: 密码重置申请一律入审计（不管用户是否存在）。请求日志里
+    // 不写具体用户名的密码，只记录 attemptedUsername + 是否命中用户。
     const user = await this.usersRepository.findOne({ where: { username } });
+    await this.auditService.log({
+      action: 'PASSWORD_RESET_REQUEST',
+      entity: 'user',
+      entityKey: username,
+      detail: JSON.stringify({ userFound: !!user }),
+      operator: username,
+    });
     if (!user) {
       // 静默：避免暴露用户名是否存在
       return {
@@ -128,13 +182,11 @@ export class AuthService {
     );
 
     const resetUrl = this.buildResetUrl(rawToken);
-    // SEC-006: only send email when we actually have a verified recipient.
-    // Fabricating `${username}@${domain}` used to bounce to whoever happened
-    // to control that mailbox on your domain (a token leak if squatted), and
-    // polluted the SMTP sender reputation with hard bounces. If no email is
-    // stored for the user, degrade to log output so the operator can hand
-    // the reset link over out-of-band.
-    const to = 'email' in user ? (user as { email?: string }).email : undefined;
+    // BUG-002 fix: User 实体现在有 `email` 字段。之前 `'email' in user` 恒为
+    // false（实体没有该列），导致 `to` 永远是 undefined、SMTP 分支永远不进入。
+    // 现在从数据库读到真实邮箱后正常发送；没绑定邮箱的旧用户仍降级到日志。
+    // SEC-006 保留：绝不再拼 `${username}@${domain}` 这种伪造收件人。
+    const to = (user.email ?? '').trim();
     if (to) {
       await this.mailService.sendPasswordResetEmail(
         to,
@@ -185,6 +237,16 @@ export class AuthService {
     await this.usersRepository.save(user);
     record.usedAt = new Date();
     await this.resetTokenRepository.save(record);
+
+    // BUG-003 fix: 记录密码重置完成事件。detail 不写 token/密码，
+    // 只保留 userId + username 便于追溯。
+    await this.auditService.log({
+      action: 'PASSWORD_RESET_COMPLETE',
+      entity: 'user',
+      entityKey: String(user.id),
+      detail: JSON.stringify({ username: user.username }),
+      operator: user.username,
+    });
 
     return { message: '密码重置成功，请使用新密码登录' };
   }
@@ -270,6 +332,14 @@ export class AuthService {
       role: 'admin',
     });
     await this.usersRepository.save(admin);
+    // BUG-003 fix: 首个管理员创建是一次性、高价值事件，必须入审计。
+    await this.auditService.log({
+      action: 'ADMIN_CREATED',
+      entity: 'user',
+      entityKey: String(admin.id),
+      detail: JSON.stringify({ username: admin.username }),
+      operator: admin.username,
+    });
     return { message: '管理员账号已创建', username };
   }
 }

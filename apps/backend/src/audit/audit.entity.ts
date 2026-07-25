@@ -10,8 +10,9 @@ export class AuditLog {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ length: 20 })
-  action: string; // 'CREATE' | 'UPDATE' | 'DELETE'
+  // 32 长度足够容纳所有新增枚举（最长 PASSWORD_RESET_COMPLETE = 23）
+  @Column({ length: 32 })
+  action: string; // 见 AuditAction 联合类型（audit.service.ts）
 
   @Column({ length: 30 })
   entity: string; // 'config' | 'user'
