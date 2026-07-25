@@ -1,17 +1,7 @@
 import { DataSource } from 'typeorm'
 import { join } from 'path'
-import { User } from './src/users/user.entity'
-import { SiteConfig } from './src/config/entities/config.entity'
-import { AuditLog } from './src/audit/audit.entity'
-import { PasswordResetToken } from './src/auth/entities/password-reset-token.entity'
 
-/**
- * TypeORM CLI 数据源配置
- * 用法：
- *   npx ts-node -r tsconfig-paths/register node_modules/.bin/typeorm migration:generate -d data-source.ts src/migrations/Initial
- *   npx ts-node -r tsconfig-paths/register node_modules/.bin/typeorm migration:run -d data-source.ts
- */
-const isSqlite = process.env.DB_TYPE === 'sqlite';
+const isSqlite = process.env.DB_TYPE === 'sqlite'
 
 export default new DataSource(
   isSqlite
@@ -19,7 +9,10 @@ export default new DataSource(
         type: 'sqljs',
         location: process.env.DB_SQLITE_PATH || 'data/homepage.sqlite',
         autoSave: true,
-        entities: [User, SiteConfig, AuditLog, PasswordResetToken],
+        entities: [join(__dirname, 'src', 'users', 'user.entity{.ts,.js}'),
+                   join(__dirname, 'src', 'config', 'entities', 'config.entity{.ts,.js}'),
+                   join(__dirname, 'src', 'audit', 'audit.entity{.ts,.js}'),
+                   join(__dirname, 'src', 'auth', 'entities', 'password-reset-token.entity{.ts,.js}')],
         synchronize: true,
       }
     : {
@@ -29,7 +22,10 @@ export default new DataSource(
         username: process.env.DB_USERNAME || 'root',
         password: process.env.DB_PASSWORD || '',
         database: process.env.DB_DATABASE || 'homepage',
-        entities: [User, SiteConfig, AuditLog, PasswordResetToken],
+        entities: [join(__dirname, 'src', 'users', 'user.entity{.ts,.js}'),
+                   join(__dirname, 'src', 'config', 'entities', 'config.entity{.ts,.js}'),
+                   join(__dirname, 'src', 'audit', 'audit.entity{.ts,.js}'),
+                   join(__dirname, 'src', 'auth', 'entities', 'password-reset-token.entity{.ts,.js}')],
         migrations: [join(__dirname, 'src', 'migrations', '*{.ts,.js}')],
         synchronize: false,
       },

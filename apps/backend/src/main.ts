@@ -27,18 +27,54 @@ async function bootstrap() {
     process.exit(1);
   }
 
-  // Warn if DB_SYNCHRONIZE is enabled in production (MariaDB only)
+  // Fail-fast: DB_SYNCHRONIZE=true in production is a data-loss footgun
+  // (TypeORM will happily drop columns to match the ORM shape). Align with
+  // the JWT_SECRET boot gate above and refuse to start rather than only warn.
+  // If you genuinely need schema sync in prod (e.g. first bring-up), unset
+  // NODE_ENV=production for that one boot.
   if (
     process.env.DB_TYPE !== 'sqlite' &&
     process.env.NODE_ENV === 'production' &&
     process.env.DB_SYNCHRONIZE === 'true'
   ) {
-    console.warn('');
-    console.warn('  ⚠️  WARNING: DB_SYNCHRONIZE=true in production mode.');
-    console.warn(
-      '     This may cause data loss. Set DB_SYNCHRONIZE=false for production.',
+    console.error('');
+    console.error(
+      '  ⛔  SECURITY ERROR: DB_SYNCHRONIZE=true in production mode.',
     );
-    console.warn('');
+    console.error('  ');
+    console.error(
+      '     TypeORM schema sync will silently drop/alter columns to match',
+    );
+    console.error(
+      '     the current entity shape and can destroy data. Use migrations:',
+    );
+    console.error('       DB_SYNCHRONIZE=false');
+    console.error('       DB_MIGRATIONS_RUN=true');
+    console.error('');
+    process.exit(1);
+  }
+
+  // Also refuse sqljs in production — see BUG note in app.module.ts.
+  if (
+    process.env.NODE_ENV === 'production' &&
+    process.env.DB_TYPE === 'sqlite'
+  ) {
+    console.error('');
+    console.error(
+      '  ⛔  SECURITY ERROR: DB_TYPE=sqlite is disabled in production.',
+    );
+    console.error(
+      '     The sqljs driver keeps the entire database in memory and',
+    );
+    console.error(
+      '     rewrites the file on every commit; a crash mid-write can',
+    );
+    console.error(
+      '     truncate data. Use DB_TYPE=mariadb (or an on-disk sqlite',
+    );
+    console.error('     driver via a future migration) for production.');
+    console.error('');
+    process.exit(1);
   }
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
