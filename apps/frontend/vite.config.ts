@@ -11,10 +11,10 @@ export default defineConfig({
     UnoCSS(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'icons.svg'],
+      includeAssets: ['favicon.ico', 'icons.svg'],
       manifest: {
-        name: '鹊楠的个人主页',
-        short_name: '鹊楠',
+        name: '个人主页',
+        short_name: '主页',
         description: '前端开发者，热爱技术与摄影',
         theme_color: '#d0e8ff',
         background_color: '#d0e8ff',
@@ -23,9 +23,9 @@ export default defineConfig({
         start_url: '/',
         icons: [
           {
-            src: 'favicon.svg',
+            src: 'favicon.ico',
             sizes: 'any',
-            type: 'image/svg+xml',
+            type: 'image/x-icon',
             purpose: 'any',
           },
         ],

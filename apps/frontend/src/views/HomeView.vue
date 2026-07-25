@@ -79,12 +79,26 @@ const infoShowZodiac = ref('1')
 const infoShowBirth = ref('1')
 const infoSchool = ref('南通大学')
 const professions = ref(['前端切图仔', '摄影爱好者', '猫猫教'])
-const links = ref<Array<{ text: string; color: string; url: string }>>([
+const RAW_LINKS = [
   { text: '博客', color: '#f59e0b', url: 'https://example.com' },
   { text: 'GitHub', color: '#333', url: 'https://github.com' },
   { text: 'Bilibili', color: '#fb7299', url: 'https://bilibili.com' },
   { text: '邮箱', color: '#ea4335', url: 'mailto:hello@example.com' },
-])
+]
+
+const PLACEHOLDER_HOSTS = ['example.com', 'www.example.com']
+
+function isPlaceholderUrl(url: string): boolean {
+  if (!url) return true
+  try {
+    const host = new URL(url).hostname.toLowerCase()
+    return PLACEHOLDER_HOSTS.includes(host)
+  } catch {
+    return false
+  }
+}
+
+const links = ref(RAW_LINKS.filter(l => !isPlaceholderUrl(l.url)))
 const techs = ref<Array<{ name: string }>>([
   { name: 'HTML' }, { name: 'CSS' }, { name: 'JS' }, { name: 'Vue' },
 ])
@@ -179,7 +193,7 @@ const configHandlers: Record<string, (val: string) => void> = {
   infoSchool: (v) => { infoSchool.value = v },
   avatarUrl: (v) => { avatarUrl.value = v },
   professions: (v) => { try { professions.value = JSON.parse(v) } catch (e) { console.error('[HomeView] professions parse failed:', e) } },
-  links: (v) => { try { links.value = JSON.parse(v) } catch (e) { console.error('[HomeView] links parse failed:', e) } },
+  links: (v) => { try { links.value = JSON.parse(v).filter((l: { url: string }) => !isPlaceholderUrl(l.url)) } catch (e) { console.error('[HomeView] links parse failed:', e) } },
   techs: (v) => { try { techs.value = JSON.parse(v) } catch (e) { console.error('[HomeView] techs parse failed:', e) } },
   todos: (v) => { try { todos.value = JSON.parse(v) } catch (e) { console.error('[HomeView] todos parse failed:', e) } },
   typewriterWords: (v) => { try { typewriterWords.value = JSON.parse(v) } catch (e) { console.error('[HomeView] typewriterWords parse failed:', e) } },
