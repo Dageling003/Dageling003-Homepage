@@ -17,6 +17,7 @@
     "migrate:generate": "npx ts-node -r tsconfig-paths/register node_modules/typeorm/cli.js migration:generate -d data-source.ts",
     "migrate:revert": "npx ts-node -r tsconfig-paths/register node_modules/typeorm/cli.js migration:revert -d data-source.ts",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "typecheck": "tsc --noEmit -p tsconfig.build.json",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",

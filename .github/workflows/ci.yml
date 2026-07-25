@@ -43,7 +43,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm -r run build
+      - run: pnpm -r run typecheck
 
   test:
     name: Tests
@@ -61,16 +61,17 @@ jobs:
       - name: Unit tests
         working-directory: apps/backend
         env:
-          DB_TYPE: sqlite
+          DB_TYPE: sqljs
           JWT_SECRET: test-jwt-secret-for-ci-minimum-20
           NODE_ENV: test
         run: pnpm test
       - name: E2E tests
         working-directory: apps/backend
         env:
-          DB_TYPE: sqlite
+          DB_TYPE: sqljs
           JWT_SECRET: test-jwt-secret-for-ci-minimum-20
           NODE_ENV: test
+          PASSWORD_RESET_ENABLED: true
         run: pnpm test:e2e
 
   security-audit:
@@ -86,14 +87,12 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # --production: only audit runtime dependencies (dev-only eslint vulns
-      # should not block CI). 高危/严重 true positive will still fail the build.
       - run: pnpm audit --audit-level=high --production --registry https://registry.npmjs.org
 
   docker:
     name: Docker Build
     runs-on: ubuntu-latest
-    needs: [lint, typecheck]
+    needs: [lint, typecheck, test]
     steps:
       - uses: actions/checkout@v6
 
