@@ -4,7 +4,7 @@
   <a href="./progress.md">简体中文</a> · <strong>English</strong>
 </p>
 
-> Last updated: 2026/06/08 v0.7.0
+> Last updated: 2026/07/25 v0.9.0
 >
 > This file is append-only history and does **not** represent the current feature set — the root README and the code are the source of truth.
 
@@ -22,6 +22,8 @@
 | 6 | UX overhaul + security hardening | ✅ **done** |
 | 7 | Password reset + self-service admin | ✅ **done** |
 | 8 | `deploy.sh` v2 + doc sync | ✅ **done** |
+| 9 | Security hardening + architecture | ✅ **done** |
+| 10 | Admin panel performance optimization | ✅ **done** |
 
 ---
 
@@ -183,6 +185,7 @@
 | v0.7.0 | 2026/06/08 | Production-grade security + Docker architecture rewrite |
 | v0.7.1 | 2026/06/08 | Post-deploy summary restructured: public site / admin / init / admin account / important notes / routes |
 | v0.8.0 | 2026/06/14 | Security: 15-minute reset token, ValidationPipe whitelist, TypeORM migrations, Caddy caching + defense, magic-byte validation |
+| v0.9.0 | 2026/07/25 | Perf: favicon 1.48MB→535B, router guard caching, on-demand Antd imports, icons-vue separate chunk |
 
 ---
 
@@ -254,6 +257,24 @@ URLs:
 | First-run wizard | auto-redirect after login | `https://<domain>/admin/setup` |
 
 ---
+
+## Phase 10 — Admin panel performance optimization ✅
+
+### Changes
+
+- [x] **favicon.svg 1.48MB → 535B**: Original file embedded a base64 PNG (18,997 lines); replaced with a lightweight pure SVG like the frontend
+- [x] **Router guard caching**: `hasUsers` and `initialized` results are cached after the first fetch; subsequent navigations skip redundant API calls; `checkAuth` and `hasUsers` run in parallel
+- [x] **On-demand Ant Design Vue**: Replaced `app.use(Antd)` (60+ components) with per-component registration of only 19 used components; antd chunk dropped from ~1.45MB to ~890KB
+- [x] **icons-vue separate chunk**: `@ant-design/icons-vue` split into its own `antd-icons` chunk (~36KB, ~9KB gzipped)
+- [x] **Dedicated `manualChunks` rule**: Prevents icons-vue from being bundled with ant-design-vue main chunk
+
+### Before vs After
+
+| Metric | Before | After | Improvement |
+|--------|--------|-------|-------------|
+| favicon.svg | 1,481,937 bytes | 535 bytes | ~2770× |
+| antd JS chunk | ~1.45 MB (incl. icons) | ~890 KB + icons ~36 KB | ~38% |
+| Route navigation | 3 serial API calls every time | Cached after first boot | Instant navigation |
 
 ## Bug fixes
 

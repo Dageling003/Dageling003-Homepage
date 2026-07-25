@@ -4,7 +4,7 @@
   <strong>简体中文</strong> · <a href="./progress.en.md">English</a>
 </p>
 
-> 最后更新：2026/06/08 v0.7.0
+> 最后更新：2026/07/25 v0.9.0
 
 ---
 
@@ -20,6 +20,8 @@
 | 第六阶段 | UX 大改 + 安全加固 | ✅ **已完成** |
 | 第七阶段 | 找回密码 + 自助创建管理员 | ✅ **已完成** |
 | 第八阶段 | deploy.sh v2 + 文档同步 | ✅ **已完成** |
+| 第九阶段 | 安全增强 + 架构优化 | ✅ **已完成** |
+| 第十阶段 | 管理后台性能优化 | ✅ **已完成** |
 
 ---
 
@@ -181,6 +183,7 @@
 | v0.7.0 | 2026/06/08 | 生产环境全面安全加固 + Docker 架构重构 |
 | v0.7.1 | 2026/06/08 | 部署完成输出结构化：分块列出网站主页/后台/初始化/管理员账号/重要提示/基本路由 |
 | v0.8.0 | 2026/06/14 | 安全增强：密码重置Token 15分钟过期、ValidationPipe白名单、TypeORM Migration、Caddy缓存+防御、Magic Bytes校验 |
+| v0.9.0 | 2026/07/25 | 性能优化：favicon 1.48MB→535B、路由守卫缓存、Antd 按需导入、icons-vue 独立拆包 |
 
 ---
 
@@ -252,6 +255,24 @@
 | 首次初始化 | 登录后自动跳转 | `https://<域名>/admin/setup` |
 
 ---
+
+## 第十阶段：管理后台性能优化 ✅
+
+### 优化项
+
+- [x] **favicon.svg 1.48MB → 535B**：原文件内嵌 base64 PNG（18997 行），替换为前端同款纯 SVG 图标
+- [x] **路由守卫缓存**：`hasUsers` 和 `initialized` 启动时只检查一次，后续导航不再重复 API 请求；`checkAuth` 与 `hasUsers` 并行拉取
+- [x] **Ant Design Vue 按需注册**：取消 `app.use(Antd)` 全量导入（60+ 组件），改为只注册实际使用的 19 个组件，antd chunk 从 ~1.45MB 降至 ~890KB
+- [x] **icons-vue 独立拆包**：`@ant-design/icons-vue` 从 antd chunk 分离为独立 `antd-icons` chunk（~36KB gzip: ~9KB）
+- [x] **`@ant-design/icons-vue` 单独 `manualChunks` 规则**：防止与 ant-design-vue 主包混在一起
+
+### 优化前后对比
+
+| 指标 | 优化前 | 优化后 | 提升 |
+|------|--------|--------|------|
+| favicon.svg | 1,481,937 bytes | 535 bytes | ~2770× |
+| antd JS chunk | ~1.45 MB (含图标) | ~890 KB + 图标 ~36 KB | ~38% |
+| 路由导航 | 每次 3 个串行 API | 启动检查一次后缓存 | 导航不再等待 |
 
 ## Bug 修复记录
 
