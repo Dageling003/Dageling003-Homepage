@@ -46,24 +46,9 @@ export default defineConfig(({ mode }) => {
                 skipWaiting: true,
                 disableDevLogs: true,
                 runtimeCaching: [
-                  {
-                    urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-                    handler: 'CacheFirst',
-                    options: {
-                      cacheName: 'google-fonts',
-                      expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 },
-                      cacheableResponse: { statuses: [0, 200] },
-                    },
-                  },
-                  {
-                    urlPattern: /^https:\/\/api\.iconify\.design\/.*/i,
-                    handler: 'CacheFirst',
-                    options: {
-                      cacheName: 'iconify',
-                      expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 * 30 },
-                      cacheableResponse: { statuses: [0, 200] },
-                    },
-                  },
+                  // Google Fonts / Iconify CDN 已改为 self-host（main.ts import
+                  // @fontsource/inter + tech-icons.json），运行时不会再发这些请求。
+                  // 保留 dicebear 兜底：头像 URL 允许用户自行配置外链，命中 CDN 时缓存 7 天。
                   {
                     urlPattern: /^https:\/\/api\.dicebear\.com\/.*/i,
                     handler: 'CacheFirst',

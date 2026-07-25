@@ -46,17 +46,9 @@
     <meta name="twitter:image" content="/default-avatar.svg" />
     <meta name="twitter:image:alt" content="鹊楠的头像" />
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="preconnect" href="https://api.iconify.design" crossorigin />
-
-    <!-- 字体：直接以 stylesheet 加载。之前使用 preload+onload 的技巧会
-         触发 CSP inline-event-handler 违规，改回标准写法。 -->
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap"
-    />
-    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" /></noscript>
+    <!-- Self-host：字体走 @fontsource/inter（main.ts 里 import），图标走
+         @iconify-json/logos 预生成子集（scripts/build-icons.mjs）。
+         不再连 fonts.googleapis.com / api.iconify.design，避免国内网络阻塞首屏。 -->
 
     <style>
       :root {
