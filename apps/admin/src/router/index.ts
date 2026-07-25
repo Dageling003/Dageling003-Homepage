@@ -111,6 +111,10 @@ const routes: RouteRecordRaw[] = [
   },
 ]
 
+// 缓存启动态检查结果，避免每次导航重复请求
+let _hasUsers: boolean | null = null
+let _initialized: boolean | null = null
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
@@ -133,7 +137,14 @@ router.beforeEach(async (to, _from, next) => {
   // the backend once at startup to learn whether the browser is already
   // signed in. checkAuth() is idempotent and caches its promise so this
   // costs at most one /auth/profile round-trip per page load.
-  await authStore.checkAuth()
+  //
+  // 同时并行拉取 hasUsers（仅在未缓存时），减少串行等待。
+  await Promise.all([
+    authStore.checkAuth(),
+    _hasUsers === null ? hasUsersApi().then(r => {
+      _hasUsers = !!(r.data as any)?.data?.hasUsers
+    }).catch(() => { _hasUsers = true }) : Promise.resolve(),
+  ])
 
   // 1) guestOnly（登录/找回/重置）页面：已登录就跳到 dashboard
   if (to.meta.guestOnly && authStore.isAuthenticated) {
@@ -147,18 +158,8 @@ router.beforeEach(async (to, _from, next) => {
     return
   }
 
-  // 3) 启动态判断：数据库是否已有用户
-  let hasUsers = true
-  try {
-    const res = await hasUsersApi()
-    hasUsers = !!(res.data as any)?.data?.hasUsers
-  } catch {
-    // 接口挂了兜底为有用户，避免误放行到 setup
-    hasUsers = true
-  }
-
-  // 4) 数据库无用户：仅放行到 setup，其它全部重定向到 setup 创建管理员
-  if (!hasUsers) {
+  // 3) 已登录用户：跳过 hasUsers 检查（有 session 说明一定有用户）
+  if (!authStore.isAuthenticated && _hasUsers === false) {
     if (to.name === 'setup') {
       next()
       return
@@ -167,24 +168,26 @@ router.beforeEach(async (to, _from, next) => {
     return
   }
 
-  // 5) 已有用户：常规鉴权
+  // 4) 已有用户但未登录：重定向到登录页
   if (!authStore.isAuthenticated) {
     next({ name: 'login', query: { redirect: to.fullPath } })
     return
   }
 
-  // 6) 已登录但站点未初始化完成（_initialized != 1）→ 跳到 setup
+  // 5) 已登录但站点未初始化完成（_initialized != 1）→ 跳到 setup
   const skipInitCheckRoutes = ['setup']
   if (!skipInitCheckRoutes.includes(to.name as string)) {
-    try {
-      const res = await checkInitializedApi()
-      const initialized = (res.data as any)?.data?.initialized
-      if (!initialized) {
-        next({ name: 'setup' })
-        return
+    if (_initialized === null) {
+      try {
+        const res = await checkInitializedApi()
+        _initialized = (res.data as any)?.data?.initialized
+      } catch {
+        _initialized = true
       }
-    } catch {
-      // API 不可用 — 放行，避免误伤
+    }
+    if (!_initialized) {
+      next({ name: 'setup' })
+      return
     }
   }
 
