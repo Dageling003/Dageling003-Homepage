@@ -43,14 +43,10 @@ RUN pnpm --filter homepage-backend build && \
 FROM ${RUNTIME_IMAGE} AS runtime
 WORKDIR /app
 
-COPY --from=builder --chown=65532:65532 /deploy /app
-COPY --from=builder --chown=65532:65532 /static /static
+COPY --from=builder /deploy /app
+COPY --from=builder /static /static
 
 ENV NODE_ENV=production
-
-USER root
-RUN mkdir -p /app/data /app/public/uploads && chown -R 65532:65532 /app/data /app/public/uploads
-USER 65532
 
 EXPOSE 8000
 
