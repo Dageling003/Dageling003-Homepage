@@ -15,10 +15,16 @@
 - **一条命令部署**：新增 `scripts/install.sh` 远程引导（依赖检查 → clone → 调 deploy.sh），支持 `curl -fsSL <url> | bash` 一行拉起
 - **Makefile 快捷入口**：`make up / down / logs / ps / update / backup / smoke / dev / clean / help`，老手一键直达
 - **README 新增「缘起」板块**：说明与 [Simple-Homepage](https://github.com/QNquenan/Simple-Homepage) 的关系、6 维度对比与产品选型建议
+- **PRODUCT.md**：产品定位 / 目标用户 / 核心 Journey / RICE 优先级 / 7 条产品原则 / 不做清单，给未来 issue 与 PR 决策做锚点
+- **后端 auth-flow e2e**：新增 `apps/backend/test/auth-flow.e2e-spec.ts` 23 个 case，覆盖登录 / cookie & bearer / 改密码 / 忘记密码 / 重置密码全链路
+- **前端图标构建脚本**：`scripts/build-icons.mjs` 从 `@iconify-json/logos` 抽 HomeView 里用到的 32 个图标生成 `src/icons/tech-icons.json`（64 KB）
 
 ### Changed
 - **README 首屏 slogan**：从「轻量、可自托管…」改为「站在 Simple-Homepage 肩膀上」，强化差异化定位
 - **README Docker 部署章节**：改为三入口并列（远程 curl / `make up` / `bash scripts/deploy.sh`），中英文同步
+- **前端字体 / 图标 self-host**：字体从 `fonts.googleapis.com` 换成 `@fontsource/inter`（latin + 400/500/600），图标从 `api.iconify.design` CDN 换成构建期抽出的子集 JSON —— 首屏不再依赖国内不稳定的外部 CDN
+- **后端 TypeORM 装配**：`TypeOrmModule.forRoot(...)` 改为 `forRootAsync({ useFactory })`，e2e 里覆盖 env 才能真正生效，装饰器求值阶段不再读环境变量
+- **后端全局限流**：`ThrottlerModule` 加 `skipIf: NODE_ENV=test`，e2e 顺序调用登录接口不再被 `@Throttle(5/60s)` 命中 429
 
 ### Fixed
 - **admin 账号页**：修复邮箱设置项在无 SMTP 环境下暴露的问题，同步更新 API 类型
@@ -26,11 +32,14 @@
 - **backend BUG-006**：`configValue` 落库前做 JSON 结构校验，脏数据不再进入数据库
 - **backend BUG-001~003**：审计日志全链路补全 + `User.email` 列 + 时间范围过滤修正
 - **frontend 隐私脱敏**：模板中的姓名 / 地区 / 学校 / 生日替换为占位符，占位链接统一过滤，favicon 更新
+- **frontend 占位链接过滤**：`isPlaceholderUrl` 现在正确处理 `mailto:` / `tel:` 等 URL（之前 hostname 为空会漏过滤），白名单扩到 `example.org` / `example.net`
 - **Caddy**：`CSP` 策略移到 per-handle 块并加 `force-replace` 前缀，修复覆盖失效问题
+- **Caddy ACME_EMAIL**：占位符 (`your-email@example.com` 等) 或非邮箱格式会 fail-fast 拒绝启动，避免命中 ZeroSSL / Let's Encrypt rate limit
 - **PWA**：`index.html` 加入预缓存，`/api` 响应不再缓存，避免 CSP header 陈旧
 
 ### Performance
 - **admin 首屏 bundle**：`SCHOOLS` 静态数组（2909 条）改为懒加载，首屏体积显著下降
+- **frontend 首屏**：字体 / 图标 self-host 后，首屏不再等待 fonts.googleapis.com + api.iconify.design 两个跨境请求，国内网络下首屏 TTI 显著改善
 
 ### Security
 - **SEC-001..007**：内部审计发现的问题批量修复（详见 commit `e12a46c`）
@@ -40,6 +49,7 @@
 ### Docs
 - 新增 [ROADMAP.md](./ROADMAP.md)：短 / 中 / 长期路线图 + 明确的「不做清单」
 - 新增 [SECURITY.md](./SECURITY.md) 中英双语版
+- 新增 [PRODUCT.md](./PRODUCT.md)：产品定位 / 目标用户 / RICE 优先级 / 7 条产品原则
 
 ### Refactor
 - **Caddy Dockerfile**：改为 self-contained，移除对 app 镜像的构建期依赖，可独立构建
