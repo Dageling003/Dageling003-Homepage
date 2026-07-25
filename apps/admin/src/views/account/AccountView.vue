@@ -3,7 +3,7 @@ import { ref, reactive, onMounted, watch } from 'vue'
 import { changePasswordApi, getProfileApi, updateProfileApi } from '@/api'
 import { useAuthStore } from '@/stores/auth'
 import { message } from 'ant-design-vue'
-import { LockOutlined, UserOutlined, SafetyOutlined, CloudUploadOutlined } from '@ant-design/icons-vue'
+import { LockOutlined, UserOutlined, SafetyOutlined, CloudUploadOutlined, MailOutlined } from '@ant-design/icons-vue'
 
 const authStore = useAuthStore()
 
@@ -17,10 +17,18 @@ const avatarUploading = ref(false)
 const avatarSaving = ref(false)
 const avatarSaved = ref(false)
 let avatarDebounce: ReturnType<typeof setTimeout> | null = null
-const profile = ref<{ username: string; role: string; avatarUrl?: string } | null>(null)
+const profile = ref<{ username: string; role: string; avatarUrl?: string; email?: string | null } | null>(null)
 const avatarInput = ref('')
 const avatarBroken = ref(false)
 const originalAvatar = ref('')
+
+// BUG-002 修复：账号页现在暴露邮箱设置。auth.service 会用它做为密码重置邮件收件人。
+const emailInput = ref('')
+const originalEmail = ref('')
+const emailSaving = ref(false)
+const emailSaved = ref(false)
+const emailInvalid = ref(false)
+let emailDebounce: ReturnType<typeof setTimeout> | null = null
 
 watch(
   () => profile.value?.avatarUrl,
@@ -35,6 +43,8 @@ onMounted(async () => {
     profile.value = (res.data as any)?.data || null
     avatarInput.value = profile.value?.avatarUrl || ''
     originalAvatar.value = avatarInput.value
+    emailInput.value = profile.value?.email || ''
+    originalEmail.value = emailInput.value
   } catch {
     // Offline or not logged in
   }
@@ -61,6 +71,41 @@ function onAvatarInput(url: string) {
   avatarInput.value = url
   if (avatarDebounce) clearTimeout(avatarDebounce)
   avatarDebounce = setTimeout(() => saveAvatarUrl(url), 500)
+}
+
+// 简单的 email 校验（不做全 RFC 5321，后端会二次校验）
+function isValidEmail(s: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)
+}
+
+async function saveEmail(value: string) {
+  const trimmed = value.trim()
+  if (trimmed === originalEmail.value) return
+  // 允许空字符串（清空邮箱）；非空时必须合法
+  if (trimmed && !isValidEmail(trimmed)) {
+    emailInvalid.value = true
+    return
+  }
+  emailInvalid.value = false
+  emailSaving.value = true
+  try {
+    await updateProfileApi({ email: trimmed })
+    if (profile.value) profile.value.email = trimmed || null
+    originalEmail.value = trimmed
+    emailSaved.value = true
+    setTimeout(() => { emailSaved.value = false }, 2000)
+  } catch {
+    message.error('邮箱保存失败')
+  } finally {
+    emailSaving.value = false
+  }
+}
+
+function onEmailInput(value: string) {
+  emailInput.value = value
+  emailInvalid.value = false
+  if (emailDebounce) clearTimeout(emailDebounce)
+  emailDebounce = setTimeout(() => saveEmail(value), 500)
 }
 
 async function handleAvatarUpload(file: File) {
@@ -165,6 +210,26 @@ async function handleSave() {
             <template #icon><CloudUploadOutlined /></template>本地上传
           </a-button>
         </a-upload>
+      </div>
+
+      <!-- BUG-002 修复：邮箱设置 —— 用于密码重置邮件收件人 -->
+      <a-divider style="margin: 12px 0" />
+      <div class="ac-email-set">
+        <a-input
+          :value="emailInput"
+          placeholder="邮箱地址（用于密码重置邮件，留空则重置链接会写入服务器日志）"
+          size="middle"
+          :status="emailInvalid ? 'error' : ''"
+          @input="onEmailInput(($event.target as HTMLInputElement).value)"
+          @blur="saveEmail(emailInput)"
+        >
+          <template #prefix><MailOutlined /></template>
+          <template #addonAfter>
+            <span v-if="emailInvalid" class="ac-avatar-status ac-avatar-invalid">格式错误</span>
+            <span v-else-if="emailSaving" class="ac-avatar-status ac-avatar-saving">保存中…</span>
+            <span v-else-if="emailSaved" class="ac-avatar-status ac-avatar-saved">✓ 已保存</span>
+          </template>
+        </a-input>
       </div>
     </a-card>
 
@@ -272,5 +337,13 @@ async function handleSave() {
 }
 .ac-avatar-saved {
   color: var(--admin-success);
+}
+.ac-avatar-invalid {
+  color: var(--admin-danger, #ff4d4f);
+}
+.ac-email-set {
+  display: flex;
+  gap: 10px;
+  align-items: center;
 }
 </style>

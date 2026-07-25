@@ -122,7 +122,7 @@ export function createFirstAdminApi(username: string, password: string, setupTok
 }
 
 // Profile
-export function updateProfileApi(data: { avatarUrl?: string }) {
+export function updateProfileApi(data: { avatarUrl?: string; email?: string }) {
   return request.put('/auth/profile', data)
 }
 
