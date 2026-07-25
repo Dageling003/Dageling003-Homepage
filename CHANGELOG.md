@@ -51,6 +51,9 @@
 - 新增 [SECURITY.md](./SECURITY.md) 中英双语版
 - 新增 [PRODUCT.md](./PRODUCT.md)：产品定位 / 目标用户 / RICE 优先级 / 7 条产品原则
 
+### Changed
+- **后台补齐**：前台硬编码的 footerText / seoOgLocale / seoTwitterCard / introGreeting / cardHeaderTech / cardHeaderTodo 共 6 个字段纳入后台表单管理，个人信息页新增「问候语」「卡片标题」「页脚」「SEO」分组
+
 ### Refactor
 - **Caddy Dockerfile**：改为 self-contained，移除对 app 镜像的构建期依赖，可独立构建
 
