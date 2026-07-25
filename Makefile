@@ -14,7 +14,7 @@ COMPOSE := $(shell docker compose version >/dev/null 2>&1 && echo "docker compos
 DC := $(COMPOSE) --env-file $(ENV_FILE)
 
 .DEFAULT_GOAL := help
-.PHONY: help up down logs backup dev
+.PHONY: help up down logs backup update dev
 
 help:
 	@echo ""
@@ -24,6 +24,7 @@ help:
 	@echo "  make down      停止（保留数据）"
 	@echo "  make logs      实时看日志"
 	@echo "  make backup    备份数据库到 ./backups/"
+	@echo "  make update    拉取最新代码 + 重建镜像 + 重启（保留数据）"
 	@echo "  make dev       本地 pnpm 开发（三端并行）"
 	@echo ""
 	@echo "  高级用法直接调 scripts/*.sh 或 docker compose，不再包装。"
@@ -40,6 +41,9 @@ logs:
 
 backup:
 	@bash scripts/backup-db.sh
+
+update:
+	@bash scripts/update.sh
 
 dev:
 	@pnpm dev

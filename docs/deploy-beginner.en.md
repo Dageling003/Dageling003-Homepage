@@ -285,19 +285,20 @@ If you see `docker-compose.yml` / `apps/` / `docs/` / `scripts/`, you're set.
 ### Option A: interactive wizard (**recommended for beginners**)
 
 ```bash
-bash scripts/setup.sh
+bash scripts/deploy.sh
 ```
 
-Answers it collects:
+The wizard walks you through:
 
 1. **Domain or IP** → e.g. `your-domain.com` or your server's public IP
-2. **Admin password** → three choices:
+2. **HTTPS cert email** → needed for a real domain; leave blank for an IP
+3. **SMTP** → for password-reset emails; skippable (links land in `docker logs` instead)
+4. **Admin password** → three choices:
    - `1)` auto-generate (written to `.env.docker` and printed — **save it**)
    - `2)` type your own (≥ 12 chars)
    - `3)` leave empty (create via the web UI later)
-3. **SMTP** → for password-reset emails; skippable (links land in `docker logs` instead)
 
-Produces `.env.docker`.
+Produces `.env.docker` automatically, then builds images, starts services, and runs a smoke test.
 
 ### Option B: hand-edit (full control)
 
@@ -312,12 +313,13 @@ Change at minimum:
 # Domain or IP (required)
 DOMAIN=your-domain.com
 
-# JWT secret (required, ≥ 20 chars; generate below and paste)
+# JWT secret (required, ≥ 16 chars; generate below and paste)
 JWT_SECRET=paste-what-openssl-prints
 
-# Database passwords (required; also generated)
-DB_ROOT_PASSWORD=paste-generated-value
-DB_PASSWORD=paste-generated-value
+# Database: default is sqlite (no extra config needed)
+# Only needed when using MariaDB (DB_TYPE=mariadb):
+# DB_ROOT_PASSWORD=paste-generated-value
+# DB_PASSWORD=paste-generated-value
 
 # HTTPS cert notification email (fill if you have a domain; empty is ok for IP-only)
 ACME_EMAIL=you@example.com
@@ -339,24 +341,35 @@ openssl rand -base64 24    # for each DB password (run twice)
 
 ## 7. Build & start
 
-The one command that matters:
+If you already ran `bash scripts/deploy.sh` in §6, the deploy script **already built and started everything** — skip to §8 to access your site.
+
+If you used Option B (hand-edited `.env.docker`), use this one command:
 
 ```bash
-bash scripts/up.sh
+bash scripts/deploy.sh
 ```
 
-> **Why not just `docker compose up -d --build`?**
-> Compose builds services **in parallel**, but `Dockerfile.caddy` starts with `FROM homepage-app:latest`. Caddy's build sometimes starts first, can't find that image locally, tries to pull from docker.io, and gets `429 Too Many Requests` from the registry mirror.
-> `scripts/up.sh` builds app first, then ups everything — avoiding the race.
+> `deploy.sh` builds images in the correct order (app first, then caddy), starts all containers, waits for services to be ready, runs a smoke test, and prints access URLs.
+
+Or do it manually step by step:
+
+```bash
+# Build (order matters)
+docker compose --env-file .env.docker build app
+docker compose --env-file .env.docker build caddy
+
+# Start
+docker compose --env-file .env.docker up -d
+```
 
 **First build is slow** (pulls Node image, installs deps, compiles both frontends + backend) — expect **5–15 minutes**. Log spam is normal.
 
 **Success looks like:**
 
 ```
- ✔ Container homepage-db     Healthy
- ✔ Container homepage-app    Healthy
- ✔ Container homepage-caddy  Started
+  ✔ Container homepage-db     Healthy
+  ✔ Container homepage-app    Healthy
+  ✔ Container homepage-caddy  Started
 ```
 
 **Verify:**

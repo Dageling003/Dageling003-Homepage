@@ -148,7 +148,8 @@ If you already `git clone`d:
 make up          # = bash scripts/deploy.sh
 make logs        # tail logs
 make down        # stop
-make update      # pull latest + rebuild
+make backup      # back up database
+make update      # pull latest + rebuild (keeps data)
 ```
 
 ### Prerequisites
@@ -257,12 +258,9 @@ make help        # list every target
 make up          # deploy / start
 make down        # stop
 make logs        # tail logs
-make ps          # container status
-make update      # pull latest + rebuild
 make backup      # dump the database
-make smoke       # smoke test
+make update      # pull latest + rebuild (keeps data)
 make dev         # local pnpm three-in-one
-make clean       # stop + wipe volumes (dangerous, asks for y)
 
 # Raw pnpm
 pnpm dev / dev:backend / dev:frontend / dev:admin

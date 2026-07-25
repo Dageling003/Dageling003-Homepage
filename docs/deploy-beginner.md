@@ -286,19 +286,20 @@ cd Dageling003-Homepage
 ### 方式 A：跟着向导填（**推荐给纯小白**）
 
 ```bash
-bash scripts/setup.sh
+bash scripts/deploy.sh
 ```
 
-它会一步步问你：
+它会一步步引导你：
 
 1. **域名或 IP** → 有域名填 `your-domain.com`；没有就填服务器公网 IP
-2. **管理员密码** → 三选一：
+2. **HTTPS 证书邮箱** → 用于申请 SSL 证书（真实域名需要，IP 可留空）
+3. **SMTP 邮件** → 用来发"忘记密码"邮件，不填也行（那时链接会写到日志里，你 SSH 上去看）
+4. **管理员密码** → 三选一：
    - `1)` 自动生成（脚本会存进 `.env.docker` 并显示给你，**记下来**）
    - `2)` 手动输入（至少 12 位）
    - `3)` 留空（后面访问网站用图形界面创建）
-3. **SMTP 邮件** → 用来发"忘记密码"邮件，不填也行（那时链接会写到日志里，你 SSH 上去看）
 
-跑完会自动生成 `.env.docker` 文件。
+跑完会自动生成 `.env.docker` 文件，并自动构建镜像、启动服务、运行冒烟测试。
 
 ### 方式 B：手动编辑（想全掌控）
 
@@ -313,12 +314,13 @@ nano .env.docker    # 或 vim .env.docker
 # 域名或 IP（必填）
 DOMAIN=your-domain.com
 
-# JWT 密钥（必填，≥ 20 位；下面命令生成一个粘贴进去）
+# JWT 密钥（必填，≥ 16 位；下面命令生成一个粘贴进去）
 JWT_SECRET=换成下面命令生成的字符串
 
-# 数据库密码（必填，也用命令生成）
-DB_ROOT_PASSWORD=换成生成的
-DB_PASSWORD=换成生成的
+# 数据库：默认 sqlite（无需额外配置）
+# 仅在使用 MariaDB 时需要取消注释并填写：
+# DB_ROOT_PASSWORD=换成生成的
+# DB_PASSWORD=换成生成的
 
 # HTTPS 证书通知邮箱（有域名就填你的邮箱，用 IP 部署可留空）
 ACME_EMAIL=you@example.com
@@ -340,24 +342,35 @@ openssl rand -base64 24    # 用于两个数据库密码，跑两次
 
 ## 7. 一键构建并启动
 
-关键一步，**一条命令**：
+如果你已经通过第 6 章的 `bash scripts/deploy.sh` 生成了 `.env.docker`，那么 deploy 脚本**已经自动完成了构建和启动**，直接跳到第 8 章访问网站即可。
+
+如果你是用方式 B（手动编辑 `.env.docker`）配置的，则用这条命令一键构建并启动：
 
 ```bash
-bash scripts/up.sh
+bash scripts/deploy.sh
 ```
 
-> **为什么不直接跑 `docker compose up -d --build`？**
-> compose 会**并行**构建 app 和 caddy，但 `Dockerfile.caddy` 里 `FROM homepage-app:latest` —— caddy 有时会先跑，本地找不到就去 docker.io 拉，触发 registry mirror `429 Too Many Requests`。
-> `scripts/up.sh` 干的事就是先 build app、再 up 全部，避开这个并发坑。
+> `deploy.sh` 会按正确顺序构建镜像（先 app 后 caddy）、启动所有容器、等待服务就绪、运行冒烟测试，最后打印访问地址。
+
+或者手动分步执行：
+
+```bash
+# 构建（顺序不能反）
+docker compose --env-file .env.docker build app
+docker compose --env-file .env.docker build caddy
+
+# 启动
+docker compose --env-file .env.docker up -d
+```
 
 **第一次构建会慢**（要下载 Node 镜像、装依赖、编译前后端），大约 **5~15 分钟**，视网速和机器性能。你会看到刷屏的日志，都正常。
 
 **看到这几行就成功了：**
 
 ```
- ✔ Container homepage-db     Healthy
- ✔ Container homepage-app    Healthy
- ✔ Container homepage-caddy  Started
+  ✔ Container homepage-db     Healthy
+  ✔ Container homepage-app    Healthy
+  ✔ Container homepage-caddy  Started
 ```
 
 **验证运行状态：**

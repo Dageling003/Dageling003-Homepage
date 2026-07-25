@@ -163,7 +163,8 @@ curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/ma
 make up          # = bash scripts/deploy.sh
 make logs        # 看日志
 make down        # 停止
-make update      # 拉最新代码重建
+make backup      # 备份数据库
+make update      # 拉取最新代码 + 重建镜像 + 重启（保留数据）
 ```
 
 ### 前置

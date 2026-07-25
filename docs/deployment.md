@@ -72,30 +72,24 @@
 
 最简单的部署方式，只需两步：
 
-### 运行快速配置
+### 运行部署向导
 
 ```bash
 # 克隆项目
 git clone https://github.com/Dageling003/Dageling003-Homepage.git
 cd Dageling003-Homepage
 
-# 运行快速配置向导
-bash scripts/setup.sh
+# 运行部署向导
+bash scripts/deploy.sh
 ```
 
-向导会询问：
+向导会引导你完成：
 1. **域名或 IP** - 输入服务器 IP（如 `192.168.1.100`）或域名
-2. **管理员密码** - 自动生成/手动设置/留空网页创建
+2. **HTTPS 证书邮箱** - 用于申请 SSL 证书（真实域名需要，IP 可留空）
 3. **SMTP 邮件** - 可选，不配置也能用（找回密码链接输出到日志）
+4. **管理员密码** - 自动生成/手动设置/留空网页创建
 
-配置完成后自动生成 `.env.docker` 文件。
-
-### 启动服务
-
-```bash
-# 一键构建并启动
-docker compose --env-file .env.docker up -d --build
-```
+配置完成后自动生成 `.env.docker` 文件，并自动构建镜像、启动服务、运行冒烟测试。
 
 ### 访问网站
 
@@ -167,14 +161,15 @@ cp docker/.env.example .env.docker
 # 域名或 IP（必填）
 DOMAIN=your-domain-or-ip
 
-# JWT 密钥（必填，至少 20 位）
+# JWT 密钥（必填，至少 16 位）
 JWT_SECRET=your-strong-random-secret
 
-# 数据库密码（必填）
-DB_ROOT_PASSWORD=your-db-root-password
-DB_USERNAME=homepage
-DB_PASSWORD=your-db-password
-DB_DATABASE=homepage
+# 数据库：默认 sqlite（无需额外配置）
+# 仅在使用 MariaDB 时需要（DB_TYPE=mariadb）
+# DB_ROOT_PASSWORD=your-db-root-password
+# DB_USERNAME=homepage
+# DB_PASSWORD=your-db-password
+# DB_DATABASE=homepage
 
 # 管理员密码（可选，留空则通过网页创建）
 DEFAULT_ADMIN_PASSWORD=
@@ -191,6 +186,8 @@ docker compose --env-file .env.docker build app
 # 构建 Caddy + 静态文件镜像
 docker compose --env-file .env.docker build caddy
 ```
+
+> **提示**：`bash scripts/deploy.sh` 会自动按正确顺序构建，无需手动分开执行。
 
 ### 网络架构
 
@@ -219,23 +216,13 @@ Docker Compose 使用两个隔离网络增强安全性：
 
 ### 首次启动
 
-首次启动需要执行数据库迁移：
+SQLite 模式下，数据库迁移会在 app 容器启动时**自动执行**，无需手动操作：
 
 ```bash
-# 1. 启动数据库
-docker compose --env-file .env.docker up -d homepage-db
-
-# 2. 等待数据库就绪（约 10 秒）
-sleep 10
-
-# 3. 执行数据库迁移
-docker compose --env-file .env.docker run --rm app \
-  npx ts-node -r tsconfig-paths/register node_modules/.bin/typeorm migration:run \
-  -d data-source.ts
-
-# 4. 启动所有服务
 docker compose --env-file .env.docker up -d
 ```
+
+> **MariaDB 模式**：确保先启动 mariadb 容器（`docker compose --profile mariadb --env-file .env.docker up -d`），app 启动时会自动执行 migration。
 
 ### 后续启动
 
@@ -325,11 +312,9 @@ pnpm dev
 | 变量名 | 说明 | 示例 |
 |--------|------|------|
 | `DOMAIN` | 域名或 IP 地址 | `example.com` 或 `192.168.1.100` |
-| `JWT_SECRET` | JWT 密钥（≥20位） | `openssl rand -base64 32` 生成 |
-| `DB_ROOT_PASSWORD` | 数据库 root 密码 | `openssl rand -base64 20` 生成 |
-| `DB_USERNAME` | 数据库用户名 | `homepage` |
-| `DB_PASSWORD` | 数据库用户密码 | `openssl rand -base64 20` 生成 |
-| `DB_DATABASE` | 数据库名 | `homepage` |
+| `JWT_SECRET` | JWT 密钥（≥16位） | `openssl rand -base64 32` 生成 |
+
+> **注意**：以上两个是 SQLite 模式下唯一必填的变量。`DB_*` 变量仅在使用 MariaDB（`DB_TYPE=mariadb`）时才需要。
 
 ### 可选变量
 

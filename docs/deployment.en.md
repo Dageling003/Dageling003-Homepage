@@ -60,30 +60,25 @@ This document covers every supported way to deploy Homepage: quick setup, Docker
 
 Two steps.
 
-### Run the wizard
+### Run the deploy wizard
 
 ```bash
 # Clone
 git clone https://github.com/Dageling003/Dageling003-Homepage.git
 cd Dageling003-Homepage
 
-# Run the quick setup wizard
-bash scripts/setup.sh
+# Run the deploy wizard
+bash scripts/deploy.sh
 ```
 
-The wizard asks for:
+The wizard walks you through:
 
 1. **Domain or IP** — enter your server IP (e.g. `192.168.1.100`) or a domain.
-2. **Admin password** — auto-generate / set manually / leave blank to create in the web UI.
-3. **SMTP** — optional; leave blank and reset links will land in `docker logs`.
+2. **HTTPS cert email** — needed for a real domain; leave blank for an IP.
+3. **Email notifications (SMTP)** — optional; leave blank and reset links will land in `docker logs`.
+4. **Admin account** — auto-generate / customize / leave blank and create in the web UI.
 
-`.env.docker` is generated once you're done.
-
-### Start the stack
-
-```bash
-docker compose --env-file .env.docker up -d --build
-```
+`.env.docker` is generated automatically, followed by image build, service start, and smoke test.
 
 ### Access
 
@@ -153,14 +148,15 @@ cp docker/.env.example .env.docker
 # Domain or IP (required)
 DOMAIN=your-domain-or-ip
 
-# JWT secret (required, >= 20 chars)
+# JWT secret (required, >= 16 chars)
 JWT_SECRET=your-strong-random-secret
 
-# Database (required)
-DB_ROOT_PASSWORD=your-db-root-password
-DB_USERNAME=homepage
-DB_PASSWORD=your-db-password
-DB_DATABASE=homepage
+# Database: default is sqlite (no extra config needed)
+# Only needed when using MariaDB (DB_TYPE=mariadb)
+# DB_ROOT_PASSWORD=your-db-root-password
+# DB_USERNAME=homepage
+# DB_PASSWORD=your-db-password
+# DB_DATABASE=homepage
 
 # Admin password (optional — leave blank to create via the web UI)
 DEFAULT_ADMIN_PASSWORD=
@@ -177,6 +173,8 @@ docker compose --env-file .env.docker build app
 # Caddy + static files image
 docker compose --env-file .env.docker build caddy
 ```
+
+> **Tip**: `bash scripts/deploy.sh` handles the build order automatically — no need to run these separately.
 
 ### Networking
 
@@ -206,23 +204,13 @@ Every service has a healthcheck so dependencies start in the right order:
 
 ### First boot
 
-The first boot needs a DB migration:
+In SQLite mode, database migrations run **automatically** when the app container starts — no manual step needed:
 
 ```bash
-# 1. Start the database
-docker compose --env-file .env.docker up -d homepage-db
-
-# 2. Wait for it to be ready (~10s)
-sleep 10
-
-# 3. Run migrations
-docker compose --env-file .env.docker run --rm app \
-  npx ts-node -r tsconfig-paths/register node_modules/.bin/typeorm migration:run \
-  -d data-source.ts
-
-# 4. Boot everything
 docker compose --env-file .env.docker up -d
 ```
+
+> **MariaDB mode**: make sure to start the mariadb container first (`docker compose --profile mariadb --env-file .env.docker up -d`); migrations run automatically on app boot.
 
 ### Subsequent boots
 
@@ -308,11 +296,9 @@ Access:
 | Name | Purpose | Example |
 |--------|------|------|
 | `DOMAIN` | Domain or IP | `example.com` or `192.168.1.100` |
-| `JWT_SECRET` | JWT secret (>= 20 chars) | generate with `openssl rand -base64 32` |
-| `DB_ROOT_PASSWORD` | DB root password | generate with `openssl rand -base64 20` |
-| `DB_USERNAME` | DB user | `homepage` |
-| `DB_PASSWORD` | DB password | generate with `openssl rand -base64 20` |
-| `DB_DATABASE` | DB name | `homepage` |
+| `JWT_SECRET` | JWT secret (>= 16 chars) | generate with `openssl rand -base64 32` |
+
+> **Note**: The above two are the only required variables in SQLite mode. `DB_*` variables are only needed when using MariaDB (`DB_TYPE=mariadb`).
 
 ### Optional
 
