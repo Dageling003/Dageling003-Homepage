@@ -387,6 +387,9 @@ gunzip -c ./backups/homepage_YYYYMMDD_HHMMSS.sql.gz | \
 
 | 文档 | 说明 |
 |------|------|
+| [CHANGELOG.md](./CHANGELOG.md) | 版本变更（Keep a Changelog 规范） |
+| [SECURITY.md](./SECURITY.md) | 安全策略：漏洞上报渠道 / SLA / 现有安全基线 |
+| [ROADMAP.md](./ROADMAP.md) | 产品路线图：短 / 中 / 长期计划 + 不做清单 |
 | [deploy-beginner.md](./docs/deploy-beginner.md) | 零基础 30 分钟上线（含避坑手册） |
 | [deployment.md](./docs/deployment.md) | 部署完整参考 |
 | [architecture.md](./docs/architecture.md) | 架构设计 |

@@ -5,6 +5,51 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+安全类修复统一收在每个版本的 `Security` 段落，参见 [SECURITY.md](./SECURITY.md)。
+
+## [Unreleased]
+
+尚未发布的变更。**当决定切下一个 minor / patch 时，把该段整体挪到新版本标题下。**
+
+### Added
+- **一条命令部署**：新增 `scripts/install.sh` 远程引导（依赖检查 → clone → 调 deploy.sh），支持 `curl -fsSL <url> | bash` 一行拉起
+- **Makefile 快捷入口**：`make up / down / logs / ps / update / backup / smoke / dev / clean / help`，老手一键直达
+- **README 新增「缘起」板块**：说明与 [Simple-Homepage](https://github.com/QNquenan/Simple-Homepage) 的关系、6 维度对比与产品选型建议
+
+### Changed
+- **README 首屏 slogan**：从「轻量、可自托管…」改为「站在 Simple-Homepage 肩膀上」，强化差异化定位
+- **README Docker 部署章节**：改为三入口并列（远程 curl / `make up` / `bash scripts/deploy.sh`），中英文同步
+
+### Fixed
+- **admin 账号页**：修复邮箱设置项在无 SMTP 环境下暴露的问题，同步更新 API 类型
+- **backend BUG-005**：生产环境启动 fail-fast 守卫，`JWT_SECRET` / `SETUP_TOKEN` 缺失直接拒启
+- **backend BUG-006**：`configValue` 落库前做 JSON 结构校验，脏数据不再进入数据库
+- **backend BUG-001~003**：审计日志全链路补全 + `User.email` 列 + 时间范围过滤修正
+- **frontend 隐私脱敏**：模板中的姓名 / 地区 / 学校 / 生日替换为占位符，占位链接统一过滤，favicon 更新
+- **Caddy**：`CSP` 策略移到 per-handle 块并加 `force-replace` 前缀，修复覆盖失效问题
+- **PWA**：`index.html` 加入预缓存，`/api` 响应不再缓存，避免 CSP header 陈旧
+
+### Performance
+- **admin 首屏 bundle**：`SCHOOLS` 静态数组（2909 条）改为懒加载，首屏体积显著下降
+
+### Security
+- **SEC-001..007**：内部审计发现的问题批量修复（详见 commit `e12a46c`）
+- **安全审计策略收紧**：依赖升级 + `sharp` / `svgo` 工具链更新，`pnpm audit` 全绿
+- 新增 [SECURITY.md](./SECURITY.md)：漏洞上报渠道 / SLA / 现有安全设计基线
+
+### Docs
+- 新增 [ROADMAP.md](./ROADMAP.md)：短 / 中 / 长期路线图 + 明确的「不做清单」
+- 新增 [SECURITY.md](./SECURITY.md) 中英双语版
+
+### Refactor
+- **Caddy Dockerfile**：改为 self-contained，移除对 app 镜像的构建期依赖，可独立构建
+
+### CI
+- **docker build**：直接构建替代本地 registry，修复镜像共享问题
+- **测试**：SQLite 跑测试，lint / typecheck 拆分为独立 job
+
+---
+
 ## [1.0.0] - 2026-07-24
 
 首个正式版（GA）。本版本确定了「pnpm monorepo（前台 / 后台 / API 三包）+ 可视化管理后台 + 可选 Docker Compose 部署」的最终交付形态，并将 SQLite 模式作为一等公民纳入开箱即用体验。
@@ -41,4 +86,5 @@
 
 ---
 
+[Unreleased]: https://github.com/Dageling003/Dageling003-Homepage/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/Dageling003/Dageling003-Homepage/releases/tag/v1.0.0

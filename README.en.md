@@ -387,6 +387,9 @@ Full index in [`docs/README.md`](./docs/README.md).
 
 | Doc | Purpose |
 |-----|---------|
+| [CHANGELOG.md](./CHANGELOG.md) | Version history (Keep a Changelog format) |
+| [SECURITY.md](./SECURITY.md) | Security policy: reporting channel / SLA / baseline controls |
+| [ROADMAP.md](./ROADMAP.md) | Product roadmap: short / mid / long term + non-goals |
 | [deploy-beginner.md](./docs/deploy-beginner.md) | Zero-experience walkthrough (30 min to production, with a troubleshooting cookbook) |
 | [deployment.md](./docs/deployment.md) | Full deployment reference |
 | [architecture.md](./docs/architecture.md) | Architecture |
