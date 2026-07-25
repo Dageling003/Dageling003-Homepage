@@ -221,12 +221,32 @@ export class SiteConfigService {
           '["欢迎来到我的主页 🎉","生活不止眼前的苟且，还有诗和远方","累了就休息一下吧~ 😊","May you happy every day ✨"]',
         category: 'todos',
       },
-      { configKey: 'footerText', configValue: '© 2026 示例站点', category: 'info' },
+      {
+        configKey: 'footerText',
+        configValue: '© 2026 示例站点',
+        category: 'info',
+      },
       { configKey: 'seoOgLocale', configValue: 'zh_CN', category: 'info' },
-      { configKey: 'seoTwitterCard', configValue: 'summary_large_image', category: 'info' },
-      { configKey: 'introGreeting', configValue: '你好鸭，很高兴认识你👋', category: 'info' },
-      { configKey: 'cardHeaderTech', configValue: '🛠️ 技术栈', category: 'info' },
-      { configKey: 'cardHeaderTodo', configValue: '📃 鸽子计划', category: 'info' },
+      {
+        configKey: 'seoTwitterCard',
+        configValue: 'summary_large_image',
+        category: 'info',
+      },
+      {
+        configKey: 'introGreeting',
+        configValue: '你好鸭，很高兴认识你👋',
+        category: 'info',
+      },
+      {
+        configKey: 'cardHeaderTech',
+        configValue: '🛠️ 技术栈',
+        category: 'info',
+      },
+      {
+        configKey: 'cardHeaderTodo',
+        configValue: '📃 鸽子计划',
+        category: 'info',
+      },
       { configKey: '_initialized', configValue: '0', category: 'system' },
     ];
 

@@ -56,8 +56,7 @@ import { PasswordResetToken } from './auth/entities/password-reset-token.entity'
               'DB_TYPE=sqljs is not permitted in production. Use DB_TYPE=sqlite (better-sqlite3).',
             );
           }
-          const location =
-            process.env.DB_SQLITE_PATH || 'data/homepage.sqlite';
+          const location = process.env.DB_SQLITE_PATH || 'data/homepage.sqlite';
           const dataDir = dirname(resolve(location));
           if (!existsSync(dataDir)) mkdirSync(dataDir, { recursive: true });
           return {

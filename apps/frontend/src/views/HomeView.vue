@@ -387,7 +387,7 @@ onMounted(async () => {
 
         <div class="card-grid">
           <div class="card hover" role="region" aria-label="技术栈">
-             <div class="cardHeader">{{ cardHeaderTech }}</div>
+            <div class="cardHeader">{{ cardHeaderTech }}</div>
             <div class="techStack" role="list">
               <div
                 v-for="(t, i) in techs"
@@ -403,7 +403,7 @@ onMounted(async () => {
           </div>
 
           <div class="card hover" role="region" aria-label="待办事项">
-             <div class="cardHeader">{{ cardHeaderTodo }}</div>
+            <div class="cardHeader">{{ cardHeaderTodo }}</div>
             <div class="todoList" role="list">
               <div
                 v-for="(item, i) in todos"
