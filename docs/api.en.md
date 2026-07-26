@@ -411,7 +411,7 @@ Paginated audit log (login required).
 | 401 | Unauthorized | missing / invalid Bearer token |
 | 404 | Not found | key does not exist / Swagger disabled in production |
 | 409 | Conflict | config key already exists |
-| 429 | Too many requests | rate-limited (120/min globally, 5/min login) |
+| 429 | Too many requests | rate-limited (120/min globally, 5/min auth endpoints by default, configurable) |
 | 500 | Internal server error | check backend logs |
 
 ---

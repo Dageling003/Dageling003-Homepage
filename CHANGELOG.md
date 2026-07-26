@@ -12,6 +12,9 @@
 尚未发布的变更。**当决定切下一个 minor / patch 时，把该段整体挪到新版本标题下。**
 
 ### Added
+- **错误页面系统**：后台 404 / 403 页面支持动态状态码和主题适配，动画渐入，含「返回首页」和「返回上页」按钮
+- **全局 Loading 组件**：`GlobalLoading.vue`，带主题适配的旋转动画和跳动点阵，可用于路由切换和异步加载
+- **axios 403 拦截**：API 返回 403 时自动跳转到 `/403` 错误页面
 - **一条命令部署**：新增 `scripts/install.sh` 远程引导（依赖检查 → clone → 调 deploy.sh），支持 `curl -fsSL <url> | bash` 一行拉起
 - **Makefile 快捷入口**：`make up / down / logs / ps / update / backup / smoke / dev / clean / help`，老手一键直达
 - **README 新增「缘起」板块**：说明与 [Simple-Homepage](https://github.com/QNquenan/Simple-Homepage) 的关系、6 维度对比与产品选型建议
@@ -20,6 +23,7 @@
 - **前端图标构建脚本**：`scripts/build-icons.mjs` 从 `@iconify-json/logos` 抽 HomeView 里用到的 32 个图标生成 `src/icons/tech-icons.json`（64 KB）
 
 ### Changed
+- **认证接口限流可配置**：登录 / 重置密码 / 创建管理员接口从硬编码 `5/60s` 改为环境变量 `LOGIN_THROTTLE_LIMIT` / `LOGIN_THROTTLE_TTL` 控制
 - **README 首屏 slogan**：从「轻量、可自托管…」改为「站在 Simple-Homepage 肩膀上」，强化差异化定位
 - **README Docker 部署章节**：改为三入口并列（远程 curl / `make up` / `bash scripts/deploy.sh`），中英文同步
 - **前端字体 / 图标 self-host**：字体从 `fonts.googleapis.com` 换成 `@fontsource/inter`（latin + 400/500/600），图标从 `api.iconify.design` CDN 换成构建期抽出的子集 JSON —— 首屏不再依赖国内不稳定的外部 CDN
@@ -27,6 +31,7 @@
 - **后端全局限流**：`ThrottlerModule` 加 `skipIf: NODE_ENV=test`，e2e 顺序调用登录接口不再被 `@Throttle(5/60s)` 命中 429
 
 ### Fixed
+- **admin 登录页双重复提交**：按钮 `@click` + 表单 `@finish` 同时触发，改用 `html-type="submit"`，消除双发请求导致的提前限流
 - **admin 账号页**：修复邮箱设置项在无 SMTP 环境下暴露的问题，同步更新 API 类型
 - **backend BUG-005**：生产环境启动 fail-fast 守卫，`JWT_SECRET` / `SETUP_TOKEN` 缺失直接拒启
 - **backend BUG-006**：`configValue` 落库前做 JSON 结构校验，脏数据不再进入数据库

@@ -229,7 +229,7 @@
 - [x] helmet hardening (CSP / HSTS / crossOrigin policies)
 - [x] bcrypt rounds bumped 10 → 12
 - [x] Minimum password lengths: login 6 → 8, change-password 6 → 12
-- [x] Rate limiting: global 60 → 120/min, login stays at 5/min
+- [x] Rate limiting: global 60 → 120/min, login defaults to 5/min (configurable via `LOGIN_THROTTLE_LIMIT/TTL`)
 - [x] DB connection-pool tuning (`connectionLimit=20`, timeouts)
 - [x] Warning when `DB_SYNCHRONIZE=true` in production
 - [x] PM2 config: `fork` → `cluster` mode, `instances: 1` → `max`

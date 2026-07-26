@@ -73,7 +73,7 @@ Here is the current security baseline across **code / deployment / runtime**, so
 
 ### API & transport
 - **helmet**: CSP / HSTS 1y / cross-origin policies
-- **Rate limits**: 120 req/min global, 5 req/min on login (`@nestjs/throttler`)
+- **Rate limits**: 120 req/min global, 5 req/min on auth endpoints by default (`@nestjs/throttler`, configurable via `LOGIN_THROTTLE_LIMIT/TTL` env vars)
 - **1 MB request body cap**
 - **class-validator + DTO whitelisting**: `UpdateProfileDto` accepts only `avatarUrl`, defeating mass assignment
 - **Swagger disabled in production**

@@ -271,7 +271,7 @@ audit_logs:
 - helmet 安全头强化：CSP、HSTS (max-age=1年)、crossOrigin 策略
 - 全局请求体 1MB 限制（DDoS 防护）
 - Swagger 文档仅在非生产环境启用
-- Rate limiting：全局 120/min，登录接口 5/min
+- Rate limiting：全局 120/min（默认关），认证接口默认 5 req/min，可通过 `LOGIN_THROTTLE_LIMIT/TTL` 环境变量调节
 - 文件上传：sharp 压缩 + WebP 转换（200×200）+ 双重校验（MIME + sharp metadata）+ 5MB 限制
 - 审计日志：所有配置变更自动记录，长值截断防泄露
 - 初始化检查：首次使用必须完成设置向导（`_initialized` 标记）

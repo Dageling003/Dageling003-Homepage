@@ -227,7 +227,7 @@
 - [x] helmet 安全头强化（CSP / HSTS / crossOrigin 策略）
 - [x] bcrypt 轮次 10→12
 - [x] 密码最小长度：登录 6→8，改密码 6→12
-- [x] Rate limiting：全局 60→120/min，登录保持 5/min
+- [x] Rate limiting：全局 60→120/min，登录默认 5/min（可配置：`LOGIN_THROTTLE_LIMIT/TTL`）
 - [x] DB 连接池配置（connectionLimit=20，timeouts）
 - [x] `DB_SYNCHRONIZE=true` 生产环境启动警告
 - [x] PM2 配置：`fork` → `cluster` 模式，`instances: 1` → `max`

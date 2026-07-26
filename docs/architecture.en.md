@@ -273,7 +273,7 @@ audit_logs:
 - helmet security headers hardened: CSP, HSTS (max-age = 1 year), crossOrigin policies.
 - Global 1 MB request-body limit (DDoS mitigation).
 - Swagger docs are enabled only in non-production environments.
-- Rate limiting: 120/min globally, 5/min on `/api/auth/login`.
+- Rate limiting: 120/min globally (off by default), 5/min on auth endpoints by default, configurable via `LOGIN_THROTTLE_LIMIT/TTL` env vars.
 - Upload pipeline: sharp compresses + converts to 200×200 WebP; MIME + sharp metadata + magic-byte triple validation; 5 MB max.
 - Audit log: every config change is persisted; long values are truncated to prevent leakage.
 - Init gate: first use is forced through the wizard (`_initialized` marker).

@@ -36,7 +36,14 @@ request.interceptors.response.use(
         }
       }
 
-      // rate limiting (if implemented later)
+      if (status === 403) {
+        const currentPath = window.location.pathname
+        if (!currentPath.includes('/403') && !currentPath.includes('/login')) {
+          message.error('权限不足，无法执行此操作')
+          window.location.href = '/403'
+        }
+      }
+
       if (status === 429) {
         message.warning('请求过于频繁，请稍后再试')
       }

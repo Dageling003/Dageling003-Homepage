@@ -74,7 +74,7 @@
 
 ### API 与传输
 - **helmet**：CSP / HSTS 1y / cross-origin 策略
-- **限流**：全局 120 req/min，登录 5 req/min（`@nestjs/throttler`）
+- **限流**：全局 120 req/min，认证接口默认 5 req/min（`@nestjs/throttler`，可通过 `LOGIN_THROTTLE_LIMIT/TTL` 环境变量调节）
 - **请求体 1MB 上限**
 - **class-validator + DTO 白名单**：`UpdateProfileDto` 只允许 `avatarUrl` 字段，杜绝 Mass Assignment
 - **生产禁用 Swagger**
