@@ -28,6 +28,12 @@ import {
 } from './dto/password-recovery.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
+const LOGIN_THROTTLE_LIMIT = Number(process.env.LOGIN_THROTTLE_LIMIT) || 5;
+const LOGIN_THROTTLE_TTL = Number(process.env.LOGIN_THROTTLE_TTL) || 60000;
+const loginThrottle = {
+  default: { limit: LOGIN_THROTTLE_LIMIT, ttl: LOGIN_THROTTLE_TTL },
+};
+
 interface AuthenticatedRequest {
   user: { sub: number; username: string; role: string };
 }
@@ -67,7 +73,7 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Throttle(loginThrottle)
   @ApiOperation({ summary: '管理员登录' })
   async login(
     @Body() dto: LoginDto,
@@ -114,7 +120,7 @@ export class AuthController {
 
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Throttle(loginThrottle)
   @ApiOperation({
     summary: '申请密码重置（公开，需 PASSWORD_RESET_ENABLED=true）',
     description:
@@ -127,7 +133,7 @@ export class AuthController {
 
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Throttle(loginThrottle)
   @ApiOperation({
     summary:
       '使用重置 token 设置新密码（公开，需 PASSWORD_RESET_ENABLED=true）',
@@ -157,7 +163,7 @@ export class AuthController {
 
   @Post('create-first-admin')
   @HttpCode(HttpStatus.OK)
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Throttle(loginThrottle)
   @ApiOperation({
     summary: '创建第一个管理员账号（仅 users 表为空时可用）',
     description:

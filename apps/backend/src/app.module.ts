@@ -17,8 +17,8 @@ import { PasswordResetToken } from './auth/entities/password-reset-token.entity'
   imports: [
     // 全局限流：默认关闭（个人主页流量极小，不需要）。
     // 想开启：设置 THROTTLE_ENABLED=true。
-    // 注意：登录接口 /auth/login 上的 @Throttle 装饰器仍然生效（防暴力破解，
-    // 硬编码 5 次/分钟），与全局限流开关无关。
+    // 注意：认证接口（登录/重置密码/创建管理员）上的 @Throttle 装饰器仍然生效，
+    // 默认 5 次/60s，可通过 LOGIN_THROTTLE_LIMIT / LOGIN_THROTTLE_TTL 调节。
     // e2e 场景（NODE_ENV=test）通过 skipIf 全局跳过限流，避免顺序执行的
     // 多次 login 打到 5/60s 上限，无需在测试里再 overrideGuard。
     ThrottlerModule.forRoot({

@@ -65,7 +65,6 @@ function goForgot() {
             v-model:value="username"
             placeholder="请输入用户名"
             size="large"
-            @keyup.enter="handleLogin"
             class="lg-input"
           >
             <template #prefix><UserOutlined class="lg-input-icon" /></template>
@@ -77,7 +76,6 @@ function goForgot() {
             v-model:value="password"
             placeholder="请输入密码"
             size="large"
-            @keyup.enter="handleLogin"
             class="lg-input"
           >
             <template #prefix><LockOutlined class="lg-input-icon" /></template>
@@ -85,7 +83,7 @@ function goForgot() {
         </a-form-item>
 
         <a-form-item>
-          <a-button type="primary" block :loading="loading" size="large" @click="handleLogin" class="lg-btn">
+          <a-button type="primary" html-type="submit" block :loading="loading" size="large" class="lg-btn">
             登 录
           </a-button>
         </a-form-item>
