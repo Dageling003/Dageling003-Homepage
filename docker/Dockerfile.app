@@ -32,7 +32,12 @@ COPY apps/ apps/
 RUN pnpm --filter homepage-backend build && \
     pnpm --filter homepage-frontend build && \
     pnpm --filter homepage-admin build && \
-    pnpm --filter homepage-backend deploy /deploy --prod --legacy && \
+    mkdir -p /deploy && \
+    cp apps/backend/package.json /deploy/ && \
+    cp -r apps/backend/dist /deploy/dist && \
+    cd /deploy && \
+    pnpm install --prod && \
+    cd /app && \
     mkdir -p /deploy/public/uploads/avatar && \
     mkdir -p /static/frontend /static/admin && \
     cp -r apps/frontend/dist/. /static/frontend/ && \
