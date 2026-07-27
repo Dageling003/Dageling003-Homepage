@@ -67,7 +67,7 @@ export function logoutApi() {
 }
 
 export function getProfileApi() {
-  return request.get<ApiResponse<{ username: string; avatarUrl: string; email: string }>>('/auth/profile')
+  return request.get<ApiResponse<{ username: string; role?: string; avatarUrl?: string; email?: string | null }>>('/auth/profile')
 }
 
 // Config API
@@ -140,7 +140,7 @@ export function getAuditLogsApi(
   limit = 20,
   filters?: { action?: string; operator?: string; startDate?: string; endDate?: string },
 ) {
-  return request.get<ApiResponse<Array<{ id: number; action: string; entity: string; entityKey: string; detail: string; operator: string; createdAt: string }>>>('/audit', { params: { page, limit, ...filters } })
+  return request.get<ApiResponse<{ items: Array<{ id: number; action: string; entity: string; entityKey: string; detail: string; operator: string; createdAt: string }>; total: number }>>('/audit', { params: { page, limit, ...filters } })
 }
 
 export interface LoginResponse {

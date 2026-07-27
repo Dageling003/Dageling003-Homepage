@@ -56,7 +56,7 @@ async function fetchData() {
     if (filterStartDate.value) filters.startDate = filterStartDate.value
     if (filterEndDate.value) filters.endDate = filterEndDate.value
     const res = await getAuditLogsApi(page.value, pageSize.value, filters)
-    const body = res.data as AuditPage
+    const body = res.data as unknown as AuditPage
     data.value = body.items || []
     total.value = body.total || 0
   } catch {

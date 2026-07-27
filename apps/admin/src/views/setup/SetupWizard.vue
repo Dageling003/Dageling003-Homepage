@@ -176,7 +176,7 @@ async function saveConfig(key: string, value: string) {
   const category = CATEGORY_MAP[key] || 'general'
   try {
     const res = await getConfigsApi()
-    const all: Array<{ configKey: string; id: number }> = (res.data)?.data || []
+    const all = (res.data)?.data || []
     const existing = all.find(c => c.configKey === key)
     if (existing) {
       await updateConfigApi(key, value, category)
