@@ -35,8 +35,9 @@ RUN pnpm --filter homepage-backend build && \
     mkdir -p /deploy && \
     cp apps/backend/package.json /deploy/ && \
     cp -r apps/backend/dist /deploy/dist && \
+    cp pnpm-lock.yaml /deploy/ && \
     cd /deploy && \
-    pnpm install --prod && \
+    pnpm install --prod --frozen-lockfile && \
     cd /app && \
     mkdir -p /deploy/public/uploads/avatar && \
     mkdir -p /static/frontend /static/admin && \
