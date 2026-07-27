@@ -16,7 +16,7 @@ Homepage is a full-stack, front-end / back-end-separated homepage management sys
 |--------|------|------|--------|
 | **Public landing page** | `apps/frontend` | 3000 | Vue 3 + Vite + UnoCSS |
 | **Admin dashboard** | `apps/admin` | 3001 | Vue 3 + Ant Design Vue + UnoCSS |
-| **Backend API** | `apps/backend` | 8000 | NestJS + TypeORM + MariaDB / SQLite |
+| **Backend API** | `apps/backend` | 8000 | NestJS + TypeORM + SQLite (default) / MariaDB (optional) |
 
 > Ports 3000 / 3001 / 8000 are for development only. In Docker production, only ports 80 / 443 are exposed and Caddy is the single entry point.
 
@@ -37,14 +37,18 @@ Homepage is a full-stack, front-end / back-end-separated homepage management sys
        │  reverse proxy for /api/*
        ▼
 ┌──────────────────┐      ┌─────────────────┐
-│ Backend (NestJS) │      │    MariaDB      │
-│ app:8000         │◄────►│    :3306        │
-│                  │      │                 │
-│ AuthModule       │      │  users          │
-│ SiteConfigModule │      │  site_config    │
-│ AuditModule      │      │  audit_logs     │
+│ Backend (NestJS) │      │  SQLite file    │
+│ app:8000         │──────►  (default)      │
+│                  │      │  /app/data/     │
+│ AuthModule       │      │  homepage.sqlite│
+│ SiteConfigModule │      │                 │
+│ AuditModule      │      │                 │
 │ TypeORM          │      │                 │
 └──────────────────┘      └─────────────────┘
+       │
+       │  DB_TYPE=mariadb to switch
+       └──────────────────► MariaDB (optional)
+                            --profile mariadb
 ```
 
 > In Docker production, Caddy serves the frontend/admin static files directly (no intermediate Node process). Only API requests reach the backend container.
@@ -283,8 +287,8 @@ audit_logs:
 
 ### Database
 
-- `DB_TYPE=sqlite` uses SQLite via `sql.js` — no external service needed; schema is auto-synced at startup.
-- `DB_TYPE=mariadb` (default) uses MariaDB; `DB_SYNCHRONIZE` gates schema sync.
+- `DB_TYPE=sqlite` (default) uses SQLite via `better-sqlite3` — single-file persistence, no external service; schema auto-synced.
+- `DB_TYPE=mariadb` (optional) uses MariaDB; `DB_SYNCHRONIZE` gates schema sync.
 - Production MariaDB must keep `DB_SYNCHRONIZE=false`.
 - MariaDB connection pool: `connectionLimit=20`, `connectTimeout=10s`.
 
@@ -306,5 +310,6 @@ audit_logs:
   - Two images: `homepage-app` (backend API) + `homepage-caddy` (Caddy + static files).
   - Only ports 80 / 443 are exposed; all traffic goes through Caddy.
   - HEALTHCHECK is baked into every service; startup order uses `service_healthy`.
-  - Network isolation: frontend (Caddy ↔ App) + backend (App ↔ MariaDB).
+  - Default: SQLite single-file persistence, no extra database container needed.
+  - Optional MariaDB: `docker compose --profile mariadb up`, App ↔ MariaDB on isolated `backend` network.
   - MariaDB is not exposed on the frontend network — an extra layer of defense.

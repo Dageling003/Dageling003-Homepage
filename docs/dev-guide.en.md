@@ -163,7 +163,7 @@ Pick the driver with `DB_TYPE` in `apps/backend/.env`:
 | `DB_TYPE` | Driver | Use case | Init |
 |-----------|------|------|-----------|
 | `sqlite` | TypeORM `sqljs` | Quick trial / local dev, no DB install | Schema auto-synced on startup |
-| `mariadb` (default) | `mariadb` | Production | `pnpm migrate:run` |
+| `mariadb` (optional) | `mariadb` | High-traffic | `pnpm migrate:run` |
 
 SQLite mode only needs:
 

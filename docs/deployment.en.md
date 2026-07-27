@@ -52,7 +52,7 @@ This document covers every supported way to deploy Homepage: quick setup, Docker
 
 - **Node.js** ≥ 20.19.0
 - **pnpm** ≥ 11.0.0
-- **MariaDB** ≥ 10.5
+- **MariaDB** ≥ 10.5 (optional — SQLite mode needs no external DB)
 
 ---
 
@@ -178,12 +178,14 @@ docker compose --env-file .env.docker build caddy
 
 ### Networking
 
-Docker Compose uses two isolated networks:
+By default Docker Compose starts only `app` + `caddy` (SQLite needs no DB container).
+
+With `DB_TYPE=mariadb`, a `mariadb` container is added and two isolated networks are used:
 
 | Network | Services | Purpose |
 |------|-----------|------|
 | `frontend` | caddy, app | Caddy reverse-proxies API requests to the app |
-| `backend` | app, mariadb | app talks to the database |
+| `backend` | app, mariadb | app talks to the database (MariaDB mode only) |
 
 > **Security win**: MariaDB lives on `backend` only — even if Caddy is compromised, the DB is not directly reachable.
 
@@ -193,13 +195,13 @@ Every service has a healthcheck so dependencies start in the right order:
 
 | Service | Check | Interval |
 |------|-------------|------|
-| `mariadb` | `mariadb-admin ping` | 10s |
+| `mariadb` (MariaDB mode only) | `mariadb-admin ping` | 10s |
 | `app` | HTTP `/health` | 30s |
 | `caddy` | `caddy validate --config` | 30s |
 
 `depends_on` with `condition: service_healthy` enforces the boot order:
 
-1. MariaDB ready → app boots.
+1. (MariaDB mode) MariaDB ready → app boots.
 2. App ready → Caddy boots.
 
 ### First boot
@@ -245,21 +247,29 @@ cp apps/backend/.env.example apps/backend/.env
 2. Edit `apps/backend/.env`:
 
 ```bash
-# JWT secret (>= 20 chars)
+# JWT secret (>= 16 chars)
 JWT_SECRET=your-dev-secret
 
-# Default admin password (>= 12 chars)
+# Default admin password (>= 8 chars)
 DEFAULT_ADMIN_PASSWORD=your-admin-password
 
-# Database
-DB_HOST=localhost
-DB_PORT=3306
-DB_USERNAME=homepage
-DB_PASSWORD=your-db-password
-DB_DATABASE=homepage
+# Database (default sqlite — no extra config needed)
+DB_TYPE=sqlite
+DB_SQLITE_PATH=data/homepage.sqlite
+
+# MariaDB-only settings (leave commented for SQLite):
+# DB_HOST=localhost
+# DB_PORT=3306
+# DB_USERNAME=homepage
+# DB_PASSWORD=your-db-password
+# DB_DATABASE=homepage
 ```
 
 ### Database setup
+
+**SQLite mode** (default): No extra setup — schema is auto-created on startup.
+
+**MariaDB mode** (optional):
 
 1. Create the database:
 
@@ -578,12 +588,9 @@ Run `pnpm audit --registry https://registry.npmjs.org` to check the current stat
 
 ### Network isolation
 
-Docker Compose uses two independent networks:
+Default SQLite mode uses only the `frontend` network (Caddy ↔ App).
 
-- **frontend**: Caddy ↔ App.
-- **backend**: App ↔ MariaDB.
-
-MariaDB is not on the frontend network — even if Caddy is compromised, the DB is not directly reachable.
+MariaDB mode adds a `backend` network (App ↔ MariaDB) — the database is not exposed to the frontend, so even a compromised Caddy cannot reach it directly.
 
 ---
 

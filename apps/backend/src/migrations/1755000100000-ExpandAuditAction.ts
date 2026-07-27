@@ -12,7 +12,7 @@ export class ExpandAuditAction1755000100000 implements MigrationInterface {
     // MariaDB / MySQL 语法。SQLite / better-sqlite3 不支持 MODIFY COLUMN，
     // 但在 sqlite 档下我们默认走 synchronize=true 自动同步元数据，因此
     // 用户不会在 sqlite 上运行本迁移（要跑必须显式 DB_MIGRATIONS_RUN=true）。
-    // 主部署路径是 MariaDB，这里保持一条最直接的 DDL 即可。
+    // 默认部署路径是 SQLite，但本迁移也兼容 MariaDB 模式。
     const driver = queryRunner.connection.options.type;
     if (driver === 'mariadb' || driver === 'mysql') {
       await queryRunner.query(

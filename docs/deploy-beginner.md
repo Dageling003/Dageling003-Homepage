@@ -490,7 +490,7 @@ Already up to date.
 
 **你需要记住的三件事**：
 
-- **不会丢数据**：数据库、上传文件、Caddy 证书都在 named volume（`mariadb_data` / `app_uploads` / `caddy_data`），脚本不动这些
+- **不会丢数据**：数据库（SQLite 单文件或 MariaDB volume）、上传文件、Caddy 证书都在 named volume，脚本不动这些
 - **不会覆盖配置**：`.env.docker` 不动
 - **不会长时间停机**：`up -d` 滚动替换，一般 5~30 秒切完
 
@@ -592,6 +592,10 @@ bash scripts/update.sh
 
 情况 2：**新版本改了数据库结构**（比如加了字段、删了表）—— 单纯回代码不够，还要恢复数据库：
 
+**SQLite 模式**：直接替换数据库文件即可（备份见 `scripts/backup-db.sh`）。
+
+**MariaDB 模式**：
+
 ```bash
 # 1. 停服务
 docker compose --env-file .env.docker down
@@ -658,8 +662,8 @@ docker logs homepage-app --tail 100
 | 日志关键字 | 原因 | 修法 |
 |-----------|------|------|
 | `JWT_SECRET is not properly configured` | `.env.docker` 里 JWT_SECRET 没设或太短 | 用 `openssl rand -base64 32` 生成一个新的填进去，然后 `docker compose --env-file .env.docker up -d` 重启 |
-| `Access denied for user` / `ER_ACCESS_DENIED_ERROR` | 数据库密码不匹配。**通常是你改过 `.env.docker` 但数据库容器保留了旧密码** | 见 10.7 |
-| `ECONNREFUSED mariadb:3306` | 数据库还没起来 App 就来连了 | 先 `docker compose --env-file .env.docker down`，再 `up -d`，让 healthcheck 重排 |
+| `Access denied for user` / `ER_ACCESS_DENIED_ERROR` | MariaDB 密码不匹配。**通常是你改过 `.env.docker` 但数据库容器保留了旧密码** | 见 10.7。SQLite 模式不会出现此错 |
+| `ECONNREFUSED mariadb:3306` | MariaDB 还没起来 App 就来连了 | 先 `docker compose --env-file .env.docker down`，再 `up -d`，让 healthcheck 重排。SQLite 模式不会出现此错 |
 | 容器直接 Exited、无日志、只显示 `Cannot find module '/app/dist/main.js'` | 构建产物路径不对（v1.2.0 之前的老坑） | 拉最新代码 `git pull`，重新 `up -d --build` |
 
 ### 11.2 HTTPS 证书申请失败（Caddy 一直 `obtaining certificate` 或报 `unable to satisfy challenges`）
@@ -678,6 +682,8 @@ docker logs homepage-app --tail 100
 国内节点最常见。先看**报错里到底提到哪个镜像**，对号入座：
 
 #### 11.3.1 是 `mariadb` 或 `node` 拉不到
+
+> ⚠️ 仅 MariaDB 模式会出现此问题。默认 SQLite 模式无需拉取 mariadb 镜像。
 
 Docker Hub 类，配镜像加速器一般就好。参考第 3 章末尾配 Docker 镜像加速器，或在 `.env.docker` 里切 MariaDB 镜像源：
 

@@ -64,7 +64,7 @@
 
 - **Node.js** ≥ 20.19.0
 - **pnpm** ≥ 11.0.0
-- **MariaDB** ≥ 10.5
+- **MariaDB** ≥ 10.5（可选，SQLite 模式无需安装数据库）
 
 ---
 
@@ -191,12 +191,14 @@ docker compose --env-file .env.docker build caddy
 
 ### 网络架构
 
-Docker Compose 使用两个隔离网络增强安全性：
+Docker Compose 默认仅启动 app + caddy 两个服务（SQLite 无需数据库容器）。
+
+若使用 `DB_TYPE=mariadb`，还会额外启动 mariadb 容器并使用两个隔离网络：
 
 | 网络 | 连接的服务 | 说明 |
 |------|-----------|------|
 | `frontend` | caddy, app | Caddy 反向代理 API 请求到 App |
-| `backend` | app, mariadb | App 连接数据库 |
+| `backend` | app, mariadb | App 连接数据库（仅 MariaDB 模式） |
 
 > **安全优势**：MariaDB 仅在 `backend` 网络中，不直接暴露到 `frontend`，即使 Caddy 被攻破也无法直接访问数据库。
 
@@ -206,12 +208,12 @@ Docker Compose 使用两个隔离网络增强安全性：
 
 | 服务 | 健康检查方式 | 间隔 |
 |------|-------------|------|
-| `mariadb` | `mariadb-admin ping` | 10s |
+| `mariadb`（仅 MariaDB 模式） | `mariadb-admin ping` | 10s |
 | `app` | HTTP 请求 `/health` 端点 | 30s |
 | `caddy` | `caddy validate --config` | 30s |
 
 `depends_on` 使用 `condition: service_healthy` 确保启动顺序：
-1. MariaDB 就绪 → App 启动
+1. （MariaDB 模式）MariaDB 就绪 → App 启动
 2. App 就绪 → Caddy 启动
 
 ### 首次启动
@@ -260,21 +262,29 @@ cp apps/backend/.env.example apps/backend/.env
 2. 编辑 `apps/backend/.env`，修改以下配置：
 
 ```bash
-# JWT 密钥（至少 20 位）
+# JWT 密钥（至少 16 位）
 JWT_SECRET=your-dev-secret
 
-# 默认管理员密码（至少 12 位）
+# 默认管理员密码（至少 8 位）
 DEFAULT_ADMIN_PASSWORD=your-admin-password
 
-# 数据库配置
-DB_HOST=localhost
-DB_PORT=3306
-DB_USERNAME=homepage
-DB_PASSWORD=your-db-password
-DB_DATABASE=homepage
+# 数据库（默认 sqlite，无需额外配置）
+DB_TYPE=sqlite
+DB_SQLITE_PATH=data/homepage.sqlite
+
+# 若使用 MariaDB 才需填写以下内容：
+# DB_HOST=localhost
+# DB_PORT=3306
+# DB_USERNAME=homepage
+# DB_PASSWORD=your-db-password
+# DB_DATABASE=homepage
 ```
 
 ### 数据库设置
+
+**SQLite 模式**（默认）：无需任何额外配置，启动时自动建表。
+
+**MariaDB 模式**（可选）：
 
 1. 创建数据库：
 
@@ -856,12 +866,9 @@ ACME_CA=https://acme-v02.api.letsencrypt.org/directory  # Let's Encrypt
 
 ### 网络隔离
 
-Docker Compose 使用两个独立网络：
+默认 SQLite 模式仅使用 `frontend` 网络（Caddy ↔ App）。
 
-- **frontend**：Caddy 和 App 通信
-- **backend**：App 和 MariaDB 通信
-
-MariaDB 不暴露到 frontend 网络，即使 Caddy 被攻破也无法直接访问数据库。
+MariaDB 模式额外使用 `backend` 网络（App ↔ MariaDB），数据库不暴露到 frontend，即使 Caddy 被攻破也无法直接访问。
 
 ---
 

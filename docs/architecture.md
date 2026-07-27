@@ -16,7 +16,7 @@ homepage 是一个全栈前后端分离的首页管理系统，包含三个子�
 |--------|------|------|--------|
 | **前台主页** | `apps/frontend` | 3000 | Vue 3 + Vite + UnoCSS |
 | **管理后台** | `apps/admin` | 3001 | Vue 3 + Ant Design Vue + UnoCSS |
-| **后端 API** | `apps/backend` | 8000 | NestJS + TypeORM + MariaDB/SQLite |
+| **后端 API** | `apps/backend` | 8000 | NestJS + TypeORM + SQLite（默认）/ MariaDB（可选） |
 
 > 开发环境端口 3000/3001/8000；Docker 生产环境仅暴露 80/443（Caddy 统一入口）。
 
@@ -37,14 +37,18 @@ homepage 是一个全栈前后端分离的首页管理系统，包含三个子�
        │  /api/* 反向代理
        ▼
 ┌──────────────────┐      ┌─────────────────┐
-│  Backend (NestJS) │      │    MariaDB      │
-│  app:8000         │◄────►│    :3306        │
-│                   │      │                 │
-│  AuthModule       │      │  users          │
-│  SiteConfigModule │      │  site_config    │
-│  AuditModule      │      │  audit_logs     │
+│  Backend (NestJS) │      │  SQLite 单文件   │
+│  app:8000         │──────►  (默认)         │
+│                   │      │  /app/data/     │
+│  AuthModule       │      │  homepage.sqlite│
+│  SiteConfigModule │      │                 │
+│  AuditModule      │      │                 │
 │  TypeORM          │      │                 │
 └──────────────────┘      └─────────────────┘
+       │
+       │  DB_TYPE=mariadb 时可选
+       └─────────────────► MariaDB（可选）
+                           ──profile mariadb
 ```
 
 > Docker 生产环境：Caddy 直接提供前端/后台静态文件（无中间 Node 进程），仅 API 请求到达后端容器。
@@ -281,8 +285,8 @@ audit_logs:
 
 ### 数据库
 
-- `DB_TYPE=sqlite` 使用无需外部服务的 SQLite (sql.js)，启动时自动同步 Schema
-- `DB_TYPE=mariadb`（默认）使用 MariaDB，`DB_SYNCHRONIZE` 控制 Schema 同步
+- `DB_TYPE=sqlite`（默认）使用无需外部服务的 SQLite (better-sqlite3)，单文件持久化，自动同步 Schema
+- `DB_TYPE=mariadb`（可选）使用 MariaDB，`DB_SYNCHRONIZE` 控制 Schema 同步
 - MariaDB 生产环境应保持 `DB_SYNCHRONIZE=false`
 - MariaDB 连接池配置：connectionLimit=20, connectTimeout=10s
 
@@ -304,5 +308,5 @@ audit_logs:
   - 两个镜像：`homepage-app`（后端API）+ `homepage-caddy`（Caddy + 静态文件）
   - 仅暴露 80/443 端口，所有流量走 Caddy
   - 内置 HEALTHCHECK，`service_healthy` 依赖
-  - 网络隔离：frontend（Caddy ↔ App）+ backend（App ↔ MariaDB）
-  - MariaDB 不暴露到 frontend 网络，增强安全性
+  - 默认 SQLite 单文件持久化，无需额外数据库容器
+  - 可选 MariaDB：`docker compose --profile mariadb up`，App ↔ MariaDB 走 backend 网络隔离

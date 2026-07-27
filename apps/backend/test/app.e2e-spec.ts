@@ -10,7 +10,7 @@ import { AppModule } from './../src/app.module';
 describe('Homepage API (e2e)', () => {
   let app: INestApplication<App>;
   // 与 auth-flow.e2e-spec.ts 同思路：给本 suite 独立 sqljs 数据库，
-  // 避免被本地 apps/backend/.env（DB_TYPE=mariadb）串场。
+  // 避免被本地 apps/backend/.env 串场。
   const dbPath = join(
     tmpdir(),
     `homepage-e2e-app-${Date.now()}-${process.pid}.sqlite`,

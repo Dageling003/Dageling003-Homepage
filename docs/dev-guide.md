@@ -162,7 +162,7 @@ docker logs homepage-app 2>&1 | grep -A 6 '密码重置请求'
 | `DB_TYPE` | 驱动 | 用途 | 初始化方式 |
 |-----------|------|------|-----------|
 | `sqlite` | TypeORM `sqljs` | 快速试用、本地开发，无需安装数据库 | 启动时自动建表 |
-| `mariadb`（默认） | `mariadb` | 生产部署 | `pnpm migrate:run` |
+| `mariadb`（可选） | `mariadb` | 高流量场景 | `pnpm migrate:run` |
 
 SQLite 模式只需设置：
 

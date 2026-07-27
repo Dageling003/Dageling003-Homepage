@@ -458,8 +458,8 @@ Common patterns:
 | Log keyword | Cause | Fix |
 |-------------|-------|-----|
 | `JWT_SECRET is not properly configured` | Missing or too-short `JWT_SECRET` in `.env.docker` | Regenerate with `openssl rand -base64 32`, then `docker compose --env-file .env.docker up -d` |
-| `Access denied for user` / `ER_ACCESS_DENIED_ERROR` | DB password mismatch. **Usually because you edited `.env.docker` but the DB container kept the old password** | See 10.7 |
-| `ECONNREFUSED mariadb:3306` | App raced ahead of DB startup | `docker compose --env-file .env.docker down` then `up -d` to reorder healthchecks |
+| `Access denied for user` / `ER_ACCESS_DENIED_ERROR` | MariaDB password mismatch. **You changed `.env.docker` but the DB container kept the old password** | See 10.7. SQLite mode cannot hit this |
+| `ECONNREFUSED mariadb:3306` | App raced ahead of MariaDB startup | `docker compose --env-file .env.docker down` then `up -d`. SQLite mode cannot hit this |
 | Container exits immediately with `Cannot find module '/app/dist/main.js'` | Build output path mismatch (pre-v1.2.0 bug) | `git pull` and `up -d --build` again |
 
 ### 10.2 HTTPS certificate fails (Caddy stuck on `obtaining certificate` or `unable to satisfy challenges`)
@@ -474,6 +474,8 @@ Common patterns:
   Then `docker compose --env-file .env.docker restart caddy`.
 
 ### 10.3 Image pull failure (`pull access denied` / `failed to resolve reference`)
+
+> ⚠️ MariaDB mode only. Default SQLite mode does not need the `mariadb` image.
 
 Common in China. Configure the Docker registry mirror (§3 tail) or switch MariaDB source in `.env.docker`:
 
@@ -531,7 +533,7 @@ free -h    # confirm Swap row is non-zero
 
 **Symptom**: containers start fine but reading/writing files under `/opt/Dageling003-Homepage` returns `Permission denied`; `docker logs` shows nothing app-level; `ausearch -m avc` or `journalctl -t setroubleshoot` reveals AVC denials.
 
-By default Homepage puts all data in named volumes (`mariadb_data` / `app_uploads` / `caddy_data`), so **you usually don't hit this**. If you edited compose to use a bind mount (`- ./some/path:/xxx`), either add the `:z` / `:Z` suffix or set SELinux to permissive temporarily:
+By default Homepage puts all data in named volumes (`app_uploads` / `caddy_data` / optionally `mariadb_data`), so **you usually don't hit this**. If you edited compose to use a bind mount (`- ./some/path:/xxx`), either add the `:z` / `:Z` suffix or set SELinux to permissive temporarily:
 
 ```bash
 # Temporary (reverts on reboot): switch SELinux from enforcing to permissive
