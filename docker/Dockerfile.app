@@ -38,7 +38,7 @@ RUN pnpm --filter homepage-backend build && \
     cp pnpm-lock.yaml /deploy/ && \
     cd /deploy && \
     pnpm config set ignore-scripts false && \
-    pnpm install --prod --frozen-lockfile && \
+    pnpm install --prod --no-frozen-lockfile && \
     cd /app && \
     mkdir -p /deploy/public/uploads/avatar && \
     mkdir -p /static/frontend /static/admin && \
