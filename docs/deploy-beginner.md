@@ -365,13 +365,14 @@ docker compose --env-file .env.docker up -d
 
 **第一次构建会慢**（要下载 Node 镜像、装依赖、编译前后端），大约 **5~15 分钟**，视网速和机器性能。你会看到刷屏的日志，都正常。
 
-**看到这几行就成功了：**
+**看到这几行就成功了**（默认 SQLite 模式，两个容器）：
 
 ```
-  ✔ Container homepage-db     Healthy
   ✔ Container homepage-app    Healthy
   ✔ Container homepage-caddy  Started
 ```
+
+> 用了 `--profile mariadb` 才会额外看到 `homepage-db  Healthy` 一行。
 
 **验证运行状态：**
 
@@ -379,7 +380,7 @@ docker compose --env-file .env.docker up -d
 docker compose --env-file .env.docker ps
 ```
 
-三行 `Up (healthy)` 就说明服务全都活了。
+两行 `Up (healthy)` 就说明服务全都活了（启用 MariaDB 后是三行）。
 
 ### 如果 app 显示 unhealthy？
 
@@ -465,7 +466,6 @@ Already up to date.
 ==> 3. 重新构建 caddy 镜像...
 [+] Building 4.2s (10/10) FINISHED
 ==> 4. 重启容器...
- ✔ Container homepage-db     Healthy
  ✔ Container homepage-app    Healthy
  ✔ Container homepage-caddy  Started
 ==> 5. 等待服务就绪...
@@ -473,6 +473,8 @@ Already up to date.
 ==> 7. 清理旧镜像...
 ==> ✅ 更新完成！
 ```
+
+> 启用 `--profile mariadb` 时会多一行 `✔ Container homepage-db  Healthy`。
 
 ### 10.2 update.sh 到底做了什么？
 
@@ -785,7 +787,7 @@ free -h    # 验证 Swap 那一行不再是 0
 
 **症状**：容器启动正常但读写 `/opt/Dageling003-Homepage` 下的文件报 `Permission denied`；`docker logs` 看不出应用层错误，`ausearch -m avc` 或 `journalctl -t setroubleshoot` 能看到 AVC 拒绝。
 
-Homepage 项目默认所有数据都走 named volume（`mariadb_data` / `app_uploads` / `caddy_data`），**通常不会踩这个坑**。但如果你自己改了 compose 挂了 bind mount（`- ./some/path:/xxx`），要么给挂载加 `:z` / `:Z` 后缀，要么临时把 SELinux 设成 permissive：
+Homepage 项目默认所有数据都走 named volume（`app_data` / `app_uploads` / `caddy_data`；启用 MariaDB overlay 时额外多一个 `mariadb_data`），**通常不会踩这个坑**。但如果你自己改了 compose 挂了 bind mount（`- ./some/path:/xxx`），要么给挂载加 `:z` / `:Z` 后缀，要么临时把 SELinux 设成 permissive：
 
 ```bash
 # 临时（重启失效）：把 SELinux 从 enforcing 切到 permissive
@@ -802,13 +804,15 @@ volumes:
   - ./my-data:/data:Z
 ```
 
-### 11.7 我改了 `.env.docker` 里的数据库密码，重启后连不上
+### 11.7 我改了 `.env.docker` 里的数据库密码，重启后连不上（仅 MariaDB 模式）
+
+> SQLite 模式没有账号密码概念，跳过这一节。
 
 **因为数据库容器第一次启动时把密码写进了数据卷 `mariadb_data`，之后改环境变量没用。**
 
 两条路：
 
-- **不想留数据（还没初始化过）**：`docker compose --env-file .env.docker down -v` （`-v` 会把数据库卷一起删！），然后 `up -d --build`
+- **不想留数据（还没初始化过）**：`docker compose --profile mariadb --env-file .env.docker down -v` （`-v` 会把数据库卷一起删！），然后 `up -d --build`
 - **要保留数据**：进容器手动改 MariaDB 密码：
   ```bash
   docker exec -it homepage-db mariadb -uroot -p<旧的root密码>
@@ -823,7 +827,19 @@ volumes:
 
 ### 11.8 忘了管理员密码
 
-如果你还有服务器 SSH：进后台没法自助，但可以走"忘记密码"（前提是配了 SMTP）；否则直接删掉 admin 用户重新初始化：
+如果配了 SMTP，直接走登录页的「忘记密码」流程即可。没配 SMTP 时，SSH 上服务器手动删掉 admin 用户重新初始化（按 `DB_TYPE` 选一种）：
+
+**SQLite 模式（默认）**：
+
+```bash
+# 1) 进 app 容器（distroless 没有 shell，只能 sh -c 起 sqlite3；
+#    如果没装 sqlite3，就 docker cp 出来在宿主机改）
+docker cp homepage-app:/app/data/homepage.sqlite /tmp/homepage.sqlite
+sqlite3 /tmp/homepage.sqlite "DELETE FROM users WHERE username='admin';"
+docker cp /tmp/homepage.sqlite homepage-app:/app/data/homepage.sqlite
+```
+
+**MariaDB 模式**：
 
 ```bash
 docker exec -it homepage-db mariadb -uhomepage -p<DB_PASSWORD> homepage
@@ -834,7 +850,7 @@ DELETE FROM users WHERE username='admin';
 EXIT;
 ```
 
-然后在 `.env.docker` 设一个 `DEFAULT_ADMIN_PASSWORD=至少12位新密码`，重启后端：
+**共同步骤**：在 `.env.docker` 设一个 `DEFAULT_ADMIN_PASSWORD=至少12位新密码`，重启后端：
 
 ```bash
 docker compose --env-file .env.docker restart app

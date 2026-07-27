@@ -167,8 +167,8 @@ allowBuilds:
 | **Framework** | NestJS | `^11.0.0` | Enterprise Node framework |
 | **Language** | TypeScript | `^5.6.3` | Unified TS across the stack |
 | **ORM** | TypeORM | `^0.3.20` | SQL entity mapping |
-| **DB driver** | mariadb | `^3.5.2` | MariaDB driver |
-| **DB** | MariaDB | `11.4.x LTS` | Relational DB |
+| **Default DB** | SQLite (better-sqlite3) | `^11.7.0` | Single-file persistence + WAL, enough for a personal homepage |
+| **Optional DB** | MariaDB + `mariadb` driver | `11.4.x LTS` / `^3.5.2` | Multi-replica / high-traffic scenarios |
 | **Auth** | @nestjs/passport | `^11.0.5` | JWT strategy |
 | **JWT** | @nestjs/jwt | `^11.0.2` | Token generation |
 | **Rate limit** | @nestjs/throttler | `^6.5.0` | API rate limiting |
@@ -202,6 +202,7 @@ allowBuilds:
     "@nestjs/throttler": "^6.5.0",
     "helmet": "^8.2.0",
     "typeorm": "^0.3.20",
+    "better-sqlite3": "^11.7.0",
     "mariadb": "^3.5.2",
     "bcryptjs": "^2.4.3",
     "passport": "^0.7.0",
@@ -229,7 +230,8 @@ allowBuilds:
 | Category | Tech | Version | Notes |
 | ----------- | -------- | ------------ | ------------- |
 | **Web server** | Caddy | `2.8.x` | Reverse proxy (HTTP for intranet, HTTPS auto in Docker) |
-| **Database** | MariaDB | `11.4.x LTS` | Relational DB |
+| **Default DB** | SQLite (better-sqlite3) | `^11.7.0` | Single-file persistence, no external service |
+| **Optional DB** | MariaDB | `11.4.x LTS` | Multi-replica / high-traffic |
 | **Process manager** | PM2 | `5.3.1` | Node supervision |
 | **Containers** | Docker + Compose | `24.x+ / 2.x+` | Production Docker deploy |
 | **DB GUI** | DBeaver | – | Database client |

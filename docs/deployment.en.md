@@ -317,7 +317,7 @@ Access:
 | `DEFAULT_ADMIN_PASSWORD` | Default admin password | blank (created via web UI) |
 | `ACME_CA` | HTTPS CA | `https://acme.zerossl.com/v2/DV90` |
 | `ACME_EMAIL` | HTTPS cert email | blank (auto-generated) |
-| `DB_SYNCHRONIZE` | Auto-sync schema | `false` (must be `false` in production) |
+| `DB_SYNCHRONIZE` | Auto-sync schema | SQLite mode defaults to `true` (safe); MariaDB mode defaults to `false` and MUST be `false` in production |
 | `PUBLIC_ADMIN_URL` | Root URL used in reset links | inferred from `DOMAIN` |
 
 ### SMTP

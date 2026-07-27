@@ -57,44 +57,62 @@ homepage 是一个全栈前后端分离的首页管理系统，包含三个子�
 
 ## 三、部署架构（Docker）
 
+### 3.1 默认拓扑（SQLite）
+
 ```
 ┌──────────────────────────────────────────────────────────┐
-│  docker compose                                           │
+│  docker compose (默认，2 服务)                            │
 │                                                          │
-│  Network: frontend                                        │
-│  ├─ homepage-caddy (Caddy + 静态文件)                     │
-│  │  ├─ 端口 80/443 暴露到宿主机                            │
+│  Network: frontend                                       │
+│  ├─ homepage-caddy (Caddy + 静态文件)                    │
+│  │  ├─ 端口 80/443 暴露到宿主机                          │
 │  │  ├─ 内置 frontend + admin dist                        │
-│  │  ├─ /api/* → app:8000                                │
-│  │  ├─ /health → 健康检查端点                              │
+│  │  ├─ /api/* → app:8000                                 │
+│  │  ├─ /health → 健康检查端点                            │
 │  │  ├─ HEALTHCHECK: caddy validate                       │
 │  │  └─ depends_on: app (service_healthy)                 │
 │  │                                                       │
-│  │  Network: backend (App 桥接两个网络)                    │
-│  ├─ homepage-app (后端 API 专用)                          │
-│  │  ├─ node:22-alpine                                    │
-│  │  ├─ 仅生产依赖 (pnpm deploy --prod)                    │
-│  │  ├─ HEALTHCHECK: /health                              │
-│  │  ├─ 连接 frontend 网络 (与 Caddy 通信)                 │
-│  │  ├─ 连接 backend 网络 (与 MariaDB 通信)                │
-│  │  └─ depends_on: mariadb (service_healthy)             │
+│  └─ homepage-app (后端 API + SQLite 单文件)              │
+│     ├─ distroless nodejs22 runtime                       │
+│     ├─ 仅生产依赖 (pnpm deploy --prod)                   │
+│     ├─ HEALTHCHECK: /health                              │
+│     ├─ 数据卷 app_data → /app/data (SQLite 持久化)       │
+│     └─ 上传卷 app_uploads → /app/public/uploads          │
+└──────────────────────────────────────────────────────────┘
+```
+
+### 3.2 可选拓扑（MariaDB overlay）
+
+启用方式：`.env.docker` 里 `DB_TYPE=mariadb` + 启动时加 `--profile mariadb`。
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  docker compose --profile mariadb (3 服务)               │
+│                                                          │
+│  Network: frontend                                       │
+│  ├─ homepage-caddy                                       │
+│  │  └─ depends_on: app (service_healthy)                 │
 │  │                                                       │
-│  │  Network: backend                                     │
+│  ├─ homepage-app                                         │
+│  │  ├─ 连接 frontend 网络 (与 Caddy 通信)                │
+│  │  └─ 连接 backend 网络 (与 MariaDB 通信)               │
+│  │                                                       │
+│  Network: backend                                        │
 │  └─ homepage-db (MariaDB 11.4)                           │
-│     ├─ 仅连接 backend 网络 (不暴露到 frontend)             │
-│     ├─ 持久化存储 (mariadb_data volume)                   │
+│     ├─ 仅连接 backend 网络 (不暴露到 frontend)           │
+│     ├─ 持久化存储 (mariadb_data volume)                  │
 │     └─ HEALTHCHECK: mariadb-admin ping                   │
 └──────────────────────────────────────────────────────────┘
 ```
 
 **网络隔离设计：**
 
-| 网络 | 连接的服务 | 用途 |
-|------|-----------|------|
-| `frontend` | caddy, app | Caddy 反向代理到 App |
-| `backend` | app, mariadb | App 连接数据库 |
+| 网络 | 默认拓扑 | MariaDB overlay | 用途 |
+|------|---------|-----------------|------|
+| `frontend` | caddy, app | caddy, app | Caddy 反向代理到 App |
+| `backend` | 声明但空跑 | app, mariadb | App ↔ 数据库，隔离于外部 |
 
-> MariaDB 仅在 `backend` 网络中，不直接暴露到 `frontend`，增强安全性。
+> 启用 MariaDB overlay 后，数据库仅出现在 `backend` 网络，Caddy 触达不到，即使反代被攻破也不能直连 DB。
 
 **两个镜像，各司其职：**
 
@@ -148,13 +166,12 @@ homepage/
 │           └── users/             # 用户实体
 │
 ├── scripts/                       # 部署和运维脚本
-│   ├── deploy.sh                  # 一键部署
-│   ├── build.sh                   # 构建脚本
-│   ├── update.sh                  # 更新脚本
-│   ├── smoke-test.sh              # 冒烟测试
-│   ├── docker-health.sh           # Docker 健康检查
-│   ├── domain-check.sh            # 域名验证
-│   └── backup-db.sh               # 数据库备份
+│   ├── install.sh                 # 远程一键引导 (clone + deploy)
+│   ├── install-docker.sh          # 只装 Docker
+│   ├── deploy.sh                  # 部署向导
+│   ├── update.sh                  # 更新
+│   ├── backup-db.sh               # 数据库备份（自动分流 SQLite / MariaDB）
+│   └── smoke-test.sh              # 冒烟测试
 ├── config/                        # 配置文件
 │   └── ecosystem.config.cjs       # PM2 配置
 ├── docs/                          # 项目文档
@@ -166,7 +183,7 @@ homepage/
 │   ├── Caddyfile                  # Caddy 配置（Docker）
 │   ├── Caddyfile.dev              # 反向代理（开发/内网部署）
 │   └── entrypoint.sh              # Caddy 入口
-├── docker-compose.yml             # Docker 编排（app + mariadb + caddy）
+├── docker-compose.yml             # Docker 编排（默认 2 服务 app + caddy；mariadb 可选）
 ├── .dockerignore                  # Docker 构建忽略清单
 ├── package.json                   # workspace 根
 └── pnpm-workspace.yaml
@@ -281,7 +298,7 @@ audit_logs:
 - 初始化检查：首次使用必须完成设置向导（`_initialized` 标记）
 - 默认管理员：自动创建 + 环境变量 `DEFAULT_ADMIN_PASSWORD` 指定密码
 - 依赖安全：定期审计修复高危漏洞（form-data、multer、nodemailer）
-- Docker 网络隔离：MariaDB 仅在 backend 网络，不暴露到 frontend
+- Docker 网络隔离：启用 MariaDB overlay 后，数据库仅在 backend 网络，不暴露到 frontend
 
 ### 数据库
 

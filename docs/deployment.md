@@ -333,7 +333,7 @@ pnpm dev
 | `DEFAULT_ADMIN_PASSWORD` | 默认管理员密码 | 留空（通过网页创建） |
 | `ACME_CA` | HTTPS 证书颁发机构 | `https://acme.zerossl.com/v2/DV90` |
 | `ACME_EMAIL` | HTTPS 证书邮箱 | 留空（自动生成） |
-| `DB_SYNCHRONIZE` | 自动同步 Schema | `false`（生产环境必须为 false） |
+| `DB_SYNCHRONIZE` | 自动同步 Schema | SQLite 模式默认 `true`（安全）；MariaDB 模式默认 `false`，生产环境必须 `false` |
 | `PUBLIC_ADMIN_URL` | 找回密码链接根 URL | 从 DOMAIN 推断 |
 
 ### SMTP 配置

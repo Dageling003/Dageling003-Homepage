@@ -364,13 +364,14 @@ docker compose --env-file .env.docker up -d
 
 **First build is slow** (pulls Node image, installs deps, compiles both frontends + backend) — expect **5–15 minutes**. Log spam is normal.
 
-**Success looks like:**
+**Success looks like** (default SQLite mode, two containers):
 
 ```
-  ✔ Container homepage-db     Healthy
   ✔ Container homepage-app    Healthy
   ✔ Container homepage-caddy  Started
 ```
+
+> With `--profile mariadb` you also get `✔ Container homepage-db  Healthy`.
 
 **Verify:**
 
@@ -378,7 +379,7 @@ docker compose --env-file .env.docker up -d
 docker compose --env-file .env.docker ps
 ```
 
-Three rows of `Up (healthy)` means everything's up.
+Two rows of `Up (healthy)` means everything's up (three rows with MariaDB).
 
 ### If app shows unhealthy?
 

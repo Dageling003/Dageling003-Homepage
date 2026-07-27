@@ -57,9 +57,11 @@ Homepage is a full-stack, front-end / back-end-separated homepage management sys
 
 ## 3. Deployment architecture (Docker)
 
+### 3.1 Default topology (SQLite)
+
 ```
 ┌──────────────────────────────────────────────────────────┐
-│  docker compose                                          │
+│  docker compose (default, 2 services)                    │
 │                                                          │
 │  Network: frontend                                       │
 │  ├─ homepage-caddy (Caddy + static files)                │
@@ -70,16 +72,32 @@ Homepage is a full-stack, front-end / back-end-separated homepage management sys
 │  │  ├─ HEALTHCHECK: caddy validate                       │
 │  │  └─ depends_on: app (service_healthy)                 │
 │  │                                                       │
-│  │  Network: backend (app bridges both networks)         │
-│  ├─ homepage-app (backend API only)                      │
-│  │  ├─ node:22-alpine                                    │
-│  │  ├─ production-only deps (pnpm deploy --prod)         │
-│  │  ├─ HEALTHCHECK: /health                              │
-│  │  ├─ on the frontend network (talks to Caddy)          │
-│  │  ├─ on the backend network (talks to MariaDB)         │
-│  │  └─ depends_on: mariadb (service_healthy)             │
+│  └─ homepage-app (backend API + SQLite file)             │
+│     ├─ distroless nodejs22 runtime                       │
+│     ├─ production-only deps (pnpm deploy --prod)         │
+│     ├─ HEALTHCHECK: /health                              │
+│     ├─ volume app_data → /app/data (SQLite persistence)  │
+│     └─ volume app_uploads → /app/public/uploads          │
+└──────────────────────────────────────────────────────────┘
+```
+
+### 3.2 Optional topology (MariaDB overlay)
+
+Enable it via `.env.docker` `DB_TYPE=mariadb` + start with `--profile mariadb`.
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  docker compose --profile mariadb (3 services)           │
+│                                                          │
+│  Network: frontend                                       │
+│  ├─ homepage-caddy                                       │
+│  │  └─ depends_on: app (service_healthy)                 │
 │  │                                                       │
-│  │  Network: backend                                     │
+│  ├─ homepage-app                                         │
+│  │  ├─ on the frontend network (talks to Caddy)          │
+│  │  └─ on the backend network (talks to MariaDB)         │
+│  │                                                       │
+│  Network: backend                                        │
 │  └─ homepage-db (MariaDB 11.4)                           │
 │     ├─ only on the backend network (not exposed          │
 │     │   to frontend)                                     │
@@ -90,17 +108,17 @@ Homepage is a full-stack, front-end / back-end-separated homepage management sys
 
 **Network isolation:**
 
-| Network | Services | Purpose |
-|------|-----------|------|
-| `frontend` | caddy, app | Caddy reverse-proxies to app |
-| `backend` | app, mariadb | app talks to the database |
+| Network | Default topology | MariaDB overlay | Purpose |
+|---------|------------------|-----------------|---------|
+| `frontend` | caddy, app | caddy, app | Caddy reverse-proxies to app |
+| `backend` | declared but empty | app, mariadb | app ↔ DB, isolated from outside |
 
-> MariaDB lives on `backend` only, never on `frontend` — even if Caddy is compromised, the DB is not directly reachable.
+> With the MariaDB overlay, the database only appears on the `backend` network — Caddy cannot reach it directly, so a compromised reverse proxy still cannot talk to the DB.
 
 **Two images, clear responsibilities:**
 
 | Image | Dockerfile | Contents |
-|------|-----------|------|
+|-------|-----------|----------|
 | `homepage-app` | `Dockerfile.app` | Backend API (NestJS dist + production deps) + a copy of the static dist (for Caddy to extract) |
 | `homepage-caddy` | `Dockerfile.caddy` | Caddy + baked-in frontend/admin static files |
 
@@ -149,13 +167,12 @@ homepage/
 │           └── users/             # user entity
 │
 ├── scripts/                       # deploy & ops scripts
-│   ├── deploy.sh                  # one-command deploy
-│   ├── build.sh                   # build
+│   ├── install.sh                 # remote one-liner (clone + deploy)
+│   ├── install-docker.sh          # install Docker only
+│   ├── deploy.sh                  # deploy wizard
 │   ├── update.sh                  # update
-│   ├── smoke-test.sh              # smoke test
-│   ├── docker-health.sh           # Docker healthcheck
-│   ├── domain-check.sh            # domain verification
-│   └── backup-db.sh               # DB backup
+│   ├── backup-db.sh               # DB backup (auto-detects SQLite / MariaDB)
+│   └── smoke-test.sh              # smoke test
 ├── config/
 │   └── ecosystem.config.cjs       # PM2
 ├── docs/                          # project docs
@@ -167,7 +184,7 @@ homepage/
 │   ├── Caddyfile                  # Caddy config (Docker)
 │   ├── Caddyfile.dev              # reverse proxy (dev / intranet)
 │   └── entrypoint.sh              # Caddy entrypoint
-├── docker-compose.yml             # Docker orchestration (app + mariadb + caddy)
+├── docker-compose.yml             # Docker orchestration (default 2 services: app + caddy; mariadb optional)
 ├── .dockerignore
 ├── package.json                   # workspace root
 └── pnpm-workspace.yaml
@@ -283,7 +300,7 @@ audit_logs:
 - Init gate: first use is forced through the wizard (`_initialized` marker).
 - Default admin: auto-created; `DEFAULT_ADMIN_PASSWORD` controls the initial password.
 - Dependency security: audits run periodically to fix high-severity CVEs (form-data, multer, nodemailer, …).
-- Docker network isolation: MariaDB is on `backend` only and never exposed to `frontend`.
+- Docker network isolation: when the MariaDB overlay is enabled, the DB lives only on the `backend` network and is never exposed to `frontend`.
 
 ### Database
 

@@ -16,11 +16,11 @@
 
 | Tool | Version | Check |
 |------|------|---------|
-| Node.js | >= 20.19.0 | `node -v` |
+| Node.js | >= 22.13.0 | `node -v` |
 | pnpm | >= 11.0.0 | `pnpm -v` |
 | MariaDB (optional) | >= 10.5 | `mysql -V` |
 
-> With `DB_TYPE=sqlite` you don't need to install MariaDB at all — see below.
+> `DB_TYPE=sqlite` (better-sqlite3, single-file persistence) is the default and needs no external DB — MariaDB is only required for the advanced path.
 
 ### 1. Install
 
@@ -37,7 +37,7 @@ cd apps/backend
 cp .env.example .env
 # Edit .env:
 # - Rotate JWT_SECRET to a strong random string: openssl rand -base64 32
-# - Set DB_TYPE=sqlite for SQLite (no DB install required), or keep DB_TYPE=mariadb for MariaDB
+# - DB_TYPE=sqlite is the default (no DB install required); switch to DB_TYPE=mariadb for the advanced path
 ```
 
 > ⚠️ **You must** rotate `JWT_SECRET` (`openssl rand -base64 32`) — the default placeholder is a security risk.
@@ -161,9 +161,9 @@ docker logs homepage-app 2>&1 | grep -A 6 'Password reset requested'
 Pick the driver with `DB_TYPE` in `apps/backend/.env`:
 
 | `DB_TYPE` | Driver | Use case | Init |
-|-----------|------|------|-----------|
-| `sqlite` | TypeORM `sqljs` | Quick trial / local dev, no DB install | Schema auto-synced on startup |
-| `mariadb` (optional) | `mariadb` | High-traffic | `pnpm migrate:run` |
+|-----------|--------|----------|------|
+| `sqlite` (default) | TypeORM `better-sqlite3` | Local dev + production, disk-persisted + WAL, no DB install | Schema auto-synced on startup (`synchronize`) |
+| `mariadb` (optional) | TypeORM `mariadb` | Multi-replica / high traffic | `pnpm migrate:run` |
 
 SQLite mode only needs:
 
@@ -216,7 +216,7 @@ homepage/
 │   ├── Caddyfile          # Caddy config (Docker)
 │   ├── Caddyfile.dev      # reverse proxy (dev / intranet)
 │   └── entrypoint.sh      # Caddy entrypoint
-├── docker-compose.yml     # Docker orchestration (app + mariadb + caddy)
+├── docker-compose.yml     # Docker orchestration (default 2 services: app + caddy; mariadb optional)
 ├── deploy.sh              # one-command deploy
 ├── ecosystem.config.cjs   # PM2
 └── package.json           # workspace
@@ -263,13 +263,18 @@ ipconfig | grep IPv4
 
 ## 🐳 Docker deploy
 
-Two images, clear responsibilities:
+**Default: 2 images** (SQLite mode — plenty for a personal homepage):
 
 | Image | Container | Notes |
-|------|------|------|
-| `homepage-app` | Backend API | NestJS backend on `:8000`, production deps only, has a HEALTHCHECK |
+|-------|-----------|-------|
+| `homepage-app` | Backend API | NestJS backend on `:8000`, production deps only, has a HEALTHCHECK; SQLite file mounted from the `app_data` volume |
 | `homepage-caddy` | Reverse proxy | Caddy + baked-in frontend/admin static files, single entry on `:80/:443` |
-| `mariadb:11.4` | Database | Persistent volume |
+
+**Optional overlay** (`DB_TYPE=mariadb` + `docker compose --profile mariadb up`):
+
+| Image | Container | Notes |
+|-------|-----------|-------|
+| `mariadb:11.4` | Database | Persistent `mariadb_data` volume, only on the backend network |
 
 > Caddy serves static files directly (no Node process in between). Only `/api/*` hits the backend container.
 
@@ -334,7 +339,7 @@ docker compose --env-file .env.docker up -d
 
 | File | Purpose |
 |------|------|
-| `docker-compose.yml` | Orchestrates 3 services (app + mariadb + caddy); includes HEALTHCHECK, resource limits, log rotation |
+| `docker-compose.yml` | Orchestrates 2 services by default (app + caddy); `--profile mariadb` adds the mariadb container. Includes HEALTHCHECK, resource limits, log rotation |
 | `Dockerfile.app` | Backend API image (multi-stage + `pnpm deploy --prod`) |
 | `Dockerfile.caddy` | Caddy image (extracts static files from the app image) |
 | `Caddyfile.docker` | Caddy config (reverse-proxies `/api`, serves static files directly) |
@@ -388,9 +393,14 @@ JwtModule.registerAsync({
 
 **Cause**: the database is missing the `_initialized` row (old seeds didn't include it).
 
-**Manual fix**:
+**Manual fix** (pick the SQL that matches your `DB_TYPE`):
 
 ```sql
+-- SQLite (default)
+INSERT INTO site_config (config_key, config_value, category, createdAt, updatedAt)
+VALUES ('_initialized', '0', 'system', datetime('now'), datetime('now'));
+
+-- MariaDB
 INSERT INTO site_config (config_key, config_value, category, createdAt, updatedAt)
 VALUES ('_initialized', '0', 'system', NOW(), NOW());
 ```

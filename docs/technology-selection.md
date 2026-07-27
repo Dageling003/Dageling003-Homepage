@@ -167,8 +167,8 @@ allowBuilds:
 | **框架**    | NestJS           | `^11.0.0`    | 企业级 Node 框架  |
 | **语言**    | TypeScript       | `^5.6.3`     | 全栈 TS 统一     |
 | **ORM**   | TypeORM          | `^0.3.20`    | SQL 实体映射     |
-| **数据库驱动** | mariadb           | `^3.5.2`     | MariaDB 驱动    |
-| **数据库**   | MariaDB          | `11.4.x LTS` | 关系型数据库       |
+| **默认数据库** | SQLite (better-sqlite3) | `^11.7.0` | 单文件持久化 + WAL，个人主页够用 |
+| **可选数据库** | MariaDB + mariadb 驱动 | `11.4.x LTS` / `^3.5.2` | 多副本 / 大流量场景 |
 | **鉴权**    | @nestjs/passport | `^11.0.5`    | JWT 认证策略     |
 | **JWT**   | @nestjs/jwt      | `^11.0.2`    | Token 生成     |
 | **限流**    | @nestjs/throttler | `^6.5.0`     | API 速率限制     |
@@ -202,6 +202,7 @@ allowBuilds:
     "@nestjs/throttler": "^6.5.0",
     "helmet": "^8.2.0",
     "typeorm": "^0.3.20",
+    "better-sqlite3": "^11.7.0",
     "mariadb": "^3.5.2",
     "bcryptjs": "^2.4.3",
     "passport": "^0.7.0",
@@ -229,7 +230,8 @@ allowBuilds:
 | 类别          | 技术       | 版本           | 说明            |
 | ----------- | -------- | ------------ | ------------- |
 | **Web 服务器** | Caddy    | `2.8.x`      | 反向代理（HTTP，内网部署） |
-| **数据库**     | MariaDB  | `11.4.x LTS` | 关系型数据库       |
+| **默认数据库**   | SQLite (better-sqlite3) | `^11.7.0` | 单文件持久化，无外部服务依赖 |
+| **可选数据库**   | MariaDB  | `11.4.x LTS` | 多副本 / 大流量场景  |
 | **进程管理**    | PM2      | `5.3.1`      | Node 应用守护     |
 | **容器化**     | Docker + Compose | `24.x+ / 2.x+` | 生产环境 Docker 部署 |
 | **数据库 GUI** | DBeaver  | -            | 数据库管理工具       |

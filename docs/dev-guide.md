@@ -16,11 +16,11 @@
 
 | 工具 | 版本 | 检查命令 |
 |------|------|---------|
-| Node.js | >=20.19.0 | `node -v` |
+| Node.js | >=22.13.0 | `node -v` |
 | pnpm | >=11.0.0 | `pnpm -v` |
 | MariaDB（可选） | >=10.5 | `mysql -V` |
 
-> 使用 `DB_TYPE=sqlite` 可免安装 MariaDB，详见下方说明。
+> 默认 `DB_TYPE=sqlite`（better-sqlite3 单文件持久化）无需安装任何数据库；仅在需要 MariaDB 高级路径时才装。
 
 ### 1. 安装依赖
 
@@ -37,7 +37,7 @@ cd apps/backend
 cp .env.example .env
 # 编辑 .env：
 # - 务必修改 JWT_SECRET 为强随机字符串（openssl rand -base64 32）
-# - 设置 DB_TYPE=sqlite 使用 SQLite（无需安装数据库），或保持 DB_TYPE=mariadb 使用 MariaDB
+# - DB_TYPE=sqlite 是默认值（无需安装数据库）；改为 DB_TYPE=mariadb 走高级路径
 ```
 
 > ⚠️ **务必**修改 `JWT_SECRET` 为强随机字符串（`openssl rand -base64 32`），否则有安全风险。
@@ -161,8 +161,8 @@ docker logs homepage-app 2>&1 | grep -A 6 '密码重置请求'
 
 | `DB_TYPE` | 驱动 | 用途 | 初始化方式 |
 |-----------|------|------|-----------|
-| `sqlite` | TypeORM `sqljs` | 快速试用、本地开发，无需安装数据库 | 启动时自动建表 |
-| `mariadb`（可选） | `mariadb` | 高流量场景 | `pnpm migrate:run` |
+| `sqlite`（默认） | TypeORM `better-sqlite3` | 生产 / 本地开发均可，磁盘持久 + WAL，无需安装数据库 | 启动时自动建表（`synchronize`） |
+| `mariadb`（可选） | TypeORM `mariadb` | 多副本 / 大流量 | `pnpm migrate:run` |
 
 SQLite 模式只需设置：
 
@@ -215,7 +215,7 @@ homepage/
 │   ├── Caddyfile          # Caddy 配置（Docker）
 │   ├── Caddyfile.dev      # 反向代理（开发/内网部署）
 │   └── entrypoint.sh      # Caddy 入口
-├── docker-compose.yml     # Docker 编排（app + mariadb + caddy）
+├── docker-compose.yml     # Docker 编排（默认 2 服务 app + caddy；mariadb 可选）
 ├── deploy.sh              # 一键部署脚本
 ├── ecosystem.config.cjs   # PM2
 └── package.json           # workspace
@@ -264,13 +264,18 @@ ipconfig | grep IPv4
 
 ## 🐳 Docker 部署
 
-两个镜像，各司其职：
+**默认 2 个镜像**（SQLite 模式，个人主页足够）：
 
 | 镜像 | 容器 | 说明 |
 |------|------|------|
-| `homepage-app` | 后端 API | NestJS 后端 (:8000)，仅生产依赖，有 HEALTHCHECK |
+| `homepage-app` | 后端 API | NestJS 后端 (:8000)，仅生产依赖，有 HEALTHCHECK；SQLite 数据文件挂载 `app_data` 卷 |
 | `homepage-caddy` | 反向代理 | Caddy + 内置前端/后台静态文件，统一入口 (:80/:443) |
-| `mariadb:11.4` | 数据库 | 持久化存储 |
+
+**可选 overlay**（`DB_TYPE=mariadb` + `docker compose --profile mariadb up`）：
+
+| 镜像 | 容器 | 说明 |
+|------|------|------|
+| `mariadb:11.4` | 数据库 | 持久化到 `mariadb_data` 卷，仅在 backend 网络 |
 
 > Caddy 直接提供静态文件（不经过 Node 进程），仅 `/api/*` 到达后端容器。
 
@@ -335,7 +340,7 @@ docker compose --env-file .env.docker up -d
 
 | 文件 | 用途 |
 |------|------|
-| `docker-compose.yml` | 编排 3 个服务（app + mariadb + caddy），含 HEALTHCHECK、资源限制、日志轮转 |
+| `docker-compose.yml` | 编排默认 2 个服务（app + caddy）；`--profile mariadb` 时追加 mariadb 服务。含 HEALTHCHECK、资源限制、日志轮转 |
 | `Dockerfile.app` | 后端 API 镜像（多阶段构建 + pnpm deploy --prod） |
 | `Dockerfile.caddy` | Caddy 镜像（从 app 镜像提取静态文件） |
 | `Caddyfile.docker` | Caddy 配置（反向代理 /api，直接 serve 静态文件） |
@@ -389,9 +394,14 @@ JwtModule.registerAsync({
 
 **原因**：数据库缺少 `_initialized` 记录（旧版 seed 数据不包含此字段）。
 
-**手动修复**：
+**手动修复**（按 DB 类型选一种）：
 
 ```sql
+-- SQLite（默认）
+INSERT INTO site_config (config_key, config_value, category, createdAt, updatedAt)
+VALUES ('_initialized', '0', 'system', datetime('now'), datetime('now'));
+
+-- MariaDB
 INSERT INTO site_config (config_key, config_value, category, createdAt, updatedAt)
 VALUES ('_initialized', '0', 'system', NOW(), NOW());
 ```
