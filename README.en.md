@@ -87,14 +87,29 @@ The iteration path was equally plain: **get the full stack running → migrate t
 
 - **Public site**: light/dark theme, typewriter greeting, time-progress bars, responsive layout (≥1024px three-column / <1024px single-column)
 - **Visual admin**: Ant Design Vue forms for profile / quick links / tech stack / plans / typewriter text — no code required
-- **JWT + bcrypt**: 12-round hashing, stateless sessions, route guards, `JWT_SECRET` enforced at boot
-- **Audit log**: every config change persisted; filter by operator / time / module
-- **Avatar upload**: MIME + sharp metadata double check, normalized to 200×200 WebP
-- **Smart form helpers**: birthday → auto age & zodiac; 34-province picker + searchable 2909-school list
+- **JWT + bcrypt**: newbie-friendly defaults (bcrypt=10, JWT ≥16 chars, password ≥8 chars), all bumpable via env vars
+- **Avatar upload**: MIME + magic-bytes double check, normalized to 200×200 WebP
+- **Smart form helpers**: birthday → auto age & zodiac; 34-province picker
 - **First-run wizard**: `/admin/setup` walks new deployments through creating the admin account and configuring the whole site
-- **Password reset**: SMTP email; falls back to `docker logs` when SMTP is not configured
 - **One-shot deploy**: `bash scripts/deploy.sh` wizard → `docker compose up -d --build`, automatic HTTPS (ZeroSSL default, works from China)
-- **Production hardening**: helmet headers + API rate limiting + 1 MB body limit + Swagger disabled in production
+- **Minimal by default**: SQLite single-file persistence (no MariaDB container); heavyweight features (rate limiting / strict CSP / audit / password reset / PWA / ambient background) are **all disabled by default** — flip an env var to opt-in
+
+### Optional feature flags (all off by default)
+
+Backend `.env.docker`:
+
+| Var | Purpose |
+|-----|---------|
+| `AUDIT_ENABLED=true` | Audit log: login / password change / config change persisted; UI shows the "Audit" entry |
+| `PASSWORD_RESET_ENABLED=true` | Forgot password + SMTP: needs `SMTP_*` filled to actually mail |
+| `THROTTLE_ENABLED=true` | Global 120/min rate limit (login endpoint hard-capped at 5/min always) |
+| `SECURITY_HEADERS_STRICT=true` | Strict CSP + HSTS preload + COEP (default off: iframes / cross-origin allowed) |
+| `BCRYPT_ROUNDS=12` `MIN_PASSWORD_LENGTH=12` `MIN_JWT_LENGTH=20` | Bump security thresholds |
+| `DB_TYPE=mariadb` | Use MariaDB instead of default SQLite (also `docker compose --profile mariadb up`) |
+
+Admin (`apps/admin/.env`): `VITE_AUDIT_ENABLED` / `VITE_PASSWORD_RESET_ENABLED`
+
+Public site (`apps/frontend/.env`): `VITE_PWA_ENABLED` / `VITE_AMBIENT_ENABLED` (frosted-glass orbs + grain)
 
 ---
 
@@ -111,8 +126,8 @@ The iteration path was equally plain: **get the full stack running → migrate t
                   ▼ [frontend network]
                 NestJS API (:8000)
                   │
-                  ▼ [backend network]
-                MariaDB (:3306)
+                  ▼ SQLite single file (default, mounted as app_data volume)
+                   or MariaDB (advanced: `docker compose --profile mariadb up`)
 ```
 
 | Package | Stack | Dev port | Public path |
@@ -154,8 +169,8 @@ make update      # pull latest + rebuild (keeps data)
 
 ### Prerequisites
 
-- Server: any Linux with Docker (≥ 2 GB RAM)
-- Ports 80 / 443 free
+- Server: any Linux with Docker (≥ 512 MB RAM, SQLite mode; ≥ 2 GB for MariaDB)  
+- Ports 80 / 443 free  
 - Local dev additionally needs: Node.js ≥ 22.13 · pnpm ≥ 11
 
 ### Local dev (SQLite, no database needed)
@@ -165,7 +180,7 @@ git clone https://github.com/Dageling003/Dageling003-Homepage.git
 cd Dageling003-Homepage
 pnpm install
 cp apps/backend/.env.example apps/backend/.env
-# Edit .env: set DB_TYPE=sqlite, JWT_SECRET (≥20 chars), DEFAULT_ADMIN_PASSWORD (≥12 chars)
+# Edit .env: DB_TYPE=sqlite (default), set JWT_SECRET (≥16 chars) and DEFAULT_ADMIN_PASSWORD (≥8 chars)
 pnpm dev
 ```
 
@@ -274,12 +289,13 @@ docker compose --env-file .env.docker logs -f app
 docker compose --env-file .env.docker restart app
 docker compose --env-file .env.docker down
 
-# Standalone scripts
-bash scripts/backup-db.sh [output_dir]
-bash scripts/update.sh
-bash scripts/smoke-test.sh [domain]
-bash scripts/docker-health.sh
-bash scripts/domain-check.sh
+# Standalone scripts (6 core scripts)
+bash scripts/install.sh          # remote one-liner
+bash scripts/install-docker.sh   # install Docker only
+bash scripts/deploy.sh           # deploy wizard
+bash scripts/update.sh           # update
+bash scripts/backup-db.sh        # backup (auto-detects SQLite / MariaDB)
+bash scripts/smoke-test.sh       # smoke tests
 ```
 
 ---
@@ -309,12 +325,14 @@ bash scripts/domain-check.sh
 
 ## 🔒 Security
 
-- `JWT_SECRET` enforced at boot (≥20 chars, no placeholder default)
-- Passwords hashed with bcrypt 12 rounds; admin password ≥12 chars
-- helmet: CSP / HSTS 1y / cross-origin policies
-- Rate limits: 120 req/min global, 5 req/min on login
+**Defaults are newbie-friendly**; bump via env vars any time:
+
+- `JWT_SECRET` enforced at boot (≥16 chars by default, non-placeholder; tune with `MIN_JWT_LENGTH`)
+- Password bcrypt 10 rounds (tune with `BCRYPT_ROUNDS`); password ≥8 chars (`MIN_PASSWORD_LENGTH`)
+- helmet: strict CSP / COEP / HSTS preload disabled by default; opt-in with `SECURITY_HEADERS_STRICT=true`
+- Rate limits: login hard-capped at 5 req/min; global 120 req/min needs `THROTTLE_ENABLED=true`
 - 1 MB request body cap
-- Avatar upload: MIME + sharp metadata double check, normalized to 200×200 WebP, ≤5 MB
+- Avatar upload: MIME + magic-bytes double check, normalized to 200×200 WebP, ≤5 MB
 - Swagger disabled in production
 - `.env` / `.env.docker` are git-ignored
 
@@ -347,7 +365,10 @@ bash scripts/deploy.sh
 
 ## 💾 Data backup
 
-MariaDB persists to the named volume `mariadb_data`.
+`scripts/backup-db.sh` auto-detects `DB_TYPE` in `.env.docker`:
+
+- `DB_TYPE=sqlite` (default) → `docker cp` the `.sqlite` file out of the app container + gzip
+- `DB_TYPE=mariadb` → `docker exec ... mariadb-dump | gzip`
 
 ```bash
 bash scripts/backup-db.sh                # → ./backups/
@@ -356,7 +377,12 @@ bash scripts/backup-db.sh /tmp           # custom directory
 # Cron: daily at 02:00
 0 2 * * * cd /path/to/homepage && bash scripts/backup-db.sh >> /var/log/homepage-backup.log 2>&1
 
-# Restore
+# Restore (SQLite)
+gunzip -c ./backups/homepage_YYYYMMDD_HHMMSS.sqlite.gz > /tmp/homepage.sqlite
+docker cp /tmp/homepage.sqlite homepage-app:/app/data/homepage.sqlite
+docker compose --env-file .env.docker restart app
+
+# Restore (MariaDB)
 gunzip -c ./backups/homepage_YYYYMMDD_HHMMSS.sql.gz | \
   docker exec -i homepage-db mariadb -u homepage -p'***' homepage
 ```

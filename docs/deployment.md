@@ -62,7 +62,7 @@
 
 ### 本地开发
 
-- **Node.js** ≥ 20.19.0
+- **Node.js** ≥ 22.13.0
 - **pnpm** ≥ 11.0.0
 - **MariaDB** ≥ 10.5（可选，SQLite 模式无需安装数据库）
 
@@ -702,10 +702,12 @@ curl -I http://your-domain/admin/
 
 **解决方案**：
 ```bash
-# 确保先构建 app，再构建 caddy
+# 确保先构建 app，再构建 caddy（caddy 从 app 镜像提取前端静态文件）
 docker compose --env-file .env.docker build app
 docker compose --env-file .env.docker build caddy
 ```
+
+> `bash scripts/deploy.sh` 会自动按正确顺序构建，无需手动分开执行。
 
 ### 2. MariaDB / Node / gcr.io 镜像拉取失败
 
@@ -755,10 +757,18 @@ MARIADB_IMAGE=mariadb:11.4
 
 **问题**：后端无法连接数据库
 
-**解决方案**：
-- 检查数据库服务是否正常运行：`docker compose --env-file .env.docker ps`
+**SQLite 模式**（默认）：
+
+- 查看 app 日志：`docker compose --env-file .env.docker logs app --tail 100`
+- 检查 `app_data` 卷权限：`docker exec homepage-app ls -la /app/data`
+- 确认 `DB_SQLITE_PATH`（默认 `/app/data/homepage.sqlite`）与 Compose volume 挂载一致
+
+**MariaDB 模式**：
+
+- 检查数据库服务是否正常运行：`docker compose --profile mariadb --env-file .env.docker ps`
 - 查看数据库日志：`docker compose --env-file .env.docker logs homepage-db`
 - 确认环境变量配置正确：`DB_ROOT_PASSWORD`、`DB_USERNAME`、`DB_PASSWORD`
+- 确认已按 `--profile mariadb` 启动 mariadb 容器
 
 ### 4. 端口被占用
 
@@ -801,6 +811,11 @@ netstat -tlnp | grep -E ':(80|443)'
 
 ## 数据备份与恢复
 
+`scripts/backup-db.sh` 会自动读 `.env.docker` 里的 `DB_TYPE`，选择对应的备份方式：
+
+- `DB_TYPE=sqlite`（默认）→ `docker cp` 拷出 `.sqlite` 文件后 gzip
+- `DB_TYPE=mariadb` → `docker exec ... mariadb-dump | gzip`
+
 ### 手动备份
 
 ```bash
@@ -819,6 +834,16 @@ bash scripts/backup-db.sh /tmp
 ```
 
 ### 恢复数据
+
+**SQLite 模式**（默认）：
+
+```bash
+gunzip -c ./backups/homepage_YYYYMMDD_HHMMSS.sqlite.gz > /tmp/homepage.sqlite
+docker cp /tmp/homepage.sqlite homepage-app:/app/data/homepage.sqlite
+docker compose --env-file .env.docker restart app
+```
+
+**MariaDB 模式**：
 
 ```bash
 gunzip -c ./backups/homepage_YYYYMMDD_HHMMSS.sql.gz | \

@@ -321,15 +321,23 @@ wizard() {
 }
 
 # ====== 3. 构建镜像 ======
-build_app() {
+build_images() {
     echo ""
     echo -e "${BOLD}==> 3/5 构建 Docker 镜像${NC}"
 
     info "正在构建 homepage-app 镜像... (首次/网络慢时可能需数分钟)"
-    if timeout 1800 $COMPOSE_CMD --env-file .env.docker build; then
-        ok "全部镜像构建完成"
+    if timeout 1800 $COMPOSE_CMD --env-file .env.docker build app; then
+        ok "homepage-app 构建完成"
     else
-        err "镜像构建失败或超时 (30min)"
+        err "app 镜像构建失败或超时 (30min)"
+        exit 1
+    fi
+
+    info "正在构建 homepage-caddy 镜像..."
+    if timeout 1800 $COMPOSE_CMD --env-file .env.docker build caddy; then
+        ok "homepage-caddy 构建完成"
+    else
+        err "caddy 镜像构建失败或超时 (30min)"
         exit 1
     fi
 }
@@ -421,6 +429,15 @@ print_summary() {
         echo -e "  ──────────────────────────────────"
         echo -e "  用户名：    ${YELLOW}首次 setup 时自定${NC}"
         echo -e "  ${GREEN}（DEFAULT_ADMIN_PASSWORD 在 .env.docker 中留空，账号只在数据库里）${NC}"
+
+        # Setup 页面会要求输入 SETUP_TOKEN（防抢注护栏），必须告诉用户
+        if [ -n "${SETUP_TOKEN:-}" ]; then
+            echo ""
+            echo -e "  ${BOLD}🔑  Setup Token${NC}  ${YELLOW}(初始化向导第一步会要求输入)${NC}"
+            echo -e "  ──────────────────────────────────"
+            echo -e "  ${YELLOW}${SETUP_TOKEN}${NC}"
+            echo -e "  ${GREEN}(已写入 .env.docker 的 SETUP_TOKEN；初始化完成后可从 env 删除)${NC}"
+        fi
     fi
 
     echo ""
@@ -514,7 +531,7 @@ main() {
     else
         wizard
     fi
-    build_app
+    build_images
     start_services
     run_smoke_test
     print_summary

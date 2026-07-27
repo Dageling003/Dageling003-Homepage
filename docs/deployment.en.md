@@ -523,6 +523,11 @@ netstat -tlnp | grep -E ':(80|443)'
 
 ## Backup & restore
 
+`scripts/backup-db.sh` auto-detects `DB_TYPE` in `.env.docker`:
+
+- `DB_TYPE=sqlite` (default) → `docker cp` the `.sqlite` file out of the app container + gzip
+- `DB_TYPE=mariadb` → `docker exec ... mariadb-dump | gzip`
+
 ### Manual
 
 ```bash
@@ -541,6 +546,16 @@ bash scripts/backup-db.sh /tmp
 ```
 
 ### Restore
+
+**SQLite (default)**:
+
+```bash
+gunzip -c ./backups/homepage_YYYYMMDD_HHMMSS.sqlite.gz > /tmp/homepage.sqlite
+docker cp /tmp/homepage.sqlite homepage-app:/app/data/homepage.sqlite
+docker compose --env-file .env.docker restart app
+```
+
+**MariaDB**:
 
 ```bash
 gunzip -c ./backups/homepage_YYYYMMDD_HHMMSS.sql.gz | \

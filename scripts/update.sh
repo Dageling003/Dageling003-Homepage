@@ -14,7 +14,23 @@ echo "==> 4. 重启容器..."
 docker compose --env-file .env.docker up -d
 
 echo "==> 5. 等待服务就绪..."
-sleep 10
+ATTEMPTS=0
+READY=false
+while [ $ATTEMPTS -lt 30 ]; do
+    if docker compose --env-file .env.docker ps 2>/dev/null | grep -qE 'homepage-app.*healthy'; then
+        READY=true
+        break
+    fi
+    printf "."
+    sleep 2
+    ATTEMPTS=$((ATTEMPTS + 1))
+done
+echo ""
+if [ "$READY" = true ]; then
+    echo "  服务健康就绪 (${ATTEMPTS} 次检查)"
+else
+    echo "  警告：服务未在 60s 内就绪，继续执行冒烟测试"
+fi
 
 echo "==> 6. 运行冒烟测试..."
 if [ -f scripts/smoke-test.sh ]; then

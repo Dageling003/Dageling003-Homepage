@@ -364,7 +364,10 @@ bash scripts/deploy.sh
 
 ## 💾 数据备份
 
-MariaDB 通过 named volume `mariadb_data` 持久化。
+`scripts/backup-db.sh` 会按 `.env.docker` 中的 `DB_TYPE` 自动选备份方式：
+
+- `DB_TYPE=sqlite`（默认）→ `docker cp` 拷出 `.sqlite` 文件后 gzip
+- `DB_TYPE=mariadb` → `docker exec ... mariadb-dump | gzip`
 
 ```bash
 bash scripts/backup-db.sh                # → ./backups/
@@ -373,7 +376,12 @@ bash scripts/backup-db.sh /tmp           # 指定目录
 # Cron：每天 02:00
 0 2 * * * cd /path/to/homepage && bash scripts/backup-db.sh >> /var/log/homepage-backup.log 2>&1
 
-# 恢复
+# 恢复（SQLite）
+gunzip -c ./backups/homepage_YYYYMMDD_HHMMSS.sqlite.gz > /tmp/homepage.sqlite
+docker cp /tmp/homepage.sqlite homepage-app:/app/data/homepage.sqlite
+docker compose --env-file .env.docker restart app
+
+# 恢复（MariaDB）
 gunzip -c ./backups/homepage_YYYYMMDD_HHMMSS.sql.gz | \
   docker exec -i homepage-db mariadb -u homepage -p'***' homepage
 ```
