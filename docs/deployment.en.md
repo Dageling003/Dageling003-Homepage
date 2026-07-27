@@ -50,7 +50,7 @@ This document covers every supported way to deploy Homepage: quick setup, Docker
 
 ### Local dev
 
-- **Node.js** ≥ 20.19.0
+- **Node.js** ≥ 22.13.0
 - **pnpm** ≥ 11.0.0
 - **MariaDB** ≥ 10.5 (optional — SQLite mode needs no external DB)
 

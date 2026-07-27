@@ -29,9 +29,9 @@
 |--------|------|--------|------|
 | 前台主页 | `apps/frontend` | Vue 3.5 + Vite 8 + UnoCSS + Pinia | `:3000` |
 | 管理后台 | `apps/admin` | Vue 3.5 + Ant Design Vue 4 + ECharts + Vite 8 | `:3001` |
-| API 服务 | `apps/backend` | NestJS 11 + TypeORM + MariaDB/SQLite + JWT | `:8000` |
+| API 服务 | `apps/backend` | NestJS 11 + TypeORM + SQLite/MariaDB + JWT | `:8000` |
 
-**部署架构**：Docker Compose 三服务（app / caddy / mariadb），Caddy 提供静态文件服务与自动 HTTPS。
+**部署架构**：Docker Compose 默认 2 服务（app + caddy），SQLite 单文件持久化到 named volume；启用 `DB_TYPE=mariadb` 时按 `--profile mariadb` 追加 mariadb 服务。Caddy 提供静态文件服务与自动 HTTPS。
 
 ---
 

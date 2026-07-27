@@ -24,8 +24,8 @@
 </p>
 
 - **在线预览**：<https://dageling003.top/>（徽章离线时以仓库截图为准）
-- **技术栈**：Vue 3 + Vite 前台/后台 · NestJS 11 + TypeORM API · MariaDB / SQLite 双数据源 · Caddy 反代 + 自动 HTTPS
-- **交付形态**：pnpm monorepo（前台 / 后台 / API 三包）+ Docker Compose 三服务（app / caddy / mariadb）
+- **技术栈**：Vue 3 + Vite 前台/后台 · NestJS 11 + TypeORM API · SQLite（默认）/ MariaDB（可选） · Caddy 反代 + 自动 HTTPS
+- **交付形态**：pnpm monorepo（前台 / 后台 / API 三包）+ Docker Compose 默认 2 服务（app + caddy）；`DB_TYPE=mariadb` 时按 `--profile mariadb` 追加 mariadb 服务
 
 ---
 
@@ -43,7 +43,7 @@
 | 主页形态 | 极简单页 · 静态 | 极简单页 · 动态渲染 |
 | 内容管理 | 手改 JSON + 重新部署 | 可视化后台表单，即改即生效 |
 | 技术栈 | 纯静态 | Vue 3 + NestJS 全栈（前台 / 后台 / API 三包） |
-| 数据存储 | 无（写死配置） | MariaDB / SQLite 双源，审计留痕 |
+| 数据存储 | 无（写死配置） | SQLite（默认，单文件）/ MariaDB（可选），审计留痕 |
 | 部署 | 静态托管 | Docker Compose 一键 + 自动 HTTPS |
 | 安全 | 无鉴权需求 | JWT + bcrypt + helmet + 限流 |
 
@@ -134,7 +134,7 @@
 |--------|--------|----------|----------|
 | `apps/frontend` | Vue 3.5 + Vite 8 + UnoCSS + Pinia | `3000` | `/` |
 | `apps/admin` | Vue 3.5 + Ant Design Vue 4 + ECharts | `3001` | `/admin/*` |
-| `apps/backend` | NestJS 11 + TypeORM + MariaDB/SQLite + JWT | `8000` | `/api/*` |
+| `apps/backend` | NestJS 11 + TypeORM + SQLite/MariaDB + JWT | `8000` | `/api/*` |
 
 > 前后台的 HTML/JS/CSS 由 Caddy 直接 serve，不经过 Node 进程，仅 API 打到后端。
 
@@ -194,21 +194,7 @@ pnpm dev
 
 需要三窗口独立日志时改用 `pnpm dev:backend` / `pnpm dev:frontend` / `pnpm dev:admin`。
 
-### 本地开发（MariaDB）
-
-```bash
-mysql -u root -p -e "CREATE DATABASE \`homepage\` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-cp apps/backend/.env.example apps/backend/.env  # 填 DB_* 与 JWT_SECRET
-pnpm migrate:run
-pnpm dev
-```
-
-生成新 migration：
-
-```bash
-cd apps/backend
-npx ts-node -r tsconfig-paths/register node_modules/.bin/typeorm migration:generate -d data-source.ts src/migrations/$(date +%s)-Name
-```
+> 想本地跑 MariaDB？属于高级路径（99% 的个人主页用不到）。步骤见 [docs/deployment.md → 本地开发部署](./docs/deployment.md#本地开发部署)。
 
 ---
 
@@ -451,7 +437,7 @@ CSR SPA，`index.html` 内置 `<meta description/keywords>`、Open Graph、Twitt
 
 - **灵感来源**：[QNquenan/Simple-Homepage](https://github.com/QNquenan/Simple-Homepage) —— 本项目的起点，主页美学与「极简单页」的思路都从这里发芽
 - **前端**：Vue 3 · Vite · Pinia · UnoCSS · Ant Design Vue · ECharts · Iconify · VueUse · Axios · Day.js
-- **后端**：NestJS · TypeORM · MariaDB / sql.js · Passport · @nestjs/jwt · bcryptjs · class-validator · helmet · @nestjs/throttler · sharp · Multer · Nodemailer · Swagger
+- **后端**：NestJS · TypeORM · better-sqlite3（默认）/ mariadb 驱动（可选） · Passport · @nestjs/jwt · bcryptjs · class-validator · helmet · @nestjs/throttler · sharp · Multer · Nodemailer · Swagger
 - **部署**：Docker · Caddy · ZeroSSL / Let's Encrypt · PM2
 - **工程化**：pnpm · TypeScript · ESLint · Prettier · Jest · Supertest · GitHub Actions
 

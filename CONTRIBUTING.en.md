@@ -29,9 +29,9 @@
 |-------------|------|-------|------|
 | Frontend | `apps/frontend` | Vue 3.5 + Vite 8 + UnoCSS + Pinia | `:3000` |
 | Admin | `apps/admin` | Vue 3.5 + Ant Design Vue 4 + ECharts + Vite 8 | `:3001` |
-| API | `apps/backend` | NestJS 11 + TypeORM + MariaDB/SQLite + JWT | `:8000` |
+| API | `apps/backend` | NestJS 11 + TypeORM + SQLite/MariaDB + JWT | `:8000` |
 
-**Deployment**: Docker Compose with three services (app / caddy / mariadb), Caddy serves static files and provides automatic HTTPS.
+**Deployment**: Docker Compose ships 2 services by default (app + caddy) with SQLite persisted to a named volume; opt into `DB_TYPE=mariadb` and start with `--profile mariadb` to add the mariadb container. Caddy serves static files and terminates HTTPS.
 
 ---
 
@@ -121,7 +121,7 @@ This project includes 19 AI Agent Skills stored in `.agents/skills/`, ensuring a
 
 ### Prerequisites
 
-- **Node.js** ≥ 20.19.0
+- **Node.js** ≥ 22.13.0
 - **pnpm** ≥ 11.0.0
 
 ### Local Development

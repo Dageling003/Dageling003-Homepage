@@ -85,9 +85,9 @@ Here is the current security baseline across **code / deployment / runtime**, so
 - **Static directory refuses to execute scripts**: Caddy denies `.php` / `.sh` / `.py` under `/files/*`
 
 ### Data & backup
-- **MariaDB production mode + parameterized queries** (TypeORM)
-- **`DB_SYNCHRONIZE` production warning**; canonical path is Migrations
-- **DB backup script**: `scripts/backup-db.sh` (`mysqldump` + gzip)
+- **Parameterized queries** (TypeORM): default SQLite (better-sqlite3, disk-persisted + WAL) / optional MariaDB
+- **`DB_SYNCHRONIZE` production gate**: in MariaDB mode, `NODE_ENV=production` + `DB_SYNCHRONIZE=true` hard-fails at boot to prevent silent schema drift; SQLite mode is not affected
+- **DB backup script**: `scripts/backup-db.sh` auto-detects `DB_TYPE` (SQLite → `docker cp` + gzip; MariaDB → `mariadb-dump | gzip`)
 
 ### Supply chain & builds
 - **pnpm lockfile pinning + `pnpm audit`** in CI

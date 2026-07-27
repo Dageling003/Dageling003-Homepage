@@ -24,8 +24,8 @@
 </p>
 
 - **Live preview**: <https://dageling003.top/> (fall back to in-repo screenshots when the badge shows offline)
-- **Stack**: Vue 3 + Vite for the public site & admin · NestJS 11 + TypeORM API · MariaDB / SQLite dual data source · Caddy reverse proxy with automatic HTTPS
-- **Delivery**: pnpm monorepo (frontend / admin / backend) + Docker Compose with three services (app / caddy / mariadb)
+- **Stack**: Vue 3 + Vite for the public site & admin · NestJS 11 + TypeORM API · SQLite (default) / MariaDB (optional) · Caddy reverse proxy with automatic HTTPS
+- **Delivery**: pnpm monorepo (frontend / admin / backend) + Docker Compose with 2 services by default (app + caddy); MariaDB is opt-in via `--profile mariadb`
 
 ---
 
@@ -43,7 +43,7 @@ So I decided to rebuild along the same idea: **keep the homepage aesthetic, turn
 | Homepage form | Minimalist single page · static | Minimalist single page · dynamic |
 | Content management | Hand-edit JSON + redeploy | Visual admin forms, edits go live instantly |
 | Tech stack | Pure static | Full-stack Vue 3 + NestJS (frontend / admin / API) |
-| Data storage | None (config hard-coded) | MariaDB / SQLite dual source with audit trail |
+| Data storage | None (config hard-coded) | SQLite (default, single file) / MariaDB (optional), audit trail included |
 | Deployment | Static hosting | One-shot Docker Compose + automatic HTTPS |
 | Security | Not needed | JWT + bcrypt + helmet + rate limiting |
 
@@ -134,7 +134,7 @@ Public site (`apps/frontend/.env`): `VITE_PWA_ENABLED` / `VITE_AMBIENT_ENABLED` 
 |---------|-------|----------|-------------|
 | `apps/frontend` | Vue 3.5 + Vite 8 + UnoCSS + Pinia | `3000` | `/` |
 | `apps/admin` | Vue 3.5 + Ant Design Vue 4 + ECharts | `3001` | `/admin/*` |
-| `apps/backend` | NestJS 11 + TypeORM + MariaDB/SQLite + JWT | `8000` | `/api/*` |
+| `apps/backend` | NestJS 11 + TypeORM + SQLite/MariaDB + JWT | `8000` | `/api/*` |
 
 > Static HTML/JS/CSS is served by Caddy directly — Node only handles API traffic.
 
@@ -194,21 +194,7 @@ All three servers run in parallel:
 
 Use `pnpm dev:backend` / `pnpm dev:frontend` / `pnpm dev:admin` for isolated logs in separate windows.
 
-### Local dev (MariaDB)
-
-```bash
-mysql -u root -p -e "CREATE DATABASE \`homepage\` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-cp apps/backend/.env.example apps/backend/.env  # fill DB_* and JWT_SECRET
-pnpm migrate:run
-pnpm dev
-```
-
-Generate a new migration:
-
-```bash
-cd apps/backend
-npx ts-node -r tsconfig-paths/register node_modules/.bin/typeorm migration:generate -d data-source.ts src/migrations/$(date +%s)-Name
-```
+> Want MariaDB for local dev? That is the advanced path (99% of personal-homepage users don't need it). Steps live in [docs/deployment.md → Local development](./docs/deployment.md#本地开发部署).
 
 ---
 
@@ -452,7 +438,7 @@ Flow and conventions live in [`CONTRIBUTING.en.md`](./CONTRIBUTING.en.md) (Skill
 
 - **Inspiration**: [QNquenan/Simple-Homepage](https://github.com/QNquenan/Simple-Homepage) — the seed of this project; the homepage aesthetic and the "minimalist single page" idea both sprouted from here
 - **Frontend**: Vue 3 · Vite · Pinia · UnoCSS · Ant Design Vue · ECharts · Iconify · VueUse · Axios · Day.js
-- **Backend**: NestJS · TypeORM · MariaDB / sql.js · Passport · @nestjs/jwt · bcryptjs · class-validator · helmet · @nestjs/throttler · sharp · Multer · Nodemailer · Swagger
+- **Backend**: NestJS · TypeORM · better-sqlite3 (default) / mariadb driver (optional) · Passport · @nestjs/jwt · bcryptjs · class-validator · helmet · @nestjs/throttler · sharp · Multer · Nodemailer · Swagger
 - **Ops**: Docker · Caddy · ZeroSSL / Let's Encrypt · PM2
 - **Tooling**: pnpm · TypeScript · ESLint · Prettier · Jest · Supertest · GitHub Actions
 

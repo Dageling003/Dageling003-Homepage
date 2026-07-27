@@ -86,9 +86,9 @@
 - **静态文件目录禁执行**：Caddy 拒绝 `/files/*` 下的 `.php` / `.sh` / `.py` 请求
 
 ### 数据与备份
-- **MariaDB 生产模式 + 参数化查询**（TypeORM）
-- **`DB_SYNCHRONIZE` 生产环境警告**，官方部署路径走 Migration
-- **数据库备份脚本**：`scripts/backup-db.sh`（`mysqldump` + gzip）
+- **参数化查询**（TypeORM）：默认 SQLite（better-sqlite3，磁盘持久 + WAL）/ 可选 MariaDB
+- **`DB_SYNCHRONIZE` 生产闸门**：MariaDB 模式下 `NODE_ENV=production` + `DB_SYNCHRONIZE=true` 直接拒启，避免自动改表；SQLite 模式无此风险
+- **数据库备份脚本**：`scripts/backup-db.sh` 按 `DB_TYPE` 自动分流（SQLite → `docker cp` + gzip；MariaDB → `mariadb-dump | gzip`）
 
 ### 供应链与构建
 - **pnpm lockfile 锁定 + `pnpm audit`** 在 CI 中运行
