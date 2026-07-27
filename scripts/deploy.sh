@@ -568,8 +568,10 @@ main() {
             load_env_file "$env_file"
             ok ".env.docker 已生成 (CI 模式)"
         else
+            # 重新生成以确保新增变量（如 HEALTHCHECK_NODE_PATH）被包含
+            write_env_file "$env_file"
             load_env_file "$env_file"
-            ok "已加载 .env.docker (CI 模式)"
+            ok ".env.docker 已更新 (CI 模式)"
         fi
     else
         wizard
