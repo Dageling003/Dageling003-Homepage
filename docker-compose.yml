@@ -81,11 +81,11 @@ services:
       - app_uploads:/app/public/uploads
       - app_data:/app/data
     healthcheck:
-      test: ["CMD", "${HEALTHCHECK_NODE_PATH:-/nodejs/bin/node}", "-e", "require('http').get('http://localhost:8000/health',r=>{r.on('data',()=>{});r.on('end',()=>process.exit(r.statusCode===200?0:1))})"]
+      test: ["CMD", "${HEALTHCHECK_NODE_PATH:-/nodejs/bin/node}", "-e", "const h=require('http');const req=h.get('http://localhost:8000/health',r=>{let d='';r.on('data',c=>d+=c);r.on('end',()=>process.exit(r.statusCode===200?0:1))});req.on('error',()=>process.exit(1));req.setTimeout(3000,()=>{req.destroy();process.exit(1)})"]
       interval: 30s
-      timeout: 5s
-      start_period: 30s
-      retries: 3
+      timeout: 10s
+      start_period: 60s
+      retries: 5
     deploy:
       resources:
         limits:

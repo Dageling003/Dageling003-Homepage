@@ -50,9 +50,9 @@ ENV NODE_ENV=production
 
 EXPOSE 8000
 
-# Health check is defined in docker-compose.yml (override at compose level).
-# This default covers distroless; slim images get the correct path from compose.
-HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-  CMD ["/nodejs/bin/node", "-e", "require('http').get('http://localhost:8000/health',r=>{let d='';r.on('data',c=>d+=c);r.on('end',()=>process.exit(r.statusCode===200?0:1))})"]
+# Default healthcheck (overridden by docker-compose.yml when deployed via compose).
+# Includes error handling for cases where the app hasn't started yet.
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
+  CMD ["/nodejs/bin/node", "-e", "const h=require('http');const req=h.get('http://localhost:8000/health',r=>{let d='';r.on('data',c=>d+=c);r.on('end',()=>process.exit(r.statusCode===200?0:1))});req.on('error',()=>process.exit(1));req.setTimeout(3000,()=>{req.destroy();process.exit(1)})"]
 
 CMD ["dist/main.js"]
