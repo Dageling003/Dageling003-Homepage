@@ -19,7 +19,7 @@ RUN corepack enable && corepack prepare pnpm@11.5.2 --activate
 ENV PNPM_CONFIG_CHILD_CONCURRENCY=1 \
     PNPM_CONFIG_NETWORK_CONCURRENCY=2 \
     PNPM_CONFIG_REPORTER=append-only \
-    NODE_OPTIONS=--max-old-space-size=384
+    NODE_OPTIONS=--max-old-space-size=2048
 
 # Install dependencies (root workspace + all apps)
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json .npmrc ./
