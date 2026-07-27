@@ -518,6 +518,104 @@ print_summary() {
     echo ""
 }
 
+# ====== 5. 部署后配置向导 ======
+post_deploy_wizard() {
+    # 如果 SMTP 未配置 或 管理员密码是自动生成的，引导用户补充
+    local has_smtp=false
+    local has_custom_password=false
+    [ -n "${SMTP_HOST:-}" ] && [ -n "${SMTP_USER:-}" ] && has_smtp=true
+    [ -n "${USER_SET_PASSWORD:-}" ] && has_custom_password=true
+
+    if "$has_smtp" && "$has_custom_password"; then
+        return 0  # 全部已配置，跳过
+    fi
+
+    echo ""
+    echo -e "${BOLD}==> 📋 部署后配置（可选）${NC}"
+    echo ""
+    echo -e "  当前配置概览："
+    echo -e "    域名:   ${CYAN}${DOMAIN}${NC}"
+    echo -e "    管理员: ${CYAN}admin${NC} / ${CYAN}${DEFAULT_ADMIN_PASSWORD:-（留空，首次访问网页创建）${NC}"
+    if "$has_smtp"; then
+        echo -e "    SMTP:   ${GREEN}已配置${NC} (${SMTP_USER}@${SMTP_HOST})"
+    else
+        echo -e "    SMTP:   ${YELLOW}未配置${NC}"
+    fi
+    echo ""
+
+    # SMTP 配置引导
+    if ! "$has_smtp"; then
+        read -rp "  现在配置 SMTP 邮件？(用于找回密码)[y/N]: " smtp_choice
+        if [[ "${smtp_choice:-N}" =~ ^[Yy]$ ]]; then
+            echo ""
+            echo -e "  ${CYAN}SMTP 服务器${NC}"
+            echo "  1) QQ邮箱     smtp.qq.com:465 (SSL)"
+            echo "  2) 163邮箱    smtp.163.com:465 (SSL)"
+            echo "  3) Gmail      smtp.gmail.com:465 (SSL)"
+            echo "  4) 自定义"
+            read -rp "  → 选择 [1/2/3/4]: " smtp_provider
+            case "${smtp_provider:-1}" in
+                1) SMTP_HOST="smtp.qq.com"; SMTP_PORT="465"; SMTP_SECURE="true" ;;
+                2) SMTP_HOST="smtp.163.com"; SMTP_PORT="465"; SMTP_SECURE="true" ;;
+                3) SMTP_HOST="smtp.gmail.com"; SMTP_PORT="465"; SMTP_SECURE="true" ;;
+                4)
+                    read -rp "  → SMTP_HOST: " SMTP_HOST
+                    read -rp "  → SMTP_PORT (默认 465): " SMTP_PORT
+                    SMTP_PORT="${SMTP_PORT:-465}"
+                    read -rp "  → SSL? [Y/n]: " smtp_ssl
+                    SMTP_SECURE="$([[ "${smtp_ssl:-Y}" =~ ^[Nn]$ ]] && echo "false" || echo "true")"
+                    ;;
+            esac
+            read -rp "  → 邮箱地址: " SMTP_USER
+            SMTP_FROM="${SMTP_USER}"
+            echo -e "  ${YELLOW}⚠ QQ/163 需用授权码，非登录密码${NC}"
+            read -rp "  → SMTP 授权码/密码: " SMTP_PASS
+            ok "SMTP 已配置"
+
+            # 更新 .env.docker 并重启
+            write_env_file ".env.docker"
+            load_env_file ".env.docker"
+            info "正在重启 app 以应用新配置..."
+            $COMPOSE_CMD --env-file .env.docker up -d app
+            ok "app 已重启"
+        fi
+    fi
+
+    # 管理员密码修改引导
+    echo ""
+    read -rp "  现在修改管理员密码？[Y/n]: " pwd_choice
+    if [[ ! "${pwd_choice:-Y}" =~ ^[Nn]$ ]]; then
+        echo "  1) 保留当前密码 (${DEFAULT_ADMIN_PASSWORD:-留空})"
+        echo "  2) 设置新密码 (≥12位)"
+        echo "  3) 重新生成随机密码"
+        read -rp "  → 选择 [1/2/3，默认 1]: " pwd_action
+        case "${pwd_action:-1}" in
+            2)
+                while true; do
+                    read -rp "  → 新密码 (≥12位): " new_pwd
+                    [ ${#new_pwd} -ge 12 ] && break
+                    warn "至少 12 位"
+                done
+                DEFAULT_ADMIN_PASSWORD="$new_pwd"
+                USER_SET_PASSWORD=true
+                ;;
+            3)
+                DEFAULT_ADMIN_PASSWORD=$(rand 24)
+                USER_SET_PASSWORD=true
+                ok "新密码: ${DEFAULT_ADMIN_PASSWORD}"
+                ;;
+        esac
+
+        if [ -n "${USER_SET_PASSWORD:-}" ]; then
+            write_env_file ".env.docker"
+            load_env_file ".env.docker"
+            info "正在重启 app 以应用新密码..."
+            $COMPOSE_CMD --env-file .env.docker up -d app
+            ok "app 已重启"
+        fi
+    fi
+}
+
 # ====== 5. 冒烟测试 ======
 run_smoke_test() {
     echo ""
@@ -579,6 +677,9 @@ main() {
     build_images
     start_services
     run_smoke_test
+    if [ "$CI_MODE" = true ]; then
+        post_deploy_wizard
+    fi
     print_summary
 }
 
