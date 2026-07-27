@@ -1,13 +1,12 @@
 # homepage — Caddy reverse proxy + static file server
-# 自包含构建：不再依赖 homepage-app 镜像，避免 `docker compose up --build`
-# 并行构建时 caddy 抢跑触发去 Docker Hub 拉 homepage-app:latest 的 404。
+# Self-contained: does NOT depend on homepage-app image.
 #
-# 复用与 Dockerfile.app 相同的 BUILDER_IMAGE，配合 BuildKit 层缓存，
-# 实际增量成本很低（依赖装一次、cache 命中后前端/管理端也秒过）。
+# Uses the same BUILDER_IMAGE as Dockerfile.app for BuildKit layer cache reuse.
+# When both images are built in the same CI run, the deps layer is shared.
 
 ARG BUILDER_IMAGE=node:22-slim
 
-# ====== Stage 1: 构建前端 + 管理端静态资源 ======
+# ====== Stage 1: Install deps + build frontend/admin ======
 FROM ${BUILDER_IMAGE} AS builder
 WORKDIR /app
 
@@ -25,16 +24,13 @@ RUN pnpm install --frozen-lockfile
 COPY apps/ apps/
 
 RUN pnpm --filter homepage-frontend build && \
-    pnpm --filter homepage-admin build && \
-    mkdir -p /static/frontend /static/admin && \
-    cp -r apps/frontend/dist/. /static/frontend/ && \
-    cp -r apps/admin/dist/. /static/admin/
+    pnpm --filter homepage-admin build
 
-# ====== Stage 2: Caddy 运行时 ======
+# ====== Stage 2: Caddy runtime ======
 FROM caddy:2-alpine
 
-COPY --from=builder /static/frontend /var/www/frontend
-COPY --from=builder /static/admin /var/www/admin
+COPY --from=builder /app/apps/frontend/dist /var/www/frontend
+COPY --from=builder /app/apps/admin/dist /var/www/admin
 
 COPY caddy/Caddyfile /etc/caddy/Caddyfile
 COPY caddy/entrypoint.sh /usr/local/bin/caddy-entrypoint.sh
