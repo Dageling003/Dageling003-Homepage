@@ -91,7 +91,7 @@ allowBuilds:
     "prettier": "^3.4.2"
   },
   "engines": {
-    "node": ">=20.19.0"
+    "node": ">=22.13.0"
   }
 }
 ```
