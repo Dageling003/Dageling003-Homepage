@@ -156,7 +156,7 @@ curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/ma
 curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CI=true CN=true DOMAIN=你的域名或IP bash
 ```
 
-> 把 `你的域名或IP` 换成实际值，如 `dageling003.top` 或 `1.2.3.4`。
+> 把 `你的域名或IP` 换成实际值，如 `example.com` 或 `1.2.3.4`。
 
 想走交互向导（手动配置 SMTP / 管理员密码等）：
 
@@ -236,7 +236,7 @@ bash scripts/deploy.sh                          # 交互向导
 CI=true DOMAIN=xxx bash scripts/deploy.sh       # 零交互（CI/CD）
 ```
 
-> 把 `你的域名或IP` 换成实际值，如 `dageling003.top` 或 `1.2.3.4`。
+> 把 `你的域名或IP` 换成实际值，如 `example.com` 或 `1.2.3.4`。
 
 > 🇨🇳 **国内用户注意**：加 `CN=true` 或 `--cn` 后，脚本会自动完成以下操作：
 > - 安装 Docker 时配置国内镜像加速器（docker.1ms.run）
