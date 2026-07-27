@@ -533,9 +533,15 @@ post_deploy_wizard() {
     echo ""
     echo -e "${BOLD}==> 📋 部署后配置（可选）${NC}"
     echo ""
+    local pwd_display
+    if [ -n "${DEFAULT_ADMIN_PASSWORD:-}" ]; then
+        pwd_display="${DEFAULT_ADMIN_PASSWORD}"
+    else
+        pwd_display="（留空，首次访问网页创建）"
+    fi
     echo -e "  当前配置概览："
     echo -e "    域名:   ${CYAN}${DOMAIN}${NC}"
-    echo -e "    管理员: ${CYAN}admin${NC} / ${CYAN}${DEFAULT_ADMIN_PASSWORD:-（留空，首次访问网页创建）${NC}"
+    echo -e "    管理员: ${CYAN}admin${NC} / ${CYAN}${pwd_display}${NC}"
     if "$has_smtp"; then
         echo -e "    SMTP:   ${GREEN}已配置${NC} (${SMTP_USER}@${SMTP_HOST})"
     else
