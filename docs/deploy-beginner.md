@@ -108,18 +108,20 @@ ssh -i /path/to/your-key.pem root@123.45.67.89
 
 ---
 
-## 3. 装 Docker + 部署（一条命令搞定）
+## 3. 一键部署（一条命令搞定）
 
-> **2024+ 推荐**：直接用项目的一键脚本，会自动检测 Docker 是否安装、未装则自动安装、然后自动进入部署向导。
+> **推荐**：直接用项目的一键脚本，会自动检测 Docker 是否安装、未装则自动安装、然后全自动部署。
 
 ### 方式 A：一条命令搞定（**强烈推荐**）
 
-```bash
-# 海外服务器
-curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | bash
+把 `你的域名或IP` 换成实际值，如 `dageling003.top` 或 `1.2.3.4`。
 
-# 国内服务器（自动装 Docker + 配置国内镜像加速 + 处理 gcr.io 兼容）
-curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | bash -s -- --cn
+```bash
+# 海外服务器（全自动，推荐）
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CI=true DOMAIN=你的域名或IP bash
+
+# 国内服务器（全自动，自动装 Docker + 配置国内镜像加速 + 处理 gcr.io 兼容）
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CI=true CN=true DOMAIN=你的域名或IP bash
 ```
 
 这条命令会自动完成：
@@ -127,9 +129,8 @@ curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/ma
 2. ✅ 检查并安装 Docker + Docker Compose（如未安装）
 3. ✅ 国内模式：配置 registry mirror（`docker.1ms.run`）
 4. ✅ 克隆项目
-5. ✅ 启动部署向导（域名 / 管理员密码）
-6. ✅ 构建镜像 + 启动容器
-7. ✅ 冒烟测试 + 打印访问地址
+5. ✅ 构建镜像 + 启动容器
+6. ✅ 冒烟测试 + 打印访问地址
 
 跑完直接跳到第 8 章「首次访问」即可。
 
@@ -140,13 +141,11 @@ curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/ma
 ```bash
 cd Dageling003-Homepage
 
-# 先装 Docker（如已装可跳过）
-bash scripts/install-docker.sh              # 海外
-bash scripts/install-docker.sh --cn         # 国内（Aliyun 源 + 自动配 registry mirror）
+# 海外全自动
+CI=true DOMAIN=你的域名或IP bash scripts/deploy.sh
 
-# 再部署
-bash scripts/deploy.sh                      # 海外
-bash scripts/deploy.sh --cn                 # 国内（自动用 slim 替代 gcr.io distroless）
+# 国内全自动
+CI=true CN=true DOMAIN=你的域名或IP bash scripts/deploy.sh --cn
 ```
 
 ### 方式 C：手动分步（高级用户）

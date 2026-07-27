@@ -3,30 +3,39 @@
 # homepage — 远程一键引导脚本
 # ===================================================
 # 用法（裸机 / 全新服务器）：
+#
+# 海外服务器（交互向导）：
 #   curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | bash
 #
-# 带参数：
-#   curl -fsSL <url> | bash -s -- --cn                    # 国内模式（自动装 Docker + 镜像加速 + 处理 gcr.io）
-#   curl -fsSL <url> | bash -s -- --cn --domain example.com # 国内模式 + 指定域名
-#   curl -fsSL <url> | DOMAIN=example.com bash             # 指定域名（海外）
-#   curl -fsSL <url> | CI=true DOMAIN=example.com bash     # CI 全自动模式
-#   curl -fsSL <url> | INSTALL_DIR=/opt/homepage bash      # 自定义安装目录
+# 海外服务器（全自动，推荐）：
+#   curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CI=true DOMAIN=your-domain.com bash
 #
-# 参数：
-#   --cn              国内模式：自动安装 Docker + 配置镜像加速 + 使用 slim 镜像替代 gcr.io
-#   --domain DOMAIN   指定域名/IP，跳过部署向导的域名询问
+# 国内服务器（全自动，推荐）：
+#   curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CI=true CN=true DOMAIN=your-domain.com bash
+#
+# 国内服务器（交互向导）：
+#   curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CN=true bash
+#
+# 参数（bash -s -- 方式）：
+#   --cn              国内模式（同 CN=true 环境变量）
+#   --domain DOMAIN   指定域名/IP
 #   --branch BRANCH   git 分支，默认 main
 #   --dir PATH        安装目录，默认 ./Dageling003-Homepage
 #
-# 环境变量（兼容旧版）：
-#   DOMAIN / CI / INSTALL_DIR / BRANCH / REPO
+# 环境变量：
+#   DOMAIN       域名或 IP
+#   CI           = true 时全自动无交互
+#   CN           = true 时使用国内模式（slim 镜像 + 镜像加速）
+#   INSTALL_DIR  安装目录
+#   BRANCH       git 分支
+#   REPO         git 仓库地址
 # ===================================================
 set -euo pipefail
 
 REPO="${REPO:-https://github.com/Dageling003/Dageling003-Homepage.git}"
 BRANCH="${BRANCH:-main}"
 INSTALL_DIR="${INSTALL_DIR:-Dageling003-Homepage}"
-USE_CN_MODE=false
+USE_CN_MODE="${CN:-false}"
 DOMAIN_ARG=""
 
 # ---------- 参数解析 ----------

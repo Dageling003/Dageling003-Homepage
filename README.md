@@ -144,28 +144,28 @@
 
 ### 一条命令上线（生产 / 全新服务器）
 
-**海外服务器：**
+脚本会：**自动安装 Docker**（如未安装）→ **克隆代码** → **构建镜像** → **拉起容器** → **冒烟测试** → **打印访问地址**。
+
+**海外服务器（全自动，推荐）：**
 ```bash
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CI=true DOMAIN=你的域名或IP bash
+```
+
+**国内服务器（全自动，推荐）：**
+```bash
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CI=true CN=true DOMAIN=你的域名或IP bash
+```
+
+> 把 `你的域名或IP` 换成实际值，如 `dageling003.top` 或 `1.2.3.4`。
+
+想走交互向导（手动配置 SMTP / 管理员密码等）：
+
+```bash
+# 海外（交互向导）
 curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | bash
-```
 
-**国内服务器（自动处理 Docker 安装 + 镜像加速 + gcr.io 兼容）：**
-```bash
-curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | bash -s -- --cn
-```
-
-脚本会：**自动安装 Docker**（如未安装）→ **克隆代码** → **启动向导**（域名 / SMTP / 管理员密码）→ **构建镜像** → **拉起容器** → **冒烟测试** → **打印访问地址**。
-
-想跳过所有交互（CI / 全自动）：
-
-```bash
-# 海外 CI
-curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh \
-  | CI=true DOMAIN=your-domain.com bash
-
-# 国内 CI
-curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh \
-  | bash -s -- --cn --domain your-domain.com
+# 国内（交互向导）
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CN=true bash
 ```
 
 已经 `git clone` 过的老手：
@@ -221,25 +221,24 @@ pnpm dev
 ### 三种入口，任选其一
 
 ```bash
-# ① 远程一键 — 海外（推荐，裸机可用）
-curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | bash
+# ① 远程一键 — 海外全自动（推荐，裸机可用）
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CI=true DOMAIN=你的域名或IP bash
 
-# ① 远程一键 — 国内（自动处理 Docker 安装 + 镜像加速 + gcr.io 兼容）
-curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | bash -s -- --cn
+# ① 远程一键 — 国内全自动（自动处理 Docker 安装 + 镜像加速 + gcr.io 兼容）
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CI=true CN=true DOMAIN=你的域名或IP bash
 
 # ② 已 clone 的老手
 make up                                          # 海外
-bash scripts/deploy.sh --cn                     # 国内
+CI=true CN=true bash scripts/deploy.sh --cn     # 国内
 
 # ③ 传统脚本
-bash scripts/deploy.sh
-DOMAIN=your-domain.com bash scripts/deploy.sh   # 跳过域名交互
-CI=true bash scripts/deploy.sh                  # 零交互（CI/CD）
+bash scripts/deploy.sh                          # 交互向导
+CI=true DOMAIN=xxx bash scripts/deploy.sh       # 零交互（CI/CD）
 ```
 
-三条路径最终都会执行相同的 deploy 向导：**域名 / IP → ACME 邮箱 → SMTP（可选）→ 管理员密码**，生成 `.env.docker` 后自动 `up -d --build`。
+> 把 `你的域名或IP` 换成实际值，如 `dageling003.top` 或 `1.2.3.4`。
 
-> 🇨🇳 **国内用户注意**：加 `--cn` 参数后，脚本会自动完成以下操作：
+> 🇨🇳 **国内用户注意**：加 `CN=true` 或 `--cn` 后，脚本会自动完成以下操作：
 > - 安装 Docker 时配置国内镜像加速器（docker.1ms.run）
 > - 使用 `node:22-slim` 替代 `gcr.io/distroless`（避免国内拉取失败）
 > - 自动设置 healthcheck node 路径为 `/usr/local/bin/node`（slim 镜像的 node 路径不同）

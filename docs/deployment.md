@@ -72,26 +72,38 @@
 
 ### 一条命令部署（裸机 / 全新服务器）
 
-**海外服务器：**
+脚本会自动完成所有步骤：检查依赖 → 安装 Docker → 克隆项目 → 构建镜像 → 启动服务 → 冒烟测试。
+
+**海外服务器（全自动，推荐）：**
 ```bash
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CI=true DOMAIN=你的域名或IP bash
+```
+
+**国内服务器（全自动，推荐）：**
+```bash
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CI=true CN=true DOMAIN=你的域名或IP bash
+```
+
+> 把 `你的域名或IP` 换成实际值，如 `dageling003.top` 或 `1.2.3.4`。
+
+想走交互向导（手动配置 SMTP / 管理员密码等）：
+
+```bash
+# 海外（交互向导）
 curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | bash
-```
 
-**国内服务器（自动处理 Docker 安装 + 镜像加速 + gcr.io 兼容）：**
-```bash
-curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | bash -s -- --cn
+# 国内（交互向导）
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CN=true bash
 ```
-
-脚本会自动完成所有步骤：检查依赖 → 安装 Docker → 克隆项目 → 启动向导 → 构建镜像 → 启动服务 → 冒烟测试。
 
 ### 已 clone 项目的快速部署
 
 ```bash
-# 海外
-bash scripts/deploy.sh
+# 海外全自动
+CI=true DOMAIN=你的域名或IP bash scripts/deploy.sh
 
-# 国内（自动用 slim 替代 gcr.io distroless + 生成 healthcheck 兼容配置）
-bash scripts/deploy.sh --cn
+# 国内全自动
+CI=true CN=true DOMAIN=你的域名或IP bash scripts/deploy.sh --cn
 ```
 
 向导会引导你完成：
@@ -101,18 +113,6 @@ bash scripts/deploy.sh --cn
 4. **管理员密码** - 自动生成/手动设置/留空网页创建
 
 配置完成后自动生成 `.env.docker` 文件，并自动构建镜像、启动服务、运行冒烟测试。
-
-### CI 全自动模式
-
-```bash
-# 海外 CI
-curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh \
-  | CI=true DOMAIN=your-domain.com bash
-
-# 国内 CI
-curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh \
-  | bash -s -- --cn --domain your-domain.com
-```
 
 ### 访问网站
 
