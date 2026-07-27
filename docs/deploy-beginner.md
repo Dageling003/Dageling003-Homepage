@@ -108,54 +108,55 @@ ssh -i /path/to/your-key.pem root@123.45.67.89
 
 ---
 
-## 3. 装 Docker（推荐用项目内脚本）
+## 3. 装 Docker + 部署（一条命令搞定）
+
+> **2024+ 推荐**：直接用项目的一键脚本，会自动检测 Docker 是否安装、未装则自动安装、然后自动进入部署向导。
+
+### 方式 A：一条命令搞定（**强烈推荐**）
+
+```bash
+# 海外服务器
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | bash
+
+# 国内服务器（自动装 Docker + 配置国内镜像加速 + 处理 gcr.io 兼容）
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | bash -s -- --cn
+```
+
+这条命令会自动完成：
+1. ✅ 检查并安装 git（如未安装）
+2. ✅ 检查并安装 Docker + Docker Compose（如未安装）
+3. ✅ 国内模式：配置 registry mirror（`docker.1ms.run`）
+4. ✅ 克隆项目
+5. ✅ 启动部署向导（域名 / 管理员密码）
+6. ✅ 构建镜像 + 启动容器
+7. ✅ 冒烟测试 + 打印访问地址
+
+跑完直接跳到第 8 章「首次访问」即可。
+
+### 方式 B：已手动 clone 项目
+
+如果你已经 `git clone` 了项目：
+
+```bash
+cd Dageling003-Homepage
+
+# 先装 Docker（如已装可跳过）
+bash scripts/install-docker.sh              # 海外
+bash scripts/install-docker.sh --cn         # 国内（Aliyun 源 + 自动配 registry mirror）
+
+# 再部署
+bash scripts/deploy.sh                      # 海外
+bash scripts/deploy.sh --cn                 # 国内（自动用 slim 替代 gcr.io distroless）
+```
+
+### 方式 C：手动分步（高级用户）
 
 支持的发行版：Debian 11+ / Ubuntu 20.04+ / RHEL 8+ / CentOS Stream 8+ / Rocky 8+ / AlmaLinux 8+ / Fedora 38+。
-
-### 方式 A：一条命令跑项目内脚本（**推荐**）
-
-如果第 5 章还没做（还没 clone 项目），先克隆一下：
 
 ```bash
 # 装 git（如已装可跳过）
 # [Debian / Ubuntu]  apt update && apt install -y git
 # [RHEL 系]          dnf install -y git
-
-cd /opt
-git clone https://github.com/Dageling003/Dageling003-Homepage.git
-cd Dageling003-Homepage
-```
-
-然后跑脚本：
-
-```bash
-# 海外节点
-bash scripts/install-docker.sh
-
-# 国内节点（Aliyun 源 + 自动配 registry mirror）
-bash scripts/install-docker.sh --cn
-
-# 顺手把某个非 root 用户加入 docker 组（免 sudo 用 docker）
-bash scripts/install-docker.sh --cn --user ubuntu
-```
-
-脚本会自动做这 6 件事：
-
-1. 识别发行版（Debian 家族 vs RHEL 家族）
-2. 装 `curl` / `ca-certificates` 前置依赖（RHEL 9 minimal 常缺）
-3. 清掉冲突包（`docker.io` / `podman-docker` / 老版 `runc`）
-4. 调 `get.docker.com` 官方脚本装 Engine + Compose plugin
-5. `systemctl enable --now docker`；RHEL 系上遇到 `firewalld` 时自动重启 docker 让 NAT 规则重建
-6. `--cn` 模式下写入 registry mirror（`docker.1ms.run` + `docker.xuanyuan.me`）并配好 log rotation
-
-跑完自动执行 `hello-world` 冒烟测试，成功就能进第 4 章。
-
-### 方式 B：不用脚本，手动走 get.docker.com
-
-```bash
-# 前置（RHEL 9 minimal 需要）
-# [Debian / Ubuntu]  apt update && apt install -y curl ca-certificates
-# [RHEL 系]          dnf install -y curl ca-certificates
 
 # 装 Docker
 curl -fsSL https://get.docker.com | sh              # 海外
@@ -169,9 +170,17 @@ systemctl is-active --quiet firewalld && systemctl restart docker
 
 # 非 root 用户免 sudo（重登才生效）
 usermod -aG docker your-user
+
+# 克隆项目
+cd /opt
+git clone https://github.com/Dageling003/Dageling003-Homepage.git
+cd Dageling003-Homepage
+
+# 部署
+bash scripts/deploy.sh
 ```
 
-### 验证装好了
+### 验证 Docker 装好了
 
 ```bash
 docker --version
@@ -179,13 +188,12 @@ docker compose version
 docker run --rm hello-world    # 打印一段 "Hello from Docker!" 就通了
 ```
 
-看不到版本号或 `hello-world` 报错，跳到 [10.3 镜像拉取失败](#103-镜像拉取失败pull-access-denied--failed-to-resolve-reference)。
-
 ### 常见坑
 
-- **RHEL 8/9 少数镜像装过 `podman-docker`**：官方脚本会失败，`bash scripts/install-docker.sh` 会自动移除；手动模式需要先 `dnf remove -y podman-docker`
+- **RHEL 8/9 少数镜像装过 `podman-docker`**：`install-docker.sh` 会自动移除；手动模式需要先 `dnf remove -y podman-docker`
 - **非 root 用户执行 `docker ps` 报 `permission denied`**：加入 docker 组或 `sudo docker`。加组后必须**重新登录 shell** 或跑 `newgrp docker`
 - **RHEL 系装完 firewalld 拦截容器出网**：`systemctl restart docker` 让 Docker 重建 iptables NAT 规则
+- **国内 gcr.io 拉不到**：加 `--cn` 参数自动用 `node:22-slim` 替代 `gcr.io/distroless/nodejs22-debian12`
 
 ---
 

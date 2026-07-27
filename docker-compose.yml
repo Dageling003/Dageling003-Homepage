@@ -38,6 +38,7 @@ services:
       args:
         BUILDER_IMAGE: ${BUILDER_IMAGE:-node:22-slim}
         RUNTIME_IMAGE: ${RUNTIME_IMAGE:-gcr.io/distroless/nodejs22-debian12}
+        HEALTHCHECK_NODE_PATH: ${HEALTHCHECK_NODE_PATH:-/nodejs/bin/node}
     image: homepage-app:latest
     container_name: homepage-app
     restart: unless-stopped
@@ -80,12 +81,16 @@ services:
     volumes:
       - app_uploads:/app/public/uploads
       - app_data:/app/data
-    healthcheck:
-      test: ["CMD", "/nodejs/bin/node", "-e", "require('http').get('http://localhost:8000/health',r=>{r.on('data',()=>{});r.on('end',()=>process.exit(r.statusCode===200?0:1))})"]
-      interval: 30s
-      timeout: 5s
-      start_period: 30s
-      retries: 3
+    # Healthcheck is defined in Dockerfile.app (baked into image at build time).
+    # The node path is determined by HEALTHCHECK_NODE_PATH build arg.
+    # For distroless: /nodejs/bin/node; for slim (/cn mode): /usr/local/bin/node.
+    # Uncomment below to override at the compose level:
+    # healthcheck:
+    #   test: ["CMD", "/nodejs/bin/node", "-e", "require('http').get('http://localhost:8000/health',r=>{r.on('data',()=>{});r.on('end',()=>process.exit(r.statusCode===200?0:1))})"]
+    #   interval: 30s
+    #   timeout: 5s
+    #   start_period: 30s
+    #   retries: 3
     deploy:
       resources:
         limits:

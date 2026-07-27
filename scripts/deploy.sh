@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 # ===================================================
-# homepage — 一键部署脚本 v3
+# homepage — 一键部署脚本 v4
 # ===================================================
 # 用法：
 #   bash deploy.sh                       # 向导模式：逐一询问关键配置
+#   bash deploy.sh --cn                  # 国内模式：自动用 slim 替代 gcr.io distroless
 #   DOMAIN=my.example.com bash deploy.sh # 跳过域名询问（其余仍交互）
 #   CI=true bash deploy.sh               # CI 模式：全自动，无任何交互
+#   CI=true bash deploy.sh --cn          # CI + 国内模式
 # ===================================================
 set -euo pipefail
 
@@ -21,7 +23,11 @@ NC='\033[0m' # No Color
 banner() {
     echo -e "${CYAN}"
     echo "  ╔══════════════════════════════════════════╗"
-    echo "  ║         homepage — 一键部署脚本 v3        ║"
+    if "$CN_MODE"; then
+        echo "  ║      homepage — 一键部署脚本 v4 (国内)     ║"
+    else
+        echo "  ║         homepage — 一键部署脚本 v4        ║"
+    fi
     echo "  ║     全栈前后端分离首页管理系统              ║"
     echo "  ╚══════════════════════════════════════════╝"
     echo -e "${NC}"
@@ -36,6 +42,7 @@ info() { echo -e "  ${BLUE}→${NC} $1"; }
 CI_MODE=false
 NON_INTERACTIVE=false
 SHOW_HELP=false
+CN_MODE=false
 for arg in "$@"; do
     case "$arg" in
         -h|--help)
@@ -43,6 +50,9 @@ for arg in "$@"; do
             ;;
         -i|--interactive)
             # 兼容旧版 -i 参数，等同于默认向导模式
+            ;;
+        --cn)
+            CN_MODE=true
             ;;
         --non-interactive)
             NON_INTERACTIVE=true
@@ -54,12 +64,21 @@ for arg in "$@"; do
     esac
 done
 if "$SHOW_HELP"; then
-    sed -n '2,12p' "$0" | sed 's/^# \?//'
+    sed -n '2,13p' "$0" | sed 's/^# \?//'
     exit 0
 fi
 # CI 环境或显式 CI=true → 跳过所有交互
 if [ "${CI:-false}" = "true" ] || "$NON_INTERACTIVE"; then
     CI_MODE=true
+fi
+# 国内模式：自动处理 gcr.io 镜像问题
+if "$CN_MODE"; then
+    export RUNTIME_IMAGE="${RUNTIME_IMAGE:-docker.1ms.run/library/node:22-slim}"
+    export BUILDER_IMAGE="${BUILDER_IMAGE:-docker.1ms.run/library/node:22-slim}"
+    export HEALTHCHECK_NODE_PATH="${HEALTHCHECK_NODE_PATH:-/usr/local/bin/node}"
+    info "国内模式：使用 node:22-slim 替代 gcr.io distroless"
+else
+    export HEALTHCHECK_NODE_PATH="${HEALTHCHECK_NODE_PATH:-/nodejs/bin/node}"
 fi
 
 # ====== 工具函数 ======
@@ -123,6 +142,11 @@ DB_PASSWORD=${DB_PASSWORD}
 DB_DATABASE=${DB_DATABASE}
 # 首次部署自动建表，部署完成后建议改为 false
 DB_SYNCHRONIZE=true
+# 构建镜像源（国内加速）
+BUILDER_IMAGE=${BUILDER_IMAGE:-}
+RUNTIME_IMAGE=${RUNTIME_IMAGE:-}
+# Healthcheck node path: /nodejs/bin/node (distroless) | /usr/local/bin/node (slim)
+HEALTHCHECK_NODE_PATH=${HEALTHCHECK_NODE_PATH:-}
 # MariaDB 镜像源
 MARIADB_IMAGE=${MARIADB_IMAGE:-docker.1ms.run/library/mariadb:11.4}
 # ====================================
@@ -514,6 +538,8 @@ main() {
         DB_USERNAME="${DB_USERNAME:-homepage}"
         DB_PASSWORD="${DB_PASSWORD:-$(rand 20)}"
         DB_DATABASE="${DB_DATABASE:-homepage}"
+        BUILDER_IMAGE="${BUILDER_IMAGE:-}"
+        RUNTIME_IMAGE="${RUNTIME_IMAGE:-}"
         SMTP_HOST="${SMTP_HOST:-}"; SMTP_PORT="${SMTP_PORT:-465}"
         SMTP_SECURE="${SMTP_SECURE:-true}"; SMTP_USER="${SMTP_USER:-}"
         SMTP_PASS="${SMTP_PASS:-}"; SMTP_FROM="${SMTP_FROM:-}"

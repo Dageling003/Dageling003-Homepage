@@ -144,27 +144,42 @@
 
 ### 一条命令上线（生产 / 全新服务器）
 
+**海外服务器：**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | bash
 ```
 
-脚本会：**检查 Docker/git** → **克隆代码** → **启动向导**（域名 / SMTP / 管理员密码）→ **构建镜像** → **拉起容器** → **冒烟测试** → **打印访问地址**。
+**国内服务器（自动处理 Docker 安装 + 镜像加速 + gcr.io 兼容）：**
+```bash
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | bash -s -- --cn
+```
+
+脚本会：**自动安装 Docker**（如未安装）→ **克隆代码** → **启动向导**（域名 / SMTP / 管理员密码）→ **构建镜像** → **拉起容器** → **冒烟测试** → **打印访问地址**。
 
 想跳过所有交互（CI / 全自动）：
 
 ```bash
+# 海外 CI
 curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh \
   | CI=true DOMAIN=your-domain.com bash
+
+# 国内 CI
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh \
+  | bash -s -- --cn --domain your-domain.com
 ```
 
 已经 `git clone` 过的老手：
 
 ```bash
-make up          # = bash scripts/deploy.sh
-make logs        # 看日志
-make down        # 停止
-make backup      # 备份数据库
-make update      # 拉取最新代码 + 重建镜像 + 重启（保留数据）
+# 海外
+make up                    # = bash scripts/deploy.sh
+make logs                  # 看日志
+make down                  # 停止
+make backup                # 备份数据库
+make update                # 拉取最新代码 + 重建镜像 + 重启（保留数据）
+
+# 国内（使用 --cn 参数）
+bash scripts/deploy.sh --cn
 ```
 
 ### 前置
@@ -206,11 +221,15 @@ pnpm dev
 ### 三种入口，任选其一
 
 ```bash
-# ① 远程一键（推荐，裸机可用）
+# ① 远程一键 — 海外（推荐，裸机可用）
 curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | bash
 
+# ① 远程一键 — 国内（自动处理 Docker 安装 + 镜像加速 + gcr.io 兼容）
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | bash -s -- --cn
+
 # ② 已 clone 的老手
-make up
+make up                                          # 海外
+bash scripts/deploy.sh --cn                     # 国内
 
 # ③ 传统脚本
 bash scripts/deploy.sh
@@ -219,6 +238,11 @@ CI=true bash scripts/deploy.sh                  # 零交互（CI/CD）
 ```
 
 三条路径最终都会执行相同的 deploy 向导：**域名 / IP → ACME 邮箱 → SMTP（可选）→ 管理员密码**，生成 `.env.docker` 后自动 `up -d --build`。
+
+> 🇨🇳 **国内用户注意**：加 `--cn` 参数后，脚本会自动完成以下操作：
+> - 安装 Docker 时配置国内镜像加速器（docker.1ms.run）
+> - 使用 `node:22-slim` 替代 `gcr.io/distroless`（避免国内拉取失败）
+> - 自动设置 healthcheck node 路径为 `/usr/local/bin/node`（slim 镜像的 node 路径不同）
 
 ### 手动部署（不走向导，自己填 .env）
 

@@ -2,7 +2,7 @@
 # Build:  docker compose build app
 # Override base images with build-args for Chinese mirror:
 #   --build-arg BUILDER_IMAGE=docker.1ms.run/library/node:22-slim
-#   --build-arg RUNTIME_IMAGE=docker.1ms.run/gcr.io/distroless/nodejs22-debian12
+#   --build-arg RUNTIME_IMAGE=docker.1ms.run/library/node:22-slim
 
 ARG BUILDER_IMAGE=node:22-slim
 ARG RUNTIME_IMAGE=gcr.io/distroless/nodejs22-debian12
@@ -39,7 +39,7 @@ RUN pnpm --filter homepage-backend build && \
     cp -r apps/admin/dist/. /static/admin/ && \
     pnpm store prune
 
-# ====== Stage 2: Runtime (distroless, production-only) ======
+# ====== Stage 2: Runtime (distroless or slim, production-only) ======
 FROM ${RUNTIME_IMAGE} AS runtime
 WORKDIR /app
 
@@ -50,11 +50,12 @@ ENV NODE_ENV=production
 
 EXPOSE 8000
 
-# Health check in exec form (no shell) for distroless compatibility.
-# distroless 镜像的 node 只在 /nodejs/bin/node，PATH 里没有 node，
-# 所以必须用绝对路径，否则 docker exec-based healthcheck 会报
-# "executable file not found in $PATH" 从而永远 unhealthy。
+# Health check: uses /nodejs/bin/node for distroless, /usr/local/bin/node for slim.
+# The correct path is determined at build time and baked into the image.
+# For slim images, deploy.sh --cn passes HEALTHCHECK_NODE_PATH=/usr/local/bin/node.
+ARG HEALTHCHECK_NODE_PATH=/nodejs/bin/node
+ENV _HEALTHCHECK_NODE_PATH=${HEALTHCHECK_NODE_PATH}
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-  CMD ["/nodejs/bin/node", "-e", "require('http').get('http://localhost:8000/health',r=>{let d='';r.on('data',c=>d+=c);r.on('end',()=>process.exit(r.statusCode===200?0:1))})"]
+  CMD ["${HEALTHCHECK_NODE_PATH}", "-e", "require('http').get('http://localhost:8000/health',r=>{let d='';r.on('data',c=>d+=c);r.on('end',()=>process.exit(r.statusCode===200?0:1))})"]
 
 CMD ["dist/main.js"]

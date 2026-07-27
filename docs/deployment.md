@@ -70,17 +70,28 @@
 
 ## 快速部署（推荐）
 
-最简单的部署方式，只需两步：
+### 一条命令部署（裸机 / 全新服务器）
 
-### 运行部署向导
+**海外服务器：**
+```bash
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | bash
+```
+
+**国内服务器（自动处理 Docker 安装 + 镜像加速 + gcr.io 兼容）：**
+```bash
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | bash -s -- --cn
+```
+
+脚本会自动完成所有步骤：检查依赖 → 安装 Docker → 克隆项目 → 启动向导 → 构建镜像 → 启动服务 → 冒烟测试。
+
+### 已 clone 项目的快速部署
 
 ```bash
-# 克隆项目
-git clone https://github.com/Dageling003/Dageling003-Homepage.git
-cd Dageling003-Homepage
-
-# 运行部署向导
+# 海外
 bash scripts/deploy.sh
+
+# 国内（自动用 slim 替代 gcr.io distroless + 生成 healthcheck 兼容配置）
+bash scripts/deploy.sh --cn
 ```
 
 向导会引导你完成：
@@ -90,6 +101,18 @@ bash scripts/deploy.sh
 4. **管理员密码** - 自动生成/手动设置/留空网页创建
 
 配置完成后自动生成 `.env.docker` 文件，并自动构建镜像、启动服务、运行冒烟测试。
+
+### CI 全自动模式
+
+```bash
+# 海外 CI
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh \
+  | CI=true DOMAIN=your-domain.com bash
+
+# 国内 CI
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh \
+  | bash -s -- --cn --domain your-domain.com
+```
 
 ### 访问网站
 
@@ -103,14 +126,18 @@ bash scripts/deploy.sh
 
 ## Docker 一键部署
 
-项目提供 `scripts/deploy.sh` 脚本，支持三种部署模式。
+项目提供 `scripts/deploy.sh` 脚本，支持多种部署模式。
 
 ### 向导模式
 
 交互式引导，逐一询问关键配置：
 
 ```bash
+# 海外
 bash scripts/deploy.sh
+
+# 国内（自动处理 gcr.io 镜像 + healthcheck 兼容）
+bash scripts/deploy.sh --cn
 ```
 
 脚本将引导你完成以下步骤：
@@ -126,7 +153,11 @@ bash scripts/deploy.sh
 零交互部署，适用于 CI/CD 环境：
 
 ```bash
+# 海外 CI
 CI=true bash scripts/deploy.sh
+
+# 国内 CI
+CI=true bash scripts/deploy.sh --cn
 ```
 
 所有配置使用默认值或环境变量，无需手动输入。
@@ -140,6 +171,14 @@ DOMAIN=your-domain.com bash scripts/deploy.sh
 ```
 
 其余配置仍以交互方式询问。
+
+### 国内模式 (--cn) 自动处理事项
+
+使用 `--cn` 参数时，脚本会自动：
+
+1. **镜像加速**：设置 `BUILDER_IMAGE` 和 `RUNTIME_IMAGE` 走 `docker.1ms.run` 加速器
+2. **gcr.io 兼容**：用 `node:22-slim` 替代 `gcr.io/distroless/nodejs22-debian12`（国内拉不到 gcr.io）
+3. **Healthcheck 兼容**：自动设置 `HEALTHCHECK_NODE_PATH=/usr/local/bin/node`，将 healthcheck 的 node 路径从 `/nodejs/bin/node`（distroless）改为 `/usr/local/bin/node`（slim），该路径在构建镜像时 bake 进 image
 
 ---
 
