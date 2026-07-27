@@ -372,10 +372,24 @@ start_services() {
     echo -e "${BOLD}==> 4/5 启动服务${NC}"
     info "正在启动所有容器..."
 
-    if $COMPOSE_CMD --env-file .env.docker up -d; then
+    if $COMPOSE_CMD --env-file .env.docker up -d 2>&1; then
         ok "服务已启动"
     else
-        err "服务启动失败，请检查日志：$COMPOSE_CMD --env-file .env.docker logs"
+        err "服务启动失败，正在获取诊断信息..."
+        echo ""
+        info "--- app 容器日志 (最近 30 行) ---"
+        $COMPOSE_CMD --env-file .env.docker logs --tail=30 app 2>&1 || true
+        echo ""
+        info "--- app 容器状态 ---"
+        $COMPOSE_CMD --env-file .env.docker ps app 2>&1 || true
+        echo ""
+        err "启动失败。上方日志通常能直接定位问题。"
+        echo ""
+        info "常见修复："
+        echo "  - 端口被占：检查 80/443 是否被其他进程占用"
+        echo "  - 镜像构建缓存：运行 docker compose build --no-cache app 后重试"
+        echo "  - 国内服务器：加 CN=true 参数（使用 slim 镜像替代 gcr.io distroless）"
+        echo "  - 内存不足：确保服务器可用内存 ≥ 512MB"
         exit 1
     fi
 
@@ -396,9 +410,12 @@ start_services() {
     if "$ready"; then
         ok "服务就绪 (${attempts} 次检查)"
     else
-        warn "服务未在 60s 内就绪，继续执行（可能是首次启动慢）"
+        warn "服务未在 60s 内就绪"
+        echo ""
+        info "--- app 容器日志 (最近 30 行) ---"
+        $COMPOSE_CMD --env-file .env.docker logs --tail=30 app 2>&1 || true
+        echo ""
         info "手动检查：$COMPOSE_CMD --env-file .env.docker ps"
-        info "查看日志：$COMPOSE_CMD --env-file .env.docker logs"
     fi
 }
 

@@ -50,12 +50,9 @@ ENV NODE_ENV=production
 
 EXPOSE 8000
 
-# Health check: uses /nodejs/bin/node for distroless, /usr/local/bin/node for slim.
-# The correct path is determined at build time and baked into the image.
-# For slim images, deploy.sh --cn passes HEALTHCHECK_NODE_PATH=/usr/local/bin/node.
-ARG HEALTHCHECK_NODE_PATH=/nodejs/bin/node
-ENV _HEALTHCHECK_NODE_PATH=${HEALTHCHECK_NODE_PATH}
+# Health check is defined in docker-compose.yml (override at compose level).
+# This default covers distroless; slim images get the correct path from compose.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-  CMD ["${HEALTHCHECK_NODE_PATH}", "-e", "require('http').get('http://localhost:8000/health',r=>{let d='';r.on('data',c=>d+=c);r.on('end',()=>process.exit(r.statusCode===200?0:1))})"]
+  CMD ["/nodejs/bin/node", "-e", "require('http').get('http://localhost:8000/health',r=>{let d='';r.on('data',c=>d+=c);r.on('end',()=>process.exit(r.statusCode===200?0:1))})"]
 
 CMD ["dist/main.js"]
