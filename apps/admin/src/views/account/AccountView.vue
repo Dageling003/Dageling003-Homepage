@@ -40,7 +40,7 @@ watch(
 onMounted(async () => {
   try {
     const res = await getProfileApi()
-    profile.value = (res.data as any)?.data || null
+    profile.value = (res.data)?.data || null
     avatarInput.value = profile.value?.avatarUrl || ''
     originalAvatar.value = avatarInput.value
     emailInput.value = profile.value?.email || ''

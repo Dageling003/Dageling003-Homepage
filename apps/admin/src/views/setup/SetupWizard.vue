@@ -111,7 +111,7 @@ const isAdminStep = computed(() => needsBootstrap.value && step.value === 1)
 async function loadExisting() {
   try {
     const res = await getConfigsApi()
-    const all: Array<{ configKey: string; configValue: string; category?: string }> = (res.data as any)?.data || []
+    const all: Array<{ configKey: string; configValue: string; category?: string }> = (res.data)?.data || []
     const map: Record<string, string> = {}
     for (const c of all) map[c.configKey] = c.configValue
 
@@ -149,7 +149,7 @@ async function loadExisting() {
 async function loadBootstrapState() {
   try {
     const res = await hasUsersApi()
-    const payload = (res.data as any)?.data
+    const payload = (res.data)?.data
     needsBootstrap.value = !payload?.hasUsers
     setupTokenRequired.value = !!payload?.setupTokenRequired
   } catch {
@@ -176,7 +176,7 @@ async function saveConfig(key: string, value: string) {
   const category = CATEGORY_MAP[key] || 'general'
   try {
     const res = await getConfigsApi()
-    const all: Array<{ configKey: string; id: number }> = (res.data as any)?.data || []
+    const all: Array<{ configKey: string; id: number }> = (res.data)?.data || []
     const existing = all.find(c => c.configKey === key)
     if (existing) {
       await updateConfigApi(key, value, category)

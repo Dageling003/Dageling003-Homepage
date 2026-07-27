@@ -1,5 +1,10 @@
-import axios from 'axios'
+import axios, { type AxiosResponse } from 'axios'
 import { message } from 'ant-design-vue'
+
+export interface ApiResponse<T = unknown> {
+  data: T
+  message?: string
+}
 
 const request = axios.create({
   baseURL: '/api',
@@ -17,16 +22,13 @@ const request = axios.create({
 
 // Response interceptor - error handling
 request.interceptors.response.use(
-  (res) => res,
-  (error) => {
-    if (error.response) {
-      // Server returned an error status
-      const status = error.response.status
+  (res: AxiosResponse) => res,
+  (error: unknown) => {
+    const axiosError = error as { response?: { status: number }; request?: unknown }
+    if (axiosError.response) {
+      const status = axiosError.response.status
 
       if (status === 401) {
-        // Session expired or invalid — cookie is HttpOnly so we cannot
-        // clear it from JS; just redirect to /login which will (a) show
-        // the login form and (b) let the user obtain a fresh cookie.
         const currentPath = window.location.pathname
         if (!currentPath.includes('/login')) {
           message.error('登录已过期，请重新登录')
@@ -47,8 +49,7 @@ request.interceptors.response.use(
       if (status === 429) {
         message.warning('请求过于频繁，请稍后再试')
       }
-    } else if (error.request) {
-      // Network error (no response received)
+    } else if (axiosError.request) {
       message.error('网络连接失败，请检查服务器是否运行')
     }
 
@@ -58,7 +59,7 @@ request.interceptors.response.use(
 
 // Auth API
 export function loginApi(username: string, password: string) {
-  return request.post('/auth/login', { username, password })
+  return request.post<ApiResponse>('/auth/login', { username, password })
 }
 
 export function logoutApi() {
@@ -66,28 +67,28 @@ export function logoutApi() {
 }
 
 export function getProfileApi() {
-  return request.get('/auth/profile')
+  return request.get<ApiResponse<{ username: string; avatarUrl: string; email: string }>>('/auth/profile')
 }
 
 // Config API
 export function checkInitializedApi() {
-  return request.get('/config/initialized')
+  return request.get<ApiResponse<{ initialized: boolean }>>('/config/initialized')
 }
 
 export function getConfigsApi() {
-  return request.get('/config')
+  return request.get<ApiResponse<Array<{ configKey: string; configValue: string; category: string }>>>('/config')
 }
 
 export function getConfigApi(key: string) {
-  return request.get(`/config/${key}`)
+  return request.get<ApiResponse<{ configKey: string; configValue: string; category: string }>>(`/config/${key}`)
 }
 
 export function updateConfigApi(key: string, value: string, category?: string) {
-  return request.put(`/config/${key}`, { configKey: key, configValue: value, category })
+  return request.put<ApiResponse<{ configKey: string; configValue: string; category: string }>>(`/config/${key}`, { configKey: key, configValue: value, category })
 }
 
 export function createConfigApi(configKey: string, configValue: string, category?: string) {
-  return request.post('/config', { configKey, configValue, category })
+  return request.post<ApiResponse<{ configKey: string; configValue: string; category: string }>>('/config', { configKey, configValue, category })
 }
 
 export function deleteConfigApi(key: string) {
@@ -95,7 +96,7 @@ export function deleteConfigApi(key: string) {
 }
 
 export function getGroupedConfigsApi() {
-  return request.get('/config/grouped')
+  return request.get<ApiResponse<Record<string, Array<{ configKey: string; configValue: string; category: string }>>>>('/config/grouped')
 }
 
 export function exportConfigJsonUrl() {
@@ -109,19 +110,19 @@ export function changePasswordApi(oldPassword: string, newPassword: string) {
 
 // Password recovery (public)
 export function forgotPasswordApi(username: string) {
-  return request.post('/auth/forgot-password', { username })
+  return request.post<ApiResponse>('/auth/forgot-password', { username })
 }
 
 export function resetPasswordApi(token: string, newPassword: string) {
-  return request.post('/auth/reset-password', { token, newPassword })
+  return request.post<ApiResponse>('/auth/reset-password', { token, newPassword })
 }
 
 export function hasUsersApi() {
-  return request.get('/auth/has-users')
+  return request.get<ApiResponse<{ hasUsers: boolean; setupTokenRequired: boolean }>>('/auth/has-users')
 }
 
 export function createFirstAdminApi(username: string, password: string, setupToken?: string) {
-  return request.post(
+  return request.post<ApiResponse>(
     '/auth/create-first-admin',
     { username, password },
     setupToken ? { headers: { 'X-Setup-Token': setupToken } } : undefined,
@@ -130,7 +131,7 @@ export function createFirstAdminApi(username: string, password: string, setupTok
 
 // Profile
 export function updateProfileApi(data: { avatarUrl?: string; email?: string }) {
-  return request.put('/auth/profile', data)
+  return request.put<ApiResponse>('/auth/profile', data)
 }
 
 // Audit API
@@ -139,7 +140,7 @@ export function getAuditLogsApi(
   limit = 20,
   filters?: { action?: string; operator?: string; startDate?: string; endDate?: string },
 ) {
-  return request.get('/audit', { params: { page, limit, ...filters } })
+  return request.get<ApiResponse<Array<{ id: number; action: string; entity: string; entityKey: string; detail: string; operator: string; createdAt: string }>>>('/audit', { params: { page, limit, ...filters } })
 }
 
 export interface LoginResponse {

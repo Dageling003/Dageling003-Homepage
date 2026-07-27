@@ -6,14 +6,14 @@ export class ForgotPasswordDto {
   @IsString()
   @MinLength(2)
   @MaxLength(50)
-  username: string;
+  username!: string;
 }
 
 export class ResetPasswordDto {
   @ApiProperty({ description: '从邮件链接中获取的重置 token' })
   @IsString()
   @MinLength(32)
-  token: string;
+  token!: string;
 
   @ApiProperty({
     description: '新密码（至少 8 位）',
@@ -23,7 +23,7 @@ export class ResetPasswordDto {
   @IsString()
   @MinLength(8)
   @MaxLength(128)
-  newPassword: string;
+  newPassword!: string;
 }
 
 export class CreateFirstAdminDto {
@@ -34,11 +34,11 @@ export class CreateFirstAdminDto {
   @Matches(/^[a-zA-Z0-9_-]+$/, {
     message: '用户名仅支持字母、数字、下划线、连字符',
   })
-  username: string;
+  username!: string;
 
   @ApiProperty({ description: '密码（至少 8 位）', minLength: 8 })
   @IsString()
   @MinLength(8)
   @MaxLength(128)
-  password: string;
+  password!: string;
 }

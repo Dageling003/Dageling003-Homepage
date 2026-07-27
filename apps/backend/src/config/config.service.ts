@@ -16,11 +16,31 @@ import { assertConfigValueShape } from './dto/config-value.validators';
 @Injectable()
 export class SiteConfigService {
   private readonly logger = new Logger(SiteConfigService.name);
+  private cache = new Map<string, { value: unknown; expires: number }>();
+  private readonly CACHE_TTL_MS = 30_000;
+
   constructor(
     @InjectRepository(SiteConfig)
     private configRepository: Repository<SiteConfig>,
     private auditService: AuditService,
   ) {}
+
+  private getCached<T>(key: string): T | undefined {
+    const entry = this.cache.get(key);
+    if (entry && entry.expires > Date.now()) {
+      return entry.value as T;
+    }
+    if (entry) this.cache.delete(key);
+    return undefined;
+  }
+
+  private setCache<T>(key: string, value: T, ttlMs = this.CACHE_TTL_MS): void {
+    this.cache.set(key, { value, expires: Date.now() + ttlMs });
+  }
+
+  private invalidateCache(): void {
+    this.cache.clear();
+  }
 
   async isInitialized(): Promise<boolean> {
     // Check if _initialized flag exists
@@ -36,16 +56,23 @@ export class SiteConfigService {
   }
 
   async findAll(): Promise<SiteConfig[]> {
-    return this.configRepository.find({ order: { id: 'ASC' } });
+    const cached = this.getCached<SiteConfig[]>('all');
+    if (cached) return cached;
+    const result = await this.configRepository.find({ order: { id: 'ASC' } });
+    this.setCache('all', result);
+    return result;
   }
 
   async findByKey(key: string): Promise<SiteConfig> {
+    const cached = this.getCached<SiteConfig>(`key:${key}`);
+    if (cached) return cached;
     const config = await this.configRepository.findOne({
       where: { configKey: key },
     });
     if (!config) {
       throw new NotFoundException(`配置项 '${key}' 不存在`);
     }
+    this.setCache(`key:${key}`, config);
     return config;
   }
 
@@ -66,6 +93,7 @@ export class SiteConfigService {
     }
     const config = this.configRepository.create(dto);
     const saved = await this.configRepository.save(config);
+    this.invalidateCache();
     // 截断长配置值，避免审计日志泄露完整个人信息
     const truncatedValue =
       saved.configValue.length > 100
@@ -86,13 +114,20 @@ export class SiteConfigService {
   }
 
   async findByCategory(category: string): Promise<SiteConfig[]> {
-    return this.configRepository.find({
+    const cacheKey = `cat:${category}`;
+    const cached = this.getCached<SiteConfig[]>(cacheKey);
+    if (cached) return cached;
+    const result = await this.configRepository.find({
       where: { category },
       order: { id: 'ASC' },
     });
+    this.setCache(cacheKey, result);
+    return result;
   }
 
   async findAllGrouped(): Promise<Record<string, SiteConfig[]>> {
+    const cached = this.getCached<Record<string, SiteConfig[]>>('grouped');
+    if (cached) return cached;
     const all = await this.findAll();
     const grouped: Record<string, SiteConfig[]> = {};
     for (const item of all) {
@@ -100,6 +135,7 @@ export class SiteConfigService {
       if (!grouped[cat]) grouped[cat] = [];
       grouped[cat].push(item);
     }
+    this.setCache('grouped', grouped);
     return grouped;
   }
 
@@ -132,6 +168,7 @@ export class SiteConfigService {
     if (dto.category !== undefined) updates.category = dto.category;
     Object.assign(config, updates);
     const saved = await this.configRepository.save(config);
+    this.invalidateCache();
     await this.auditService.log({
       action: 'UPDATE',
       entity: 'config',
@@ -151,6 +188,7 @@ export class SiteConfigService {
   async delete(key: string, operator?: string): Promise<void> {
     const config = await this.findByKey(key);
     await this.configRepository.remove(config);
+    this.invalidateCache();
     const truncate = (v: string) =>
       v && v.length > 100 ? v.slice(0, 100) + '…' : v;
     await this.auditService.log({

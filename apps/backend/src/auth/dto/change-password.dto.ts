@@ -4,7 +4,7 @@ import { ApiProperty } from '@nestjs/swagger';
 export class ChangePasswordDto {
   @ApiProperty({ description: '旧密码', example: 'your-current-password' })
   @IsString()
-  oldPassword: string;
+  oldPassword!: string;
 
   @ApiProperty({
     description: '新密码（至少 8 位）',
@@ -13,5 +13,5 @@ export class ChangePasswordDto {
   })
   @IsString()
   @MinLength(8)
-  newPassword: string;
+  newPassword!: string;
 }

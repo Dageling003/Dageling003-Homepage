@@ -142,7 +142,7 @@ router.beforeEach(async (to, _from, next) => {
   await Promise.all([
     authStore.checkAuth(),
     _hasUsers === null ? hasUsersApi().then(r => {
-      _hasUsers = !!(r.data as any)?.data?.hasUsers
+      _hasUsers = !!(r.data)?.data?.hasUsers
     }).catch(() => { _hasUsers = true }) : Promise.resolve(),
   ])
 
@@ -180,7 +180,7 @@ router.beforeEach(async (to, _from, next) => {
     if (_initialized === null) {
       try {
         const res = await checkInitializedApi()
-        _initialized = (res.data as any)?.data?.initialized
+        _initialized = (res.data)?.data?.initialized
       } catch {
         _initialized = true
       }

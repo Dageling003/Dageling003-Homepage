@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import { json, urlencoded } from 'express';
 import { join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
+import { cpus, loadavg } from 'node:os';
 import { AppModule } from './app.module';
 import { AuthService } from './auth/auth.service';
 
@@ -158,7 +159,8 @@ async function bootstrap() {
   );
 
   // Swagger — disabled in production
-  if (process.env.NODE_ENV !== 'production') {
+  const isNotProd = process.env.NODE_ENV !== 'production';
+  if (isNotProd) {
     const config = new DocumentBuilder()
       .setTitle('homepage API')
       .setDescription('homepage 前后端管理系统 API 文档')
@@ -168,25 +170,51 @@ async function bootstrap() {
 
     const document = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('api/docs', app, document);
-
-    // Root redirect to Swagger docs (development only)
-    const httpAdapter = app.getHttpAdapter();
-    httpAdapter.get(
-      '/',
-      (_req: unknown, res: { redirect: (url: string) => void }) => {
-        res.redirect('/api/docs');
-      },
-    );
   }
 
-  // Health check endpoint (always available)
-  const httpAdapter = app.getHttpAdapter();
-  httpAdapter.get(
-    '/health',
-    (_req: unknown, res: { json: (body: unknown) => void }) => {
-      res.json({ status: 'ok', timestamp: new Date().toISOString() });
-    },
-  );
+  // Raw Express access for health endpoints (bypasses NestJS routing/GlobalPrefix)
+  const expressApp = (
+    app.getHttpAdapter() as unknown as {
+      getInstance: () => import('express').Express;
+    }
+  ).getInstance();
+
+  if (isNotProd) {
+    expressApp.get('/', (_req, res) => {
+      res.redirect('/api/docs');
+    });
+  }
+
+  expressApp.get('/health', (_req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+
+  expressApp.get('/health/detailed', (_req, res) => {
+    const mem = process.memoryUsage();
+    const uptime = process.uptime();
+    const cpuInfo = cpus();
+    const loads = loadavg();
+    res.json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: Math.round(uptime),
+      uptime_human: `${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m ${Math.floor(uptime % 60)}s`,
+      memory: {
+        rss_mb: Math.round((mem.rss / 1024 / 1024) * 100) / 100,
+        heap_used_mb: Math.round((mem.heapUsed / 1024 / 1024) * 100) / 100,
+        heap_total_mb: Math.round((mem.heapTotal / 1024 / 1024) * 100) / 100,
+        external_mb: Math.round((mem.external / 1024 / 1024) * 100) / 100,
+      },
+      system: {
+        cpu_count: cpuInfo.length,
+        load_avg_1m: Math.round(loads[0] * 100) / 100,
+        load_avg_5m: Math.round(loads[1] * 100) / 100,
+        load_avg_15m: Math.round(loads[2] * 100) / 100,
+        node_version: process.version,
+        platform: process.platform,
+      },
+    });
+  });
 
   // SEC-003: in production, refuse to boot when the DB has no users AND
   // SETUP_TOKEN is missing. Without this gate any anonymous request to

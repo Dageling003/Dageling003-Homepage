@@ -16,7 +16,7 @@ import App from './App.vue'
 // <Icon icon="logos:vue" /> 就无需再 fetch https://api.iconify.design。
 // 图标子集由 scripts/build-icons.mjs 从 @iconify-json/logos 预生成。
 import techIcons from './icons/tech-icons.json'
-addCollection(techIcons as Parameters<typeof addCollection>[0])
+addCollection(techIcons)
 
 const app = createApp(App)
 
