@@ -43,6 +43,9 @@ RUN mkdir -p /prod && \
     pnpm config set ignore-scripts false && \
     pnpm install --prod --no-frozen-lockfile
 
+# Create empty dirs for runtime (distroless has no shell, so we copy them)
+RUN mkdir -p /app/public/uploads/avatar /app/data
+
 # ====== Stage 3: Runtime (distroless or slim, production-only) ======
 FROM ${RUNTIME_IMAGE} AS runtime
 WORKDIR /app
@@ -51,8 +54,8 @@ COPY --from=builder /prod/node_modules ./node_modules
 COPY --from=builder /app/apps/backend/dist ./dist
 COPY --from=builder /app/apps/frontend/dist /static/frontend
 COPY --from=builder /app/apps/admin/dist /static/admin
-
-RUN mkdir -p /app/public/uploads/avatar /app/data
+COPY --from=builder /app/public /app/public
+COPY --from=builder /app/data /app/data
 
 ENV NODE_ENV=production
 
