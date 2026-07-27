@@ -107,35 +107,58 @@ ssh -i /path/to/your-key.pem root@123.45.67.89
 
 ---
 
-## 3. Install Docker (recommended: use the project script)
+## 3. One-command deploy (recommended)
+
+> **Recommended**: use the project's one-liner script. It auto-detects Docker, installs it if missing, then fully automates deployment.
+
+### Option A: one command (**strongly recommended**)
+
+Replace `your-domain-or-ip` with your actual value, e.g. `example.com` or `1.2.3.4`.
+
+```bash
+# Overseas server (fully automated, recommended)
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CI=true DOMAIN=your-domain-or-ip bash
+
+# China server (fully automated, auto Docker install + mirror + gcr.io compatibility)
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CI=true CN=true DOMAIN=your-domain-or-ip bash
+```
+
+This command auto-completes:
+1. ✅ Check & install git (if missing)
+2. ✅ Check & install Docker + Docker Compose (if missing)
+3. ✅ China mode: configure registry mirror (`docker.1ms.run`)
+4. ✅ Clone project
+5. ✅ Build images + start containers
+6. ✅ Smoke test + print access URLs
+
+After completion, skip directly to §8 "First access".
+
+### Option B: already cloned the project
+
+```bash
+cd Dageling003-Homepage
+
+# Overseas
+CI=true DOMAIN=your-domain-or-ip bash scripts/deploy.sh
+
+# China
+CI=true CN=true DOMAIN=your-domain-or-ip bash scripts/deploy.sh
+```
+
+### Option C: manual step-by-step (advanced users)
 
 Supported distros: Debian 11+ / Ubuntu 20.04+ / RHEL 8+ / CentOS Stream 8+ / Rocky 8+ / AlmaLinux 8+ / Fedora 38+.
 
-### Option A: one command with the project script (**recommended**)
-
-If §5 (project clone) isn't done yet, do it first:
+If you already `git clone`d the project:
 
 ```bash
-# Install git (skip if already present)
-# [Debian / Ubuntu]  apt update && apt install -y git
-# [RHEL family]      dnf install -y git
+# Install Docker (skip if already present)
+bash scripts/install-docker.sh              # overseas
+bash scripts/install-docker.sh --cn         # China (Aliyun source + auto registry mirror)
 
-cd /opt
-git clone https://github.com/Dageling003/Dageling003-Homepage.git
-cd Dageling003-Homepage
-```
-
-Then run the installer:
-
-```bash
-# Overseas nodes
-bash scripts/install-docker.sh
-
-# Mainland China nodes (Aliyun source + auto registry mirror)
-bash scripts/install-docker.sh --cn
-
-# Also add a non-root user to the docker group (skip sudo for docker)
-bash scripts/install-docker.sh --cn --user ubuntu
+# Deploy
+bash scripts/deploy.sh                      # overseas
+bash scripts/deploy.sh --cn                 # China
 ```
 
 The script handles 6 things automatically:

@@ -103,7 +103,7 @@ curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/ma
 CI=true DOMAIN=你的域名或IP bash scripts/deploy.sh
 
 # 国内全自动
-CI=true CN=true DOMAIN=你的域名或IP bash scripts/deploy.sh --cn
+CI=true CN=true DOMAIN=你的域名或IP bash scripts/deploy.sh
 ```
 
 向导会引导你完成：
@@ -172,13 +172,13 @@ DOMAIN=your-domain.com bash scripts/deploy.sh
 
 其余配置仍以交互方式询问。
 
-### 国内模式 (--cn) 自动处理事项
+### 国内模式 (CN=true) 自动处理事项
 
-使用 `--cn` 参数时，脚本会自动：
+使用 `CN=true` 环境变量或 `--cn` 参数时，脚本会自动：
 
 1. **镜像加速**：设置 `BUILDER_IMAGE` 和 `RUNTIME_IMAGE` 走 `docker.1ms.run` 加速器
 2. **gcr.io 兼容**：用 `node:22-slim` 替代 `gcr.io/distroless/nodejs22-debian12`（国内拉不到 gcr.io）
-3. **Healthcheck 兼容**：自动设置 `HEALTHCHECK_NODE_PATH=/usr/local/bin/node`，将 healthcheck 的 node 路径从 `/nodejs/bin/node`（distroless）改为 `/usr/local/bin/node`（slim），该路径在构建镜像时 bake 进 image
+3. **Healthcheck 兼容**：自动设置 `HEALTHCHECK_NODE_PATH=/usr/local/bin/node`，适配 slim 镜像的 node 路径
 
 ---
 

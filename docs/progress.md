@@ -217,7 +217,7 @@
 
 - [x] Docker 架构重构：Caddy 直接提供静态文件（不再经 `serve` → Node 进程）
 - [x] 新增 `Dockerfile.caddy`：Caddy + 静态文件合并镜像
-- [x] `Dockerfile.app` 重写：后端专用，`pnpm deploy --prod` 仅生产依赖
+- [x] `Dockerfile.app` 重写：后端专用，`pnpm install --prod` 仅生产依赖
 - [x] 容器 HEALTHCHECK：app（HTTP 端点）+ mariadb（mariadb-admin ping）
 - [x] `depends_on` 升级为 `service_healthy`（替代 `service_started`）
 - [x] DB 密码强制设置（移除 `rootpassword`/`homepage_pass` 弱默认值）

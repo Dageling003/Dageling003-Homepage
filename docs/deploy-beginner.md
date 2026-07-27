@@ -145,7 +145,7 @@ cd Dageling003-Homepage
 CI=true DOMAIN=你的域名或IP bash scripts/deploy.sh
 
 # 国内全自动
-CI=true CN=true DOMAIN=你的域名或IP bash scripts/deploy.sh --cn
+CI=true CN=true DOMAIN=你的域名或IP bash scripts/deploy.sh
 ```
 
 ### 方式 C：手动分步（高级用户）

@@ -58,27 +58,41 @@ This document covers every supported way to deploy Homepage: quick setup, Docker
 
 ## Quick deploy (recommended)
 
-Two steps.
+### One-liner (bare / fresh server)
 
-### Run the deploy wizard
+The script auto-completes all steps: check deps → install Docker → clone → build → start → smoke test.
 
+**Overseas server (fully automated, recommended):**
 ```bash
-# Clone
-git clone https://github.com/Dageling003/Dageling003-Homepage.git
-cd Dageling003-Homepage
-
-# Run the deploy wizard
-bash scripts/deploy.sh
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CI=true DOMAIN=your-domain-or-ip bash
 ```
 
-The wizard walks you through:
+**China server (fully automated, handles Docker install + mirror acceleration + gcr.io compatibility):**
+```bash
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CI=true CN=true DOMAIN=your-domain-or-ip bash
+```
 
-1. **Domain or IP** — enter your server IP (e.g. `192.168.1.100`) or a domain.
-2. **HTTPS cert email** — needed for a real domain; leave blank for an IP.
-3. **Email notifications (SMTP)** — optional; leave blank and reset links will land in `docker logs`.
-4. **Admin account** — auto-generate / customize / leave blank and create in the web UI.
+> Replace `your-domain-or-ip` with your actual value, e.g. `example.com` or `1.2.3.4`.
 
-`.env.docker` is generated automatically, followed by image build, service start, and smoke test.
+Interactive wizard (manually configure SMTP / admin password etc.):
+
+```bash
+# Overseas (interactive wizard)
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | bash
+
+# China (interactive wizard)
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CN=true bash
+```
+
+### Already cloned
+
+```bash
+# Overseas
+CI=true DOMAIN=your-domain-or-ip bash scripts/deploy.sh
+
+# China
+CI=true CN=true DOMAIN=your-domain-or-ip bash scripts/deploy.sh
+```
 
 ### Access
 
@@ -92,7 +106,7 @@ The wizard walks you through:
 
 ## Docker one-command deploy
 
-The project ships `scripts/deploy.sh`. It supports three modes.
+The project ships `scripts/deploy.sh`. Supports multiple modes.
 
 ### Wizard mode
 
@@ -102,23 +116,25 @@ Interactive, asks about the important settings one by one:
 bash scripts/deploy.sh
 ```
 
-The script walks you through:
-
-1. **Environment check** — Docker and Docker Compose available?
-2. **Domain** — enter a domain or IP.
-3. **HTTPS cert email** — needed for a real domain; leave blank for an IP.
-4. **Email notifications (SMTP)** — optional; built-in shortcuts for QQ / 163 / Gmail and friends.
-5. **Admin account** — auto-generate / customize / leave blank and create in the web UI.
-
 ### CI fully-automated mode
 
 Zero interaction, suited for CI/CD:
 
 ```bash
-CI=true bash scripts/deploy.sh
+# Overseas
+CI=true DOMAIN=your-domain-or-ip bash scripts/deploy.sh
+
+# China
+CI=true CN=true DOMAIN=your-domain-or-ip bash scripts/deploy.sh
 ```
 
-All values come from defaults or environment variables.
+### China mode (`CN=true`)
+
+When `CN=true` is set, the script automatically:
+
+1. **Mirror acceleration**: configures `docker.1ms.run` registry mirror
+2. **gcr.io compatibility**: uses `node:22-slim` instead of `gcr.io/distroless/nodejs22-debian12`
+3. **Healthcheck compatibility**: sets node path to `/usr/local/bin/node` for slim images
 
 ### Skipping the domain prompt
 

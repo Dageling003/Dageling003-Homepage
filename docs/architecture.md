@@ -74,7 +74,7 @@ homepage 是一个全栈前后端分离的首页管理系统，包含三个子�
 │  │                                                       │
 │  └─ homepage-app (后端 API + SQLite 单文件)              │
 │     ├─ distroless nodejs22 runtime                       │
-│     ├─ 仅生产依赖 (pnpm deploy --prod)                   │
+│     ├─ 仅生产依赖 (pnpm install --prod)                   │
 │     ├─ HEALTHCHECK: /health                              │
 │     ├─ 数据卷 app_data → /app/data (SQLite 持久化)       │
 │     └─ 上传卷 app_uploads → /app/public/uploads          │

@@ -144,27 +144,38 @@ Public site (`apps/frontend/.env`): `VITE_PWA_ENABLED` / `VITE_AMBIENT_ENABLED` 
 
 ### One-liner (production / fresh server)
 
+The script will: **check Docker/git** → **clone the repo** → **build images** → **spin up containers** → **smoke test** → **print URLs**.
+
+**Overseas server (fully automated, recommended):**
 ```bash
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CI=true DOMAIN=your-domain-or-ip bash
+```
+
+**China server (fully automated, handles Docker install + mirror acceleration + gcr.io compatibility):**
+```bash
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CI=true CN=true DOMAIN=your-domain-or-ip bash
+```
+
+> Replace `your-domain-or-ip` with your actual value, e.g. `example.com` or `1.2.3.4`.
+
+Interactive wizard (manually configure SMTP / admin password etc.):
+
+```bash
+# Overseas (interactive wizard)
 curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | bash
+
+# China (interactive wizard)
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CN=true bash
 ```
 
-The script will: **check Docker/git** → **clone the repo** → **run the wizard** (domain / SMTP / admin password) → **build images** → **spin up containers** → **smoke test** → **print URLs**.
-
-Skip all prompts (CI / fully automated):
+Already `git clone`d:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh \
-  | CI=true DOMAIN=your-domain.com bash
-```
+# Overseas
+CI=true DOMAIN=your-domain-or-ip bash scripts/deploy.sh
 
-If you already `git clone`d:
-
-```bash
-make up          # = bash scripts/deploy.sh
-make logs        # tail logs
-make down        # stop
-make backup      # back up database
-make update      # pull latest + rebuild (keeps data)
+# China
+CI=true CN=true DOMAIN=your-domain-or-ip bash scripts/deploy.sh
 ```
 
 ### Prerequisites
@@ -206,19 +217,20 @@ Use `pnpm dev:backend` / `pnpm dev:frontend` / `pnpm dev:admin` for isolated log
 ### Three entry points — pick any
 
 ```bash
-# 1. Remote one-liner (recommended, works on a bare server)
-curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | bash
+# 1. Remote one-liner — overseas (recommended, works on a bare server)
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CI=true DOMAIN=your-domain-or-ip bash
+
+# 1. Remote one-liner — China (handles Docker install + mirror acceleration + gcr.io compatibility)
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CI=true CN=true DOMAIN=your-domain-or-ip bash
 
 # 2. Already cloned
-make up
+CI=true DOMAIN=your-domain-or-ip bash scripts/deploy.sh          # overseas
+CI=true CN=true DOMAIN=your-domain-or-ip bash scripts/deploy.sh  # China
 
 # 3. Classic script
-bash scripts/deploy.sh
-DOMAIN=your-domain.com bash scripts/deploy.sh   # skip domain prompt
-CI=true bash scripts/deploy.sh                  # non-interactive (CI/CD)
+bash scripts/deploy.sh                                            # interactive wizard
+CI=true DOMAIN=xxx bash scripts/deploy.sh                         # non-interactive (CI/CD)
 ```
-
-All three converge on the same deploy wizard: **domain / IP → ACME email → SMTP (optional) → admin password**, writes `.env.docker`, then automatically runs `up -d --build`.
 
 ### Manual deploy (skip the wizard, fill .env yourself)
 

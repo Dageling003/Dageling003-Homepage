@@ -74,7 +74,7 @@ Homepage is a full-stack, front-end / back-end-separated homepage management sys
 │  │                                                       │
 │  └─ homepage-app (backend API + SQLite file)             │
 │     ├─ distroless nodejs22 runtime                       │
-│     ├─ production-only deps (pnpm deploy --prod)         │
+│     ├─ production-only deps (pnpm install --prod)         │
 │     ├─ HEALTHCHECK: /health                              │
 │     ├─ volume app_data → /app/data (SQLite persistence)  │
 │     └─ volume app_uploads → /app/public/uploads          │

@@ -16,9 +16,9 @@
 # 国内服务器（交互向导）：
 #   curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CN=true bash
 #
-# 参数（bash -s -- 方式）：
+# 参数（可选，供高级场景使用）：
 #   --cn              国内模式（同 CN=true 环境变量）
-#   --domain DOMAIN   指定域名/IP
+#   --domain DOMAIN   指定域名/IP（同 DOMAIN= 环境变量）
 #   --branch BRANCH   git 分支，默认 main
 #   --dir PATH        安装目录，默认 ./Dageling003-Homepage
 #

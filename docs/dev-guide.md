@@ -341,7 +341,7 @@ docker compose --env-file .env.docker up -d
 | 文件 | 用途 |
 |------|------|
 | `docker-compose.yml` | 编排默认 2 个服务（app + caddy）；`--profile mariadb` 时追加 mariadb 服务。含 HEALTHCHECK、资源限制、日志轮转 |
-| `Dockerfile.app` | 后端 API 镜像（多阶段构建 + pnpm deploy --prod） |
+| `Dockerfile.app` | 后端 API 镜像（多阶段构建 + pnpm install --prod） |
 | `Dockerfile.caddy` | Caddy 镜像（从 app 镜像提取静态文件） |
 | `Caddyfile.docker` | Caddy 配置（反向代理 /api，直接 serve 静态文件） |
 | `.dockerignore` | Docker 构建忽略清单 |

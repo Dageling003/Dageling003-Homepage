@@ -340,7 +340,7 @@ docker compose --env-file .env.docker up -d
 | File | Purpose |
 |------|------|
 | `docker-compose.yml` | Orchestrates 2 services by default (app + caddy); `--profile mariadb` adds the mariadb container. Includes HEALTHCHECK, resource limits, log rotation |
-| `Dockerfile.app` | Backend API image (multi-stage + `pnpm deploy --prod`) |
+| `Dockerfile.app` | Backend API image (multi-stage + `pnpm install --prod`) |
 | `Dockerfile.caddy` | Caddy image (extracts static files from the app image) |
 | `Caddyfile.docker` | Caddy config (reverse-proxies `/api`, serves static files directly) |
 | `.dockerignore` | Docker build ignore list |

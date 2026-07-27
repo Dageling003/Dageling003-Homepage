@@ -93,7 +93,7 @@
 ### 供应链与构建
 - **pnpm lockfile 锁定 + `pnpm audit`** 在 CI 中运行
 - **distroless 运行时镜像**：无 shell、无包管理器，攻击面最小化
-- **依赖分层**：`pnpm deploy --prod` 仅生产依赖进入运行镜像
+- **依赖分层**：`pnpm install --prod` 仅生产依赖进入运行镜像
 - **GitHub Actions CI**：lint + build + 单元测试 + `pnpm audit`
 
 ### 密钥与 `.env`

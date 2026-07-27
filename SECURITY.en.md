@@ -92,7 +92,7 @@ Here is the current security baseline across **code / deployment / runtime**, so
 ### Supply chain & builds
 - **pnpm lockfile pinning + `pnpm audit`** in CI
 - **Distroless runtime image**: no shell, no package manager, minimized attack surface
-- **Layered dependencies**: `pnpm deploy --prod` bakes production-only deps into the runtime image
+- **Layered dependencies**: `pnpm install --prod` bakes production-only deps into the runtime image
 - **GitHub Actions CI**: lint + build + unit tests + `pnpm audit`
 
 ### Secrets & `.env`

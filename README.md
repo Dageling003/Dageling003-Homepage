@@ -229,7 +229,7 @@ curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/ma
 
 # ② 已 clone 的老手
 make up                                          # 海外
-CI=true CN=true bash scripts/deploy.sh --cn     # 国内
+CI=true CN=true bash scripts/deploy.sh          # 国内
 
 # ③ 传统脚本
 bash scripts/deploy.sh                          # 交互向导

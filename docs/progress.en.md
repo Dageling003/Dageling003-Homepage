@@ -219,7 +219,7 @@
 
 - [x] Docker architecture rewritten: Caddy serves static files directly (no more `serve` → Node process)
 - [x] Added `Dockerfile.caddy` — Caddy + static files, single image
-- [x] Rewrote `Dockerfile.app` for backend-only, `pnpm deploy --prod` for production deps
+- [x] Rewrote `Dockerfile.app` for backend-only, `pnpm install --prod` for production deps
 - [x] HEALTHCHECK for every container: app (HTTP), mariadb (`mariadb-admin ping`)
 - [x] `depends_on` upgraded to `service_healthy` (was `service_started`)
 - [x] DB passwords are now required (weak defaults like `rootpassword` / `homepage_pass` removed)
