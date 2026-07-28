@@ -30,8 +30,7 @@ COPY apps/ apps/
 
 RUN pnpm --filter homepage-backend build && \
     pnpm --filter homepage-frontend build && \
-    pnpm --filter homepage-admin build && \
-    ls -la /app/apps/backend/dist/main.js
+    pnpm --filter homepage-admin build
 
 # Prepare production node_modules in a separate directory
 # (outside workspace context, so overrides from package.json apply directly)
