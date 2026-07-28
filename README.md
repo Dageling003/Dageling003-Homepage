@@ -115,20 +115,11 @@
 
 ## 🏗 架构
 
-```
-                Caddy (80/443, 自动 HTTPS)
-                  │
-                  ├── /              → 前台静态文件
-                  ├── /admin/*       → 后台静态文件
-                  ├── /api/*         → 反代 app:8000
-                  └── /health        → 健康检查
-                  │
-                  ▼ [frontend network]
-                NestJS API (:8000)
-                  │
-                  ▼ SQLite 单文件（默认，挂载到 app_data 卷）
-                   或 MariaDB（高级：`docker compose --profile mariadb up`）
-```
+<p align="center">
+  <img src="image/architecture.png" alt="Dageling003-Homepage 技术架构图（手绘风格）" width="900" />
+</p>
+
+> 图源：[`image/architecture.excalidraw`](./image/architecture.excalidraw) —— 可拖入 <https://excalidraw.com> 直接编辑。渲染脚本使用 [roughjs](https://github.com/rough-stuff/rough) 生成手绘风格 SVG，再由 [sharp](https://github.com/lovell/sharp) 光栅化为 PNG。
 
 | 子项目 | 技术栈 | 开发端口 | 对外路径 |
 |--------|--------|----------|----------|
@@ -136,7 +127,7 @@
 | `apps/admin` | Vue 3.5 + Ant Design Vue 4 + ECharts | `3001` | `/admin/*` |
 | `apps/backend` | NestJS 11 + TypeORM + SQLite/MariaDB + JWT | `8000` | `/api/*` |
 
-> 前后台的 HTML/JS/CSS 由 Caddy 直接 serve，不经过 Node 进程，仅 API 打到后端。
+> 前后台的 HTML/JS/CSS 由 Caddy 直接 serve，不经过 Node 进程，仅 API 打到后端。图中虚线为可选/条件路径：`DB_TYPE=mariadb` 时才走 MariaDB，`PASSWORD_RESET_ENABLED=true` 时才走 SMTP，Caddy → ACME CA 为证书自动续签。
 
 ---
 
