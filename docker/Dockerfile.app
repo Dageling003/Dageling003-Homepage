@@ -32,16 +32,10 @@ RUN pnpm --filter homepage-backend build && \
     pnpm --filter homepage-frontend build && \
     pnpm --filter homepage-admin build
 
-# Prepare production node_modules in a separate directory
-# (outside workspace context, so overrides from package.json apply directly)
-RUN mkdir -p /prod && \
-    cp apps/backend/package.json /prod/ && \
-    cp pnpm-lock.yaml /prod/ && \
-    cp pnpm-workspace.yaml /prod/ && \
-    cp package.json /prod/ && \
-    cd /prod && \
-    pnpm config set ignore-scripts false && \
-    pnpm install --prod --no-frozen-lockfile
+# Produce a self-contained production bundle for the backend using `pnpm deploy`.
+# This correctly resolves workspace root overrides and copies runtime deps
+# (including @nestjs/core) into /prod/node_modules alongside the built dist/.
+RUN pnpm --filter homepage-backend --prod --legacy deploy /prod
 
 # Create empty dirs for runtime (distroless has no shell, so we copy them)
 RUN mkdir -p /app/public/uploads/avatar /app/data
@@ -51,7 +45,7 @@ FROM ${RUNTIME_IMAGE} AS runtime
 WORKDIR /app
 
 COPY --from=builder /prod/node_modules ./node_modules
-COPY --from=builder /app/apps/backend/dist ./dist
+COPY --from=builder /prod/dist ./dist
 COPY --from=builder /app/apps/frontend/dist /static/frontend
 COPY --from=builder /app/apps/admin/dist /static/admin
 COPY --from=builder /app/public /app/public
