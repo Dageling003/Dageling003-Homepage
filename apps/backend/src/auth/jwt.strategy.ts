@@ -31,6 +31,7 @@ interface JwtPayload {
 const AUTH_COOKIE_NAME = 'hp_token';
 const fromCookie: JwtFromRequestFunction = (req: Request) => {
   const raw = req.headers?.cookie;
+  console.log('[DEBUG] Cookie header:', raw ? `${raw.length} chars` : 'MISSING');
   if (typeof raw !== 'string' || raw.length === 0) return null;
   for (const pair of raw.split(';')) {
     const eq = pair.indexOf('=');
@@ -40,11 +41,15 @@ const fromCookie: JwtFromRequestFunction = (req: Request) => {
     const value = pair.slice(eq + 1).trim();
     if (!value) return null;
     try {
-      return decodeURIComponent(value);
+      const decoded = decodeURIComponent(value);
+      console.log('[DEBUG] Cookie hp_token extracted, length:', decoded.length);
+      return decoded;
     } catch {
+      console.log('[DEBUG] Cookie decode failed, returning raw value, length:', value.length);
       return value;
     }
   }
+  console.log('[DEBUG] hp_token not found in cookie header');
   return null;
 };
 
