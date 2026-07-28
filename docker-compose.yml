@@ -58,6 +58,7 @@ services:
       SETUP_TOKEN: ${SETUP_TOKEN:-}
       CORS_ORIGIN: ${DOMAIN:-localhost}
       PORT: 8000
+      NODE_OPTIONS: --max-old-space-size=256
       # === Feature toggles (默认全关，个人主页体验优先) ===
       AUDIT_ENABLED: ${AUDIT_ENABLED:-false}
       PASSWORD_RESET_ENABLED: ${PASSWORD_RESET_ENABLED:-false}
@@ -86,6 +87,10 @@ services:
       timeout: 10s
       start_period: 60s
       retries: 5
+    # Memory limit: `mem_limit` works with `docker compose up` (unlike deploy.resources which is Swarm-only).
+    # Combined with NODE_OPTIONS=--max-old-space-size=256 to prevent OOM kills on small VPS.
+    mem_limit: 512m
+    memswap_limit: 512m
     deploy:
       resources:
         limits:

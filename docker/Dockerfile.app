@@ -51,7 +51,8 @@ COPY --from=builder /app/apps/admin/dist /static/admin
 COPY --from=builder /app/public /app/public
 COPY --from=builder /app/data /app/data
 
-ENV NODE_ENV=production
+ENV NODE_ENV=production \
+    NODE_OPTIONS=--max-old-space-size=256
 
 EXPOSE 8000
 

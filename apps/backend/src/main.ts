@@ -262,4 +262,13 @@ async function bootstrap() {
     Logger.log(`API docs at http://localhost:${port}/api/docs`, 'Bootstrap');
   }
 }
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[FATAL] Unhandled Rejection:', reason);
+});
+process.on('uncaughtException', (error) => {
+  console.error('[FATAL] Uncaught Exception:', error);
+  process.exit(1);
+});
+
 void bootstrap();
