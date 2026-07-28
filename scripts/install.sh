@@ -24,6 +24,7 @@
 #
 # 环境变量：
 #   DOMAIN       域名或 IP
+#   ACME_EMAIL   HTTPS 证书邮箱（可选，用于证书到期通知）
 #   CI           = true 时全自动无交互
 #   CN           = true 时使用国内模式（slim 镜像 + 镜像加速）
 #   INSTALL_DIR  安装目录
@@ -213,6 +214,11 @@ if [ -n "${DOMAIN:-}" ]; then
     export DOMAIN
 elif [ -n "$DOMAIN_ARG" ]; then
     export DOMAIN="$DOMAIN_ARG"
+fi
+
+# 透传 ACME_EMAIL（HTTPS 证书邮箱，用于 Let's Encrypt / ZeroSSL 到期通知）
+if [ -n "${ACME_EMAIL:-}" ]; then
+    export ACME_EMAIL
 fi
 
 # 透传 CI

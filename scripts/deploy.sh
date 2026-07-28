@@ -167,6 +167,24 @@ PUBLIC_ADMIN_URL=${public_url}
 EOF
 }
 
+# 从 /dev/tty 读取（curl | bash 时 stdin 是管道，read 会立刻 EOF）
+# 用法：ask "提示语" var_name
+ask() {
+    local prompt="$1"
+    local __var="$2"
+    if [ -e /dev/tty ] && [ -r /dev/tty ]; then
+        read -rp "$prompt" "$__var" </dev/tty
+    else
+        # 没有 tty（真正的非交互 CI），直接留空
+        eval "$__var=\"\""
+    fi
+}
+
+# 检测是否可交互（用于跳过整个向导段）
+can_prompt() {
+    [ -e /dev/tty ] && [ -r /dev/tty ]
+}
+
 # ====== 1. 环境检查 ======
 check_deps() {
     echo ""
@@ -246,15 +264,28 @@ wizard() {
         ACME_EMAIL=""
     else
         echo ""
-        local email_hint="${ACME_EMAIL:-}"
-        [ -z "$email_hint" ] && email_hint="留空自动生成"
-        echo -e "  ${BOLD}② HTTPS 证书邮箱${NC}  (当前: ${email_hint})"
-        read -rp "  → ACME_EMAIL: " ACME_EMAIL_INPUT
-        if [ -n "${ACME_EMAIL_INPUT:-}" ]; then
-            ACME_EMAIL="$ACME_EMAIL_INPUT"
-        elif [ "$is_new" = true ] && [ -z "${ACME_EMAIL:-}" ]; then
-            ACME_EMAIL=""
+        echo -e "  ${BOLD}② HTTPS 证书邮箱${NC}  ${YELLOW}(推荐填写)${NC}"
+        echo -e "     用途：ACME 证书账号 + 证书到期/吊销邮件通知（不发广告）"
+        echo -e "     • 填写   → 使用 Let's Encrypt / ZeroSSL 签发正式证书"
+        echo -e "     • 留空   → 走 Let's Encrypt 匿名账号（能签发，但收不到到期提醒）"
+        if [ -n "${ACME_EMAIL:-}" ]; then
+            echo -e "     当前值：${CYAN}${ACME_EMAIL}${NC}   ${GREEN}(回车保留)${NC}"
         fi
+        while true; do
+            read -rp "  → ACME_EMAIL (回车=$([ -n "${ACME_EMAIL:-}" ] && echo "保留当前" || echo "留空匿名")): " ACME_EMAIL_INPUT
+            if [ -z "${ACME_EMAIL_INPUT:-}" ]; then
+                # 保留原值或留空
+                break
+            fi
+            # 基本邮箱格式校验
+            if [[ "$ACME_EMAIL_INPUT" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
+                ACME_EMAIL="$ACME_EMAIL_INPUT"
+                ok "证书邮箱: ${ACME_EMAIL}"
+                break
+            else
+                warn "邮箱格式不对（应形如 you@example.com），请重新输入或直接回车跳过"
+            fi
+        done
     fi
 
     # ====== SMTP ======
@@ -329,7 +360,14 @@ wizard() {
     fi
 
     # ====== 自动生成项 ======
-    ACME_CA="https://acme.zerossl.com/v2/DV90"
+    # ACME_CA 根据 ACME_EMAIL 智能选择：
+    #   - 有 email  → ZeroSSL（国内节点更快）
+    #   - 无 email  → Let's Encrypt（ZeroSSL 强制要求 email，会 fail）
+    if [ -n "${ACME_EMAIL:-}" ]; then
+        ACME_CA="${ACME_CA:-https://acme.zerossl.com/v2/DV90}"
+    else
+        ACME_CA="${ACME_CA:-https://acme-v02.api.letsencrypt.org/directory}"
+    fi
     JWT_SECRET="${JWT_SECRET:-$(rand 32)}"
     SETUP_TOKEN="${SETUP_TOKEN:-$(openssl rand -hex 24 2>/dev/null || rand 24)}"
     DB_ROOT_PASSWORD="${DB_ROOT_PASSWORD:-$(rand 20)}"
@@ -520,14 +558,30 @@ print_summary() {
 
 # ====== 5. 部署后配置向导 ======
 post_deploy_wizard() {
-    # 如果 SMTP 未配置 或 管理员密码是自动生成的，引导用户补充
+    # curl | bash 时 stdin 是管道，没有 tty 时静默跳过（避免死锁）
+    if ! can_prompt; then
+        return 0
+    fi
+
+    # 判断当前状态
     local has_smtp=false
     local has_custom_password=false
+    local has_acme_email=false
+    local needs_acme_email=false
     [ -n "${SMTP_HOST:-}" ] && [ -n "${SMTP_USER:-}" ] && has_smtp=true
     [ -n "${USER_SET_PASSWORD:-}" ] && has_custom_password=true
+    [ -n "${ACME_EMAIL:-}" ] && has_acme_email=true
 
-    if "$has_smtp" && "$has_custom_password"; then
-        return 0  # 全部已配置，跳过
+    # 只有域名部署（非 IP/localhost）才需要证书邮箱
+    if [[ ! "${DOMAIN:-}" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]] \
+       && [[ "${DOMAIN:-}" != "localhost" && "${DOMAIN:-}" != "127.0.0.1" ]] \
+       && [ "$has_acme_email" = false ]; then
+        needs_acme_email=true
+    fi
+
+    # 全部已配置 → 跳过（保留 ACME_EMAIL 判定：域名部署没配 email 时始终引导一次）
+    if "$has_smtp" && "$has_custom_password" && ! "$needs_acme_email"; then
+        return 0
     fi
 
     echo ""
@@ -540,18 +594,55 @@ post_deploy_wizard() {
         pwd_display="（留空，首次访问网页创建）"
     fi
     echo -e "  当前配置概览："
-    echo -e "    域名:   ${CYAN}${DOMAIN}${NC}"
-    echo -e "    管理员: ${CYAN}admin${NC} / ${CYAN}${pwd_display}${NC}"
+    echo -e "    域名:       ${CYAN}${DOMAIN}${NC}"
+    echo -e "    管理员:     ${CYAN}admin${NC} / ${CYAN}${pwd_display}${NC}"
+    if "$has_acme_email"; then
+        echo -e "    证书邮箱:   ${GREEN}${ACME_EMAIL}${NC}"
+    elif "$needs_acme_email"; then
+        echo -e "    证书邮箱:   ${YELLOW}未配置${NC}  (当前走 Let's Encrypt 匿名账号)"
+    fi
     if "$has_smtp"; then
-        echo -e "    SMTP:   ${GREEN}已配置${NC} (${SMTP_USER}@${SMTP_HOST})"
+        echo -e "    SMTP:       ${GREEN}已配置${NC} (${SMTP_USER}@${SMTP_HOST})"
     else
-        echo -e "    SMTP:   ${YELLOW}未配置${NC}"
+        echo -e "    SMTP:       ${YELLOW}未配置${NC}"
     fi
     echo ""
 
+    # ACME_EMAIL 配置引导（HTTPS 证书 - 强推荐）
+    if "$needs_acme_email"; then
+        echo -e "  ${BOLD}① HTTPS 证书邮箱${NC}  ${YELLOW}(强烈推荐)${NC}"
+        echo -e "     ${CYAN}背景${NC}：Caddy 会自动申请 Let's Encrypt / ZeroSSL 证书。"
+        echo -e "     ${CYAN}用途${NC}：证书到期前 20 天 CA 会用这个邮箱提醒你，避免站点突然掉证书。"
+        echo -e "     ${CYAN}隐私${NC}：仅用于 ACME 注册和到期通知，不会收到营销邮件。"
+        echo ""
+        while true; do
+            read -rp "  → 现在填一个邮箱吗？(直接回车=跳过): " acme_email_input </dev/tty
+            if [ -z "${acme_email_input:-}" ]; then
+                info "跳过。Let's Encrypt 匿名账号仍可正常签发，只是收不到到期提醒。"
+                break
+            fi
+            if [[ "$acme_email_input" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
+                ACME_EMAIL="$acme_email_input"
+                # 有 email → 切回 ZeroSSL 更靠国内节点，且能收到到期通知
+                ACME_CA="https://acme.zerossl.com/v2/DV90"
+                ok "证书邮箱: ${ACME_EMAIL}"
+                write_env_file ".env.docker"
+                load_env_file ".env.docker"
+                info "正在重启 caddy 以重新申请证书..."
+                $COMPOSE_CMD --env-file .env.docker up -d caddy
+                ok "caddy 已重启，约 30-60s 后证书可用"
+                break
+            else
+                warn "邮箱格式不对（应形如 you@example.com），请重试或直接回车跳过"
+            fi
+        done
+        echo ""
+    fi
+
     # SMTP 配置引导
     if ! "$has_smtp"; then
-        read -rp "  现在配置 SMTP 邮件？(用于找回密码)[y/N]: " smtp_choice
+        echo -e "  ${BOLD}② SMTP 邮件${NC}  ${CYAN}(用于「忘记密码」发送重置链接，非必需)${NC}"
+        read -rp "  → 现在配置 SMTP？[y/N]: " smtp_choice </dev/tty
         if [[ "${smtp_choice:-N}" =~ ^[Yy]$ ]]; then
             echo ""
             echo -e "  ${CYAN}SMTP 服务器${NC}"
@@ -559,23 +650,23 @@ post_deploy_wizard() {
             echo "  2) 163邮箱    smtp.163.com:465 (SSL)"
             echo "  3) Gmail      smtp.gmail.com:465 (SSL)"
             echo "  4) 自定义"
-            read -rp "  → 选择 [1/2/3/4]: " smtp_provider
+            read -rp "  → 选择 [1/2/3/4]: " smtp_provider </dev/tty
             case "${smtp_provider:-1}" in
                 1) SMTP_HOST="smtp.qq.com"; SMTP_PORT="465"; SMTP_SECURE="true" ;;
                 2) SMTP_HOST="smtp.163.com"; SMTP_PORT="465"; SMTP_SECURE="true" ;;
                 3) SMTP_HOST="smtp.gmail.com"; SMTP_PORT="465"; SMTP_SECURE="true" ;;
                 4)
-                    read -rp "  → SMTP_HOST: " SMTP_HOST
-                    read -rp "  → SMTP_PORT (默认 465): " SMTP_PORT
+                    read -rp "  → SMTP_HOST: " SMTP_HOST </dev/tty
+                    read -rp "  → SMTP_PORT (默认 465): " SMTP_PORT </dev/tty
                     SMTP_PORT="${SMTP_PORT:-465}"
-                    read -rp "  → SSL? [Y/n]: " smtp_ssl
+                    read -rp "  → SSL? [Y/n]: " smtp_ssl </dev/tty
                     SMTP_SECURE="$([[ "${smtp_ssl:-Y}" =~ ^[Nn]$ ]] && echo "false" || echo "true")"
                     ;;
             esac
-            read -rp "  → 邮箱地址: " SMTP_USER
+            read -rp "  → 邮箱地址: " SMTP_USER </dev/tty
             SMTP_FROM="${SMTP_USER}"
             echo -e "  ${YELLOW}⚠ QQ/163 需用授权码，非登录密码${NC}"
-            read -rp "  → SMTP 授权码/密码: " SMTP_PASS
+            read -rp "  → SMTP 授权码/密码: " SMTP_PASS </dev/tty
             ok "SMTP 已配置"
 
             # 更新 .env.docker 并重启
@@ -589,16 +680,16 @@ post_deploy_wizard() {
 
     # 管理员密码修改引导
     echo ""
-    read -rp "  现在修改管理员密码？[Y/n]: " pwd_choice
+    read -rp "  现在修改管理员密码？[Y/n]: " pwd_choice </dev/tty
     if [[ ! "${pwd_choice:-Y}" =~ ^[Nn]$ ]]; then
         echo "  1) 保留当前密码 (${DEFAULT_ADMIN_PASSWORD:-留空})"
         echo "  2) 设置新密码 (≥12位)"
         echo "  3) 重新生成随机密码"
-        read -rp "  → 选择 [1/2/3，默认 1]: " pwd_action
+        read -rp "  → 选择 [1/2/3，默认 1]: " pwd_action </dev/tty
         case "${pwd_action:-1}" in
             2)
                 while true; do
-                    read -rp "  → 新密码 (≥12位): " new_pwd
+                    read -rp "  → 新密码 (≥12位): " new_pwd </dev/tty
                     [ ${#new_pwd} -ge 12 ] && break
                     warn "至少 12 位"
                 done
@@ -651,7 +742,13 @@ main() {
         # CI 全自动模式：不交互，缺的用默认值
         DOMAIN="${DOMAIN:-localhost}"
         ACME_EMAIL="${ACME_EMAIL:-}"
-        ACME_CA="https://acme.zerossl.com/v2/DV90"
+        # 有 email 就用 ZeroSSL（对国内友好），没 email 就走 Let's Encrypt（允许匿名账号）。
+        # 避免出现 ACME_CA=ZeroSSL 但 ACME_EMAIL="" 导致证书永远签不下来的死锁。
+        if [ -n "${ACME_EMAIL:-}" ]; then
+            ACME_CA="${ACME_CA:-https://acme.zerossl.com/v2/DV90}"
+        else
+            ACME_CA="${ACME_CA:-https://acme-v02.api.letsencrypt.org/directory}"
+        fi
         JWT_SECRET="${JWT_SECRET:-$(rand 32)}"
         SETUP_TOKEN="${SETUP_TOKEN:-$(openssl rand -hex 24 2>/dev/null || rand 24)}"
         DEFAULT_ADMIN_PASSWORD="${DEFAULT_ADMIN_PASSWORD:-$(rand 24)}"
@@ -683,9 +780,9 @@ main() {
     build_images
     start_services
     run_smoke_test
-    if [ "$CI_MODE" = true ]; then
-        post_deploy_wizard
-    fi
+    # 部署后配置向导：CI 模式（尤其 curl|bash）里没走过 wizard，往往漏配 ACME_EMAIL/SMTP；
+    # 交互模式已在 wizard 中问过，post_deploy_wizard 内部会判断状态再决定是否再问。
+    post_deploy_wizard
     print_summary
 }
 
