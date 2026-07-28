@@ -113,15 +113,38 @@ ssh -i /path/to/your-key.pem root@123.45.67.89
 
 ### Option A: one command (**strongly recommended**)
 
-Replace `your-domain-or-ip` with your actual value, e.g. `example.com` or `1.2.3.4`.
+First, understand what the 3 env vars mean, then copy the appropriate one-liner:
+
+| Var | What to put | Do I need it? |
+|-----|-------------|---------------|
+| `DOMAIN` | Your domain (e.g. `blog.example.com`) **or** your server's public IP (e.g. `1.2.3.4`) | **Required**. For domains, point the DNS A record at this box first. |
+| `ACME_EMAIL` | A **real mailbox you can read** (e.g. `you@example.com`) | **Strongly recommended for domain deploys**. Used for HTTPS certificate expiry reminders. Skipping it still gets you a cert (Let's Encrypt anonymous), just no expiry heads-up. Omit entirely for IP deployments. |
+| `CI=true` | Fixed value | **Recommended**. Non-interactive full-auto; leave it off to run the wizard that asks you each parameter step-by-step. |
+| `CN=true` | Fixed value | **Required for China servers**. Uses `docker.1ms.run` for mirror acceleration, sidesteps `gcr.io`. |
+
+**Overseas server (fully automated, recommended):**
 
 ```bash
-# Overseas server (fully automated, recommended)
-curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CI=true DOMAIN=your-domain-or-ip bash
-
-# China server (fully automated, auto Docker install + mirror + gcr.io compatibility)
-curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CI=true CN=true DOMAIN=your-domain-or-ip bash
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh \
+  | CI=true DOMAIN=your-domain.com ACME_EMAIL=you@example.com bash
 ```
+
+**China server (fully automated, auto Docker install + mirror + gcr.io compatibility):**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh \
+  | CI=true CN=true DOMAIN=your-domain.com ACME_EMAIL=you@example.com bash
+```
+
+**No domain yet, only a server IP** (plain HTTP trial run):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh \
+  | CI=true DOMAIN=1.2.3.4 bash
+# Append CN=true for China servers
+```
+
+> **One-liner on `ACME_EMAIL`**: ZeroSSL enforces email since 2024; the script transparently falls back to Let's Encrypt's anonymous account if you skip it. Filling it in ① uses ZeroSSL's China-friendly nodes and ② lets the CA email you 20 days before expiry (Caddy already auto-renews — this is a safety net). Bad formats are rejected at boot time so you don't burn rate-limit slots blindly.
 
 This command auto-completes:
 1. ✅ Check & install git (if missing)
@@ -129,7 +152,8 @@ This command auto-completes:
 3. ✅ China mode: configure registry mirror (`docker.1ms.run`)
 4. ✅ Clone project
 5. ✅ Build images + start containers
-6. ✅ Smoke test + print access URLs
+6. ✅ Wait up to 120s for HTTPS cert (domain deploys)
+7. ✅ Smoke test + print access URLs
 
 After completion, skip directly to §8 "First access".
 
@@ -139,10 +163,10 @@ After completion, skip directly to §8 "First access".
 cd Dageling003-Homepage
 
 # Overseas
-CI=true DOMAIN=your-domain-or-ip bash scripts/deploy.sh
+CI=true DOMAIN=your-domain.com ACME_EMAIL=you@example.com bash scripts/deploy.sh
 
 # China
-CI=true CN=true DOMAIN=your-domain-or-ip bash scripts/deploy.sh
+CI=true CN=true DOMAIN=your-domain.com ACME_EMAIL=you@example.com bash scripts/deploy.sh
 ```
 
 ### Option C: manual step-by-step (advanced users)
@@ -314,14 +338,18 @@ bash scripts/deploy.sh
 The wizard walks you through:
 
 1. **Domain or IP** → e.g. `your-domain.com` or your server's public IP
-2. **HTTPS cert email** → needed for a real domain; leave blank for an IP
-3. **SMTP** → for password-reset emails; skippable (links land in `docker logs` instead)
+2. **HTTPS cert email** (asked only for domain deploys) → enter a real mailbox to receive certificate-expiry reminders; press Enter to skip = Let's Encrypt anonymous account (cert still issues, no reminders). Bad format triggers a retry so a typo doesn't force you to redo everything.
+3. **SMTP** → powers the site's own password-reset emails (different from the cert email). Skippable; when off, reset links go to `docker logs homepage-app`.
 4. **Admin password** → three choices:
    - `1)` auto-generate (written to `.env.docker` and printed — **save it**)
    - `2)` type your own (≥ 12 chars)
    - `3)` leave empty (create via the web UI later)
 
 Produces `.env.docker` automatically, then builds images, starts services, and runs a smoke test.
+
+> **The two emails, side by side**:
+> - `ACME_EMAIL` → **received by the CA (Let's Encrypt / ZeroSSL)**, for cert account binding and expiry reminders. Purely a "you receive" thing.
+> - `SMTP_*` → **your mail account credentials**, so the site can send outbound mail (password reset, notifications). Purely a "site sends" thing.
 
 ### Option B: hand-edit (full control)
 
@@ -490,12 +518,20 @@ Common patterns:
 
 - ✅ Does DNS resolve to this host? On the server: `curl -s ifconfig.me` for your public IP, then `dig +short your-domain.com` (or `nslookup your-domain.com`) — they must match.
 - ✅ Is port 80 open? Both the cloud security group and the OS firewall must allow it (ACME HTTP-01 challenge uses port 80).
-- ✅ Is `ACME_EMAIL` set? ZeroSSL requires an email account; empty sometimes fails.
-- ✅ Try switching CA. Edit `.env.docker`:
-  ```dotenv
-  ACME_CA=https://acme-v02.api.letsencrypt.org/directory
+- ✅ Seeing `your email address is required to use ZeroSSL's ACME endpoint` in the logs?
+  ZeroSSL **requires** an email since 2024. Two ways to fix:
+  - **Preferred**: put a real address in `ACME_EMAIL=` inside `.env.docker`, then `docker compose --env-file .env.docker restart caddy`.
+  - **No email, please**: v1.2.1+ auto-falls back to Let's Encrypt anonymous. Older versions need a manual switch:
+    ```dotenv
+    ACME_CA=https://acme-v02.api.letsencrypt.org/directory
+    ```
+    Then `docker compose --env-file .env.docker restart caddy`.
+- ✅ Still failing after changing / setting the email? **Purge the cert cache once** — Caddy stubbornly reuses the failed anonymous account state:
+  ```bash
+  docker compose --env-file .env.docker down
+  docker volume rm dageling003-homepage_caddy_data
+  docker compose --env-file .env.docker up -d
   ```
-  Then `docker compose --env-file .env.docker restart caddy`.
 
 ### 10.3 Image pull failure (`pull access denied` / `failed to resolve reference`)
 

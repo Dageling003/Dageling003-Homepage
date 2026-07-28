@@ -64,17 +64,31 @@ The script auto-completes all steps: check deps → install Docker → clone →
 
 **Overseas server (fully automated, recommended):**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CI=true DOMAIN=your-domain-or-ip bash
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh \
+  | CI=true DOMAIN=your-domain.com ACME_EMAIL=you@example.com bash
 ```
 
 **China server (fully automated, handles Docker install + mirror acceleration + gcr.io compatibility):**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CI=true CN=true DOMAIN=your-domain-or-ip bash
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh \
+  | CI=true CN=true DOMAIN=your-domain.com ACME_EMAIL=you@example.com bash
 ```
 
-> Replace `your-domain-or-ip` with your actual value, e.g. `example.com` or `1.2.3.4`.
+> Replace `your-domain.com` with your real domain (e.g. `blog.example.com`) or the server's public IP (e.g. `1.2.3.4`).
+> Replace `you@example.com` with a **real mailbox you can read**.
 
-Interactive wizard (manually configure SMTP / admin password etc.):
+#### What the parameters do
+
+| Var | Purpose | Default behaviour |
+|-----|---------|-------------------|
+| `DOMAIN` | Site entry point. Domains need a DNS A record already pointing at this host; IP deployments auto-fall-back to plain HTTP | `localhost` (only reachable from the box itself) |
+| `ACME_EMAIL` | HTTPS certificate account email. Used for ACME registration + expiry reminders from the CA 20 days before renewal | Let's Encrypt anonymous account (cert still issues, no reminders). **Omit entirely for IP deployments** |
+| `CI=true` | Non-interactive mode | Runs the wizard on the server |
+| `CN=true` | China mirror acceleration (`docker.1ms.run`) | Direct pulls from upstream registry |
+
+> **Why we recommend filling in `ACME_EMAIL`**: ZeroSSL enforces email since 2024. Skipping it makes the script fall back to Let's Encrypt anonymous. Filling it in gets you ① ZeroSSL's China-friendly nodes ② proactive expiry reminders (Caddy already auto-renews — think of this as a safety net).
+
+Interactive wizard (script asks you step by step):
 
 ```bash
 # Overseas (interactive wizard)
@@ -88,19 +102,19 @@ curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/ma
 
 ```bash
 # Overseas
-CI=true DOMAIN=your-domain-or-ip bash scripts/deploy.sh
+CI=true DOMAIN=your-domain.com ACME_EMAIL=you@example.com bash scripts/deploy.sh
 
 # China
-CI=true CN=true DOMAIN=your-domain-or-ip bash scripts/deploy.sh
+CI=true CN=true DOMAIN=your-domain.com ACME_EMAIL=you@example.com bash scripts/deploy.sh
 ```
 
 ### Access
 
 | Entry | URL |
 |------|------|
-| Public site | `http://your-domain-or-ip/` |
-| Admin | `http://your-domain-or-ip/admin/` |
-| First-run wizard | `http://your-domain-or-ip/admin/setup` |
+| Public site | `http://your-domain.com/` |
+| Admin | `http://your-domain.com/admin/` |
+| First-run wizard | `http://your-domain.com/admin/setup` |
 
 ---
 
@@ -122,10 +136,10 @@ Zero interaction, suited for CI/CD:
 
 ```bash
 # Overseas
-CI=true DOMAIN=your-domain-or-ip bash scripts/deploy.sh
+CI=true DOMAIN=your-domain.com ACME_EMAIL=you@example.com bash scripts/deploy.sh
 
 # China
-CI=true CN=true DOMAIN=your-domain-or-ip bash scripts/deploy.sh
+CI=true CN=true DOMAIN=your-domain.com ACME_EMAIL=you@example.com bash scripts/deploy.sh
 ```
 
 ### China mode (`CN=true`)
@@ -331,8 +345,8 @@ Access:
 | Name | Purpose | Default |
 |--------|------|--------|
 | `DEFAULT_ADMIN_PASSWORD` | Default admin password | blank (created via web UI) |
-| `ACME_CA` | HTTPS CA | `https://acme.zerossl.com/v2/DV90` |
-| `ACME_EMAIL` | HTTPS cert email | blank (auto-generated) |
+| `ACME_CA` | HTTPS CA | Not set: smart-picked from `ACME_EMAIL`. Email present → ZeroSSL; empty → Let's Encrypt |
+| `ACME_EMAIL` | HTTPS cert email (ACME account + expiry reminders) | blank (Let's Encrypt anonymous) |
 | `DB_SYNCHRONIZE` | Auto-sync schema | SQLite mode defaults to `true` (safe); MariaDB mode defaults to `false` and MUST be `false` in production |
 | `PUBLIC_ADMIN_URL` | Root URL used in reset links | inferred from `DOMAIN` |
 
@@ -513,9 +527,16 @@ netstat -tlnp | grep -E ':(80|443)'
 
 **Fix**:
 
-- Confirm the domain resolves to your server IP.
-- Make sure `ACME_EMAIL` is set.
-- Try a different CA: set `ACME_CA=https://acme-v02.api.letsencrypt.org/directory` in `.env.docker`.
+- Confirm the domain resolves to your server IP, and port 80 is open on both the cloud security group and OS firewall (ACME HTTP-01 uses port 80).
+- Log contains `your email address is required to use ZeroSSL's ACME endpoint`: ZeroSSL enforces email since 2024.
+  - **Preferred**: put a real address into `ACME_EMAIL=` in `.env.docker`, then `docker compose --env-file .env.docker restart caddy`.
+  - **Rather stay anonymous**: v1.2.1+ auto-falls back to Let's Encrypt. Older versions: manually set `ACME_CA=https://acme-v02.api.letsencrypt.org/directory`.
+- Still failing after changing the email / CA? Purge the cert cache — Caddy keeps replaying the failed anonymous account state:
+  ```bash
+  docker compose --env-file .env.docker down
+  docker volume rm dageling003-homepage_caddy_data
+  docker compose --env-file .env.docker up -d
+  ```
 
 ### 6. `deploy.sh` doesn't run on Windows
 
@@ -582,23 +603,35 @@ gunzip -c ./backups/homepage_YYYYMMDD_HHMMSS.sql.gz | \
 
 ## HTTPS certificates
 
+### Smart default: `ACME_EMAIL` decides the CA
+
+Since v1.2.1, `deploy.sh` picks a CA based on whether you supplied `ACME_EMAIL`:
+
+| ACME_EMAIL | Default CA | Why |
+|-----------|-----------|-----|
+| **Set** | ZeroSSL (`https://acme.zerossl.com/v2/DV90`) | China-friendly nodes; email registration unlocks expiry reminders |
+| **Blank** | Let's Encrypt (`https://acme-v02.api.letsencrypt.org/directory`) | ZeroSSL enforces email since 2024; anonymous requests fail. Let's Encrypt still permits anonymous accounts |
+
+You **don't need** to set `ACME_CA` manually unless you want to override.
+
 ### ZeroSSL vs Let's Encrypt
 
 | Feature | ZeroSSL | Let's Encrypt |
 |------|---------|---------------|
 | Access from mainland China | ✅ works | ❌ often blocked |
+| Email required | ✅ mandatory (since 2024) | ⚠️ optional, anonymous allowed |
 | Free tier | ✅ yes | ✅ fully free |
 | Cert lifetime | 90 days | 90 days |
 | Auto-renew | ✅ built into Caddy | ✅ built into Caddy |
 
-**Recommendation**: ZeroSSL for deployments in mainland China (default); Let's Encrypt for overseas.
+**Recommendation**: ZeroSSL for deployments in mainland China (fill `ACME_EMAIL` and you get it by default); Let's Encrypt for overseas.
 
-Switch the CA:
+Override the CA manually (bypasses the smart default):
 
 ```bash
 # In .env.docker
-ACME_CA=https://acme.zerossl.com/v2/DV90                    # ZeroSSL (default)
-ACME_CA=https://acme-v02.api.letsencrypt.org/directory      # Let's Encrypt
+ACME_CA=https://acme.zerossl.com/v2/DV90                    # Force ZeroSSL (requires ACME_EMAIL)
+ACME_CA=https://acme-v02.api.letsencrypt.org/directory      # Force Let's Encrypt
 ```
 
 ---

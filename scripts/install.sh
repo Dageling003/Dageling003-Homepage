@@ -8,10 +8,16 @@
 #   curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | bash
 #
 # 海外服务器（全自动，推荐）：
-#   curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CI=true DOMAIN=your-domain.com bash
+#   curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh \
+#     | CI=true DOMAIN=your-domain.com ACME_EMAIL=you@example.com bash
 #
 # 国内服务器（全自动，推荐）：
-#   curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CI=true CN=true DOMAIN=your-domain.com bash
+#   curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh \
+#     | CI=true CN=true DOMAIN=your-domain.com ACME_EMAIL=you@example.com bash
+#
+# 只用服务器 IP（纯 HTTP 试跑，无需 ACME_EMAIL）：
+#   curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh \
+#     | CI=true DOMAIN=1.2.3.4 bash
 #
 # 国内服务器（交互向导）：
 #   curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CN=true bash
@@ -23,8 +29,8 @@
 #   --dir PATH        安装目录，默认 ./Dageling003-Homepage
 #
 # 环境变量：
-#   DOMAIN       域名或 IP
-#   ACME_EMAIL   HTTPS 证书邮箱（可选，用于证书到期通知）
+#   DOMAIN       域名或 IP（域名部署要先把 DNS A 记录指向本机）
+#   ACME_EMAIL   HTTPS 证书邮箱（可选，域名部署强烈建议填 —— 用于证书到期提醒）
 #   CI           = true 时全自动无交互
 #   CN           = true 时使用国内模式（slim 镜像 + 镜像加速）
 #   INSTALL_DIR  安装目录

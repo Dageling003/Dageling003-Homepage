@@ -21,6 +21,7 @@
 - **PRODUCT.md**：产品定位 / 目标用户 / 核心 Journey / RICE 优先级 / 7 条产品原则 / 不做清单，给未来 issue 与 PR 决策做锚点
 - **后端 auth-flow e2e**：新增 `apps/backend/test/auth-flow.e2e-spec.ts` 23 个 case，覆盖登录 / cookie & bearer / 改密码 / 忘记密码 / 重置密码全链路
 - **前端图标构建脚本**：`scripts/build-icons.mjs` 从 `@iconify-json/logos` 抽 HomeView 里用到的 32 个图标生成 `src/icons/tech-icons.json`（64 KB）
+- **一条龙部署 `ACME_EMAIL` 支持**：`install.sh` / `deploy.sh` 现可通过环境变量透传 HTTPS 证书邮箱，`curl | bash` 场景下也能一次到位
 
 ### Changed
 - **认证接口限流可配置**：登录 / 重置密码 / 创建管理员接口从硬编码 `5/60s` 改为环境变量 `LOGIN_THROTTLE_LIMIT` / `LOGIN_THROTTLE_TTL` 控制
@@ -40,6 +41,11 @@
 - **frontend 占位链接过滤**：`isPlaceholderUrl` 现在正确处理 `mailto:` / `tel:` 等 URL（之前 hostname 为空会漏过滤），白名单扩到 `example.org` / `example.net`
 - **Caddy**：`CSP` 策略移到 per-handle 块并加 `force-replace` 前缀，修复覆盖失效问题
 - **Caddy ACME_EMAIL**：占位符 (`your-email@example.com` 等) 或非邮箱格式会 fail-fast 拒绝启动，避免命中 ZeroSSL / Let's Encrypt rate limit
+- **Caddy ZeroSSL email 要求**：ZeroSSL 从 2024 起强制要求 email，检测到 `ACME_EMAIL` 空 + `ACME_CA` 指向 ZeroSSL 时自动 fallback 到 Let's Encrypt 匿名账号，避免证书永远签不下来的死锁
+- **Docker 后端运行时依赖**：改用官方 `pnpm deploy` 打包生产依赖，解决 `Cannot find module '@nestjs/core'` 启动崩溃（旧脚本用 `cp package.json` 覆盖了后端的依赖列表）
+- **一条龙部署顺序**：`post_deploy_wizard` 移到 `smoke_test` 之前 —— 让用户有机会补填 `ACME_EMAIL` 后再跑冒烟测试，域名部署首次不会因证书未签发而报 000000
+- **冒烟测试 HTTPS 等待**：域名部署会先等 120s 让证书就绪，失败自动 fallback 到 `INSECURE=1` 复测，区分"证书未就绪"与"应用挂了"
+- **`curl \| bash` 交互兼容**：wizard 现在 `exec </dev/tty`，管道执行下的向导也能读到用户输入；真正无 tty 环境自动降级 CI 模式并给出清晰提示
 - **PWA**：`index.html` 加入预缓存，`/api` 响应不再缓存，避免 CSP header 陈旧
 
 ### Performance
@@ -55,6 +61,8 @@
 - 新增 [ROADMAP.md](./ROADMAP.md)：短 / 中 / 长期路线图 + 明确的「不做清单」
 - 新增 [SECURITY.md](./SECURITY.md) 中英双语版
 - 新增 [PRODUCT.md](./PRODUCT.md)：产品定位 / 目标用户 / RICE 优先级 / 7 条产品原则
+- **一条龙部署教程全面更新**：README / README.en / docs/deploy-beginner(.en).md / docs/deployment(.en).md 中所有 curl 一键命令示例统一改用 `your-domain.com` / `you@example.com` 占位符（脱敏），并配教学讲述：`DOMAIN` / `ACME_EMAIL` / `CI` / `CN` 每个参数分别是什么、要不要填、留空的后果
+- **HTTPS 证书 CA 智能默认表**：deployment(.en).md 增加 `ACME_EMAIL` → CA 的智能选择对照表，讲清 ZeroSSL 2024 email 政策变化后的新行为
 
 ### Changed
 - **后台补齐**：前台硬编码的 footerText / seoOgLocale / seoTwitterCard / introGreeting / cardHeaderTech / cardHeaderTodo 共 6 个字段纳入后台表单管理，个人信息页新增「问候语」「卡片标题」「页脚」「SEO」分组

@@ -148,17 +148,39 @@ The script will: **check Docker/git** → **clone the repo** → **build images*
 
 **Overseas server (fully automated, recommended):**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CI=true DOMAIN=your-domain-or-ip bash
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh \
+  | CI=true DOMAIN=your-domain.com ACME_EMAIL=you@example.com bash
 ```
 
 **China server (fully automated, handles Docker install + mirror acceleration + gcr.io compatibility):**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CI=true CN=true DOMAIN=your-domain-or-ip bash
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh \
+  | CI=true CN=true DOMAIN=your-domain.com ACME_EMAIL=you@example.com bash
 ```
 
-> Replace `your-domain-or-ip` with your actual value, e.g. `example.com` or `1.2.3.4`.
+> Replace `your-domain.com` with your real domain (e.g. `blog.example.com`) or your server's public IP (e.g. `1.2.3.4`).
+> Replace `you@example.com` with a **real mailbox you can actually read**.
 
-Interactive wizard (manually configure SMTP / admin password etc.):
+#### What do those three env vars mean? (first-timers: read this)
+
+| Var | Meaning | If you skip it |
+|-----|---------|----------------|
+| `DOMAIN` | The public entry to your site — your domain, or the server's public IP. Domains must have a **DNS A record pointing at this box** already; IP deployments skip HTTPS and stay on plain HTTP | Defaults to `localhost`, reachable only from the box itself |
+| `ACME_EMAIL` | **HTTPS certificate notification email**. Caddy uses it to register an ACME account with Let's Encrypt / ZeroSSL; **20 days before the cert expires** the CA emails you as a safety net (Caddy still auto-renews on its own) | Falls back to Let's Encrypt's anonymous account — the cert still gets issued fine, you just don't get expiry reminders. **Fully optional for IP deployments** (no cert needed) |
+| `CI=true` | Non-interactive mode | Runs the interactive wizard on the server |
+| `CN=true` | China mode: uses `docker.1ms.run` for image acceleration, sidesteps `gcr.io` connectivity issues | Direct pulls from upstream — fine for overseas / VPN'd machines |
+
+> **Why we push you toward filling in `ACME_EMAIL`**: ZeroSSL enforces email since 2024. Without it, the script transparently falls back to Let's Encrypt's anonymous mode. Filling it in unlocks expiry reminders **and** ZeroSSL's China-friendly nodes. Bad formats are rejected at boot time so you don't burn a rate-limit slot before noticing.
+
+#### Just kicking the tires? (no domain yet)
+
+```bash
+# Deploy on the server's public IP, plain HTTP, no ACME_EMAIL needed
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh \
+  | CI=true DOMAIN=1.2.3.4 bash
+```
+
+#### Prefer the interactive wizard (script asks you step by step)?
 
 ```bash
 # Overseas (interactive wizard)
@@ -168,14 +190,16 @@ curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/ma
 curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CN=true bash
 ```
 
+The wizard walks through: **domain → cert email → SMTP (optional, powers password reset) → admin password**. Hit enter to accept sane defaults on anything you don't care about.
+
 Already `git clone`d:
 
 ```bash
 # Overseas
-CI=true DOMAIN=your-domain-or-ip bash scripts/deploy.sh
+CI=true DOMAIN=your-domain.com ACME_EMAIL=you@example.com bash scripts/deploy.sh
 
 # China
-CI=true CN=true DOMAIN=your-domain-or-ip bash scripts/deploy.sh
+CI=true CN=true DOMAIN=your-domain.com ACME_EMAIL=you@example.com bash scripts/deploy.sh
 ```
 
 ### Prerequisites
@@ -218,18 +242,20 @@ Use `pnpm dev:backend` / `pnpm dev:frontend` / `pnpm dev:admin` for isolated log
 
 ```bash
 # 1. Remote one-liner — overseas (recommended, works on a bare server)
-curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CI=true DOMAIN=your-domain-or-ip bash
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh \
+  | CI=true DOMAIN=your-domain.com ACME_EMAIL=you@example.com bash
 
 # 1. Remote one-liner — China (handles Docker install + mirror acceleration + gcr.io compatibility)
-curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CI=true CN=true DOMAIN=your-domain-or-ip bash
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh \
+  | CI=true CN=true DOMAIN=your-domain.com ACME_EMAIL=you@example.com bash
 
 # 2. Already cloned
-CI=true DOMAIN=your-domain-or-ip bash scripts/deploy.sh          # overseas
-CI=true CN=true DOMAIN=your-domain-or-ip bash scripts/deploy.sh  # China
+CI=true DOMAIN=your-domain.com ACME_EMAIL=you@example.com bash scripts/deploy.sh          # overseas
+CI=true CN=true DOMAIN=your-domain.com ACME_EMAIL=you@example.com bash scripts/deploy.sh  # China
 
 # 3. Classic script
-bash scripts/deploy.sh                                            # interactive wizard
-CI=true DOMAIN=xxx bash scripts/deploy.sh                         # non-interactive (CI/CD)
+bash scripts/deploy.sh                                                                     # interactive wizard
+CI=true DOMAIN=xxx ACME_EMAIL=you@example.com bash scripts/deploy.sh                       # non-interactive (CI/CD)
 ```
 
 ### Manual deploy (skip the wizard, fill .env yourself)

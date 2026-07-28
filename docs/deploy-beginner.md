@@ -114,15 +114,38 @@ ssh -i /path/to/your-key.pem root@123.45.67.89
 
 ### 方式 A：一条命令搞定（**强烈推荐**）
 
-把 `你的域名或IP` 换成实际值，如 `example.com` 或 `1.2.3.4`。
+先看清 3 个参数分别是什么，然后拷贝对应的一条龙命令：
+
+| 参数 | 该填什么 | 我要不要填？ |
+|------|---------|-------------|
+| `DOMAIN` | 你的域名（如 `blog.example.com`）**或**服务器公网 IP（如 `1.2.3.4`） | **必填**。域名部署前先把 DNS 的 A 记录解析到本机。 |
+| `ACME_EMAIL` | 一个**你能收到邮件的邮箱**（如 `you@example.com`） | **域名部署强烈建议填**。用来接证书到期提醒；不填也能拿到证书（Let's Encrypt 匿名），只是收不到到期提醒。IP 部署可省略。 |
+| `CI=true` | 固定值 | **推荐填**。CI 模式全自动，不做交互问答；不填会走交互向导，问你要每个参数。 |
+| `CN=true` | 固定值 | 国内服务器**必填**。会自动用 `docker.1ms.run` 镜像加速，跳过 `gcr.io`。 |
+
+**海外服务器（全自动，推荐）：**
 
 ```bash
-# 海外服务器（全自动，推荐）
-curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CI=true DOMAIN=你的域名或IP bash
-
-# 国内服务器（全自动，自动装 Docker + 配置国内镜像加速 + 处理 gcr.io 兼容）
-curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CI=true CN=true DOMAIN=你的域名或IP bash
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh \
+  | CI=true DOMAIN=your-domain.com ACME_EMAIL=you@example.com bash
 ```
+
+**国内服务器（全自动，自动装 Docker + 配置国内镜像加速 + 处理 gcr.io 兼容）：**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh \
+  | CI=true CN=true DOMAIN=your-domain.com ACME_EMAIL=you@example.com bash
+```
+
+**如果你只有服务器 IP、还没买域名**（纯 HTTP 试跑）：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh \
+  | CI=true DOMAIN=1.2.3.4 bash
+# 国内加 CN=true
+```
+
+> **关于 `ACME_EMAIL` 的一句话解释**：ZeroSSL 从 2024 起要求 email 才能签证书，脚本会自动 fallback 到 Let's Encrypt 匿名账号。填了邮箱能：① 用 ZeroSSL 国内节点更快 ② 到期前 20 天 CA 会发邮件提醒你（Caddy 自己也会自动续，这只是保险）。填错格式脚本会拒绝启动，防止空跑一遍才发现。
 
 这条命令会自动完成：
 1. ✅ 检查并安装 git（如未安装）
@@ -130,7 +153,8 @@ curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/ma
 3. ✅ 国内模式：配置 registry mirror（`docker.1ms.run`）
 4. ✅ 克隆项目
 5. ✅ 构建镜像 + 启动容器
-6. ✅ 冒烟测试 + 打印访问地址
+6. ✅ 等待 HTTPS 证书就绪（域名部署最多 120s）
+7. ✅ 冒烟测试 + 打印访问地址
 
 跑完直接跳到第 8 章「首次访问」即可。
 
@@ -142,10 +166,10 @@ curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/ma
 cd Dageling003-Homepage
 
 # 海外全自动
-CI=true DOMAIN=你的域名或IP bash scripts/deploy.sh
+CI=true DOMAIN=your-domain.com ACME_EMAIL=you@example.com bash scripts/deploy.sh
 
 # 国内全自动
-CI=true CN=true DOMAIN=你的域名或IP bash scripts/deploy.sh
+CI=true CN=true DOMAIN=your-domain.com ACME_EMAIL=you@example.com bash scripts/deploy.sh
 ```
 
 ### 方式 C：手动分步（高级用户）
@@ -299,14 +323,18 @@ bash scripts/deploy.sh
 它会一步步引导你：
 
 1. **域名或 IP** → 有域名填 `your-domain.com`；没有就填服务器公网 IP
-2. **HTTPS 证书邮箱** → 用于申请 SSL 证书（真实域名需要，IP 可留空）
-3. **SMTP 邮件** → 用来发"忘记密码"邮件，不填也行（那时链接会写到日志里，你 SSH 上去看）
+2. **HTTPS 证书邮箱**（域名部署才问）→ 想收到证书到期提醒就填一个真实邮箱；直接回车跳过 = 走 Let's Encrypt 匿名账号（证书还是能签下来，只是**没有**到期提醒）。填错格式向导会 retry，不用担心一次输错要重跑。
+3. **SMTP 邮件** → 网站找回密码功能用的（跟证书邮箱是两件事）。不填也行，那时找回密码的链接会写到 `docker logs homepage-app` 里，你 SSH 上去看
 4. **管理员密码** → 三选一：
    - `1)` 自动生成（脚本会存进 `.env.docker` 并显示给你，**记下来**）
    - `2)` 手动输入（至少 12 位）
    - `3)` 留空（后面访问网站用图形界面创建）
 
 跑完会自动生成 `.env.docker` 文件，并自动构建镜像、启动服务、运行冒烟测试。
+
+> **两个 email 到底有什么区别？**
+> - `ACME_EMAIL` → **发给 CA（Let's Encrypt / ZeroSSL）**，用于证书账号绑定和到期提醒。不承担任何"发邮件出去"的动作，全是**收**。
+> - `SMTP_*` → **你的邮件账号**，用来让本站主动发邮件出去（找回密码、通知等）。填了这些参数后，站点才能"发邮件"。
 
 ### 方式 B：手动编辑（想全掌控）
 
@@ -679,12 +707,20 @@ docker logs homepage-app --tail 100
 
 - ✅ DNS 是否解析到本机？在服务器上跑：`curl -s ifconfig.me` 拿到你的 IP，再跑 `dig +short your-domain.com` 或 `nslookup your-domain.com` 看是否一致。
 - ✅ 80 端口是否开放？云厂商安全组 + 系统防火墙都要放行 80（ACME HTTP-01 挑战靠 80）
-- ✅ `ACME_EMAIL` 是否填了？ZeroSSL 需要邮箱注册账号，不填有时会失败
-- ✅ 试试切换证书颁发机构：编辑 `.env.docker` →
-  ```dotenv
-  ACME_CA=https://acme-v02.api.letsencrypt.org/directory
+- ✅ 如果日志里看到 `your email address is required to use ZeroSSL's ACME endpoint`：
+  ZeroSSL 从 2024 起**强制要求** email 才能签证书。修法：
+  - **推荐**：编辑 `.env.docker` 填一个真实邮箱到 `ACME_EMAIL=`，然后 `docker compose --env-file .env.docker restart caddy`
+  - **不想填邮箱**：v1.2.1+ 版本 Caddy 会自动 fallback 到 Let's Encrypt 匿名账号（能签发），如果你的还是老版本，手动切一下：
+    ```dotenv
+    ACME_CA=https://acme-v02.api.letsencrypt.org/directory
+    ```
+    然后 `docker compose --env-file .env.docker restart caddy`
+- ✅ 切换/新填邮箱后仍失败？**清一次证书缓存再重试**（旧的匿名账号 state 会一直被 Caddy 复用）：
+  ```bash
+  docker compose --env-file .env.docker down
+  docker volume rm dageling003-homepage_caddy_data
+  docker compose --env-file .env.docker up -d
   ```
-  然后 `docker compose --env-file .env.docker restart caddy`
 
 ### 11.3 镜像拉取失败（`pull access denied` / `failed to resolve reference` / `not found`）
 

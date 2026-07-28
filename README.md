@@ -139,17 +139,39 @@
 
 **海外服务器（全自动，推荐）：**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CI=true DOMAIN=你的域名或IP bash
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh \
+  | CI=true DOMAIN=your-domain.com ACME_EMAIL=you@example.com bash
 ```
 
 **国内服务器（全自动，推荐）：**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CI=true CN=true DOMAIN=你的域名或IP bash
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh \
+  | CI=true CN=true DOMAIN=your-domain.com ACME_EMAIL=you@example.com bash
 ```
 
-> 把 `你的域名或IP` 换成实际值，如 `example.com` 或 `1.2.3.4`。
+> 把 `your-domain.com` 换成你实际的域名（如 `blog.example.com`）或服务器公网 IP（如 `1.2.3.4`）。
+> 把 `you@example.com` 换成你**真实能收到邮件的邮箱**。
 
-想走交互向导（手动配置 SMTP / 管理员密码等）：
+#### 三个参数分别是什么？（新手先读一下）
+
+| 参数 | 是什么 | 不填会怎样 |
+|------|--------|-----------|
+| `DOMAIN` | 网站访问入口 —— 你的域名或服务器公网 IP。域名要**提前把 DNS A 记录解析到本机**；IP 部署跳过 HTTPS 走纯 HTTP | 默认 `localhost`，只能本机访问 |
+| `ACME_EMAIL` | HTTPS **证书通知邮箱**。Caddy 用它去 Let's Encrypt / ZeroSSL 注册 ACME 账号；**证书到期前 20 天** CA 会用这个邮箱提醒你续签（Caddy 会自动续，这只是保险） | 走 Let's Encrypt 匿名账号 —— 证书**照样能签发**，只是 CA 无法主动提醒你到期。**IP 部署可完全省略**（IP 不需要证书） |
+| `CI=true` | 全自动模式，不做交互问答 | 走交互向导（进服务器一步步问） |
+| `CN=true` | 国内模式：用 `docker.1ms.run` 加速拉镜像，避开 `gcr.io` 网络问题 | 直连官方镜像源，海外/带梯子的机器合适 |
+
+> **为什么强烈建议填 `ACME_EMAIL`**：ZeroSSL 从 2024 起强制要求 email，脚本会自动 fallback 到 Let's Encrypt 匿名账号。填了邮箱能让证书体验更完整（有到期提醒 + 用 ZeroSSL 国内节点更快）。填错格式脚本会拒绝启动，防止空跑一遍才发现。
+
+#### 只想快速试一试？（连域名都还没）
+
+```bash
+# 用服务器公网 IP 部署，纯 HTTP，无需 ACME_EMAIL
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh \
+  | CI=true DOMAIN=1.2.3.4 bash
+```
+
+#### 想走交互向导（脚本一步步问你要参数）：
 
 ```bash
 # 海外（交互向导）
@@ -158,6 +180,8 @@ curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/ma
 # 国内（交互向导）
 curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CN=true bash
 ```
+
+向导会依次问你：**域名 → 证书邮箱 → SMTP（可选，找回密码用）→ 管理员密码**。不想填的直接回车跳过，都有合理默认。
 
 已经 `git clone` 过的老手：
 
@@ -213,18 +237,20 @@ pnpm dev
 
 ```bash
 # ① 远程一键 — 海外全自动（推荐，裸机可用）
-curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CI=true DOMAIN=你的域名或IP bash
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh \
+  | CI=true DOMAIN=your-domain.com ACME_EMAIL=you@example.com bash
 
 # ① 远程一键 — 国内全自动（自动处理 Docker 安装 + 镜像加速 + gcr.io 兼容）
-curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CI=true CN=true DOMAIN=你的域名或IP bash
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh \
+  | CI=true CN=true DOMAIN=your-domain.com ACME_EMAIL=you@example.com bash
 
 # ② 已 clone 的老手
-make up                                          # 海外
-CI=true CN=true bash scripts/deploy.sh          # 国内
+make up                                                              # 海外
+CI=true CN=true bash scripts/deploy.sh                              # 国内
 
 # ③ 传统脚本
-bash scripts/deploy.sh                          # 交互向导
-CI=true DOMAIN=xxx bash scripts/deploy.sh       # 零交互（CI/CD）
+bash scripts/deploy.sh                                              # 交互向导
+CI=true DOMAIN=xxx ACME_EMAIL=you@example.com bash scripts/deploy.sh # 零交互（CI/CD）
 ```
 
 > 把 `你的域名或IP` 换成实际值，如 `example.com` 或 `1.2.3.4`。

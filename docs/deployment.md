@@ -76,17 +76,31 @@
 
 **海外服务器（全自动，推荐）：**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CI=true DOMAIN=你的域名或IP bash
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh \
+  | CI=true DOMAIN=your-domain.com ACME_EMAIL=you@example.com bash
 ```
 
 **国内服务器（全自动，推荐）：**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh | CI=true CN=true DOMAIN=你的域名或IP bash
+curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/main/scripts/install.sh \
+  | CI=true CN=true DOMAIN=your-domain.com ACME_EMAIL=you@example.com bash
 ```
 
-> 把 `你的域名或IP` 换成实际值，如 `example.com` 或 `1.2.3.4`。
+> 把 `your-domain.com` 换成实际域名（如 `blog.example.com`）或服务器公网 IP（如 `1.2.3.4`）。
+> 把 `you@example.com` 换成你**真实能收到邮件的邮箱**。
 
-想走交互向导（手动配置 SMTP / 管理员密码等）：
+#### 关键参数说明
+
+| 参数 | 用途 | 缺省行为 |
+|------|------|---------|
+| `DOMAIN` | 站点入口。域名需 DNS A 记录指向本机；IP 部署会自动走纯 HTTP | `localhost`（仅本机可访问） |
+| `ACME_EMAIL` | HTTPS 证书账号邮箱。用于 ACME 注册 + 证书到期前 20 天 CA 主动提醒 | 走 Let's Encrypt 匿名账号（证书能签发，无到期提醒）。**IP 部署可省略** |
+| `CI=true` | 全自动模式 | 走交互向导 |
+| `CN=true` | 国内镜像加速（`docker.1ms.run`） | 直连官方 registry |
+
+> **为什么建议填 `ACME_EMAIL`**：ZeroSSL 从 2024 起强制要求 email，脚本会自动 fallback 到 Let's Encrypt 匿名。填了邮箱可以：① ZeroSSL 国内节点更快 ② 拿到证书到期提醒（Caddy 会自动续，此项是保险）。
+
+想走交互向导（脚本一步步问你要参数）：
 
 ```bash
 # 海外（交互向导）
@@ -100,15 +114,15 @@ curl -fsSL https://raw.githubusercontent.com/Dageling003/Dageling003-Homepage/ma
 
 ```bash
 # 海外全自动
-CI=true DOMAIN=你的域名或IP bash scripts/deploy.sh
+CI=true DOMAIN=your-domain.com ACME_EMAIL=you@example.com bash scripts/deploy.sh
 
 # 国内全自动
-CI=true CN=true DOMAIN=你的域名或IP bash scripts/deploy.sh
+CI=true CN=true DOMAIN=your-domain.com ACME_EMAIL=you@example.com bash scripts/deploy.sh
 ```
 
 向导会引导你完成：
 1. **域名或 IP** - 输入服务器 IP（如 `192.168.1.100`）或域名
-2. **HTTPS 证书邮箱** - 用于申请 SSL 证书（真实域名需要，IP 可留空）
+2. **HTTPS 证书邮箱** - 用于 ACME 账号 + 到期提醒（域名部署强烈建议填；IP 部署自动跳过）
 3. **SMTP 邮件** - 可选，不配置也能用（找回密码链接输出到日志）
 4. **管理员密码** - 自动生成/手动设置/留空网页创建
 
@@ -370,8 +384,8 @@ pnpm dev
 | 变量名 | 说明 | 默认值 |
 |--------|------|--------|
 | `DEFAULT_ADMIN_PASSWORD` | 默认管理员密码 | 留空（通过网页创建） |
-| `ACME_CA` | HTTPS 证书颁发机构 | `https://acme.zerossl.com/v2/DV90` |
-| `ACME_EMAIL` | HTTPS 证书邮箱 | 留空（自动生成） |
+| `ACME_CA` | HTTPS 证书颁发机构 | 未指定：由 `ACME_EMAIL` 智能选择。`ACME_EMAIL` 有值 → ZeroSSL；空 → Let's Encrypt |
+| `ACME_EMAIL` | HTTPS 证书邮箱（用于 ACME 账号 + 到期提醒） | 留空（走 Let's Encrypt 匿名） |
 | `DB_SYNCHRONIZE` | 自动同步 Schema | SQLite 模式默认 `true`（安全）；MariaDB 模式默认 `false`，生产环境必须 `false` |
 | `PUBLIC_ADMIN_URL` | 找回密码链接根 URL | 从 DOMAIN 推断 |
 
@@ -826,9 +840,16 @@ netstat -tlnp | grep -E ':(80|443)'
 **问题**：HTTPS 证书申请失败
 
 **解决方案**：
-- 确认域名已正确解析到服务器 IP
-- 检查 `ACME_EMAIL` 是否配置
-- 尝试切换证书颁发机构：在 `.env.docker` 中设置 `ACME_CA=https://acme-v02.api.letsencrypt.org/directory`
+- 确认域名已正确解析到服务器 IP，且 80 端口对公网开放（ACME HTTP-01 挑战靠 80）
+- 日志出现 `your email address is required to use ZeroSSL's ACME endpoint`：ZeroSSL 从 2024 起强制要求 email。
+  - **推荐**：在 `.env.docker` 里给 `ACME_EMAIL=` 填一个真实邮箱，`docker compose --env-file .env.docker restart caddy`
+  - **不想填邮箱**：v1.2.1+ Caddy 会自动 fallback 到 Let's Encrypt 匿名；老版本手动切 `ACME_CA=https://acme-v02.api.letsencrypt.org/directory`
+- 切换 CA / 补填邮箱后仍失败：清一次证书缓存（Caddy 会一直复用旧的失败 state）
+  ```bash
+  docker compose --env-file .env.docker down
+  docker volume rm dageling003-homepage_caddy_data
+  docker compose --env-file .env.docker up -d
+  ```
 
 ### 6. Windows 用户无法运行 deploy.sh
 
@@ -893,23 +914,35 @@ gunzip -c ./backups/homepage_YYYYMMDD_HHMMSS.sql.gz | \
 
 ## HTTPS 证书配置
 
+### 智能默认：ACME_EMAIL 决定 CA
+
+从 v1.2.1 起，deploy.sh 根据你有没有填 `ACME_EMAIL` 自动挑 CA：
+
+| ACME_EMAIL | 默认 CA | 理由 |
+|-----------|---------|------|
+| **已填** | ZeroSSL (`https://acme.zerossl.com/v2/DV90`) | 国内节点更快；用邮箱注册账号，能收到到期提醒 |
+| **留空** | Let's Encrypt (`https://acme-v02.api.letsencrypt.org/directory`) | ZeroSSL 从 2024 起强制要求 email，空 email 会申请失败；Let's Encrypt 仍允许匿名账号 |
+
+你**不需要**手动设 `ACME_CA` —— 除非你想强制某一家。
+
 ### ZeroSSL vs Let's Encrypt
 
 | 特性 | ZeroSSL | Let's Encrypt |
 |------|---------|---------------|
 | 国内访问 | ✅ 正常 | ❌ 可能被墙 |
+| 需要邮箱 | ✅ 必需（2024 起） | ⚠️ 可选，允许匿名账号 |
 | 免费额度 | ✅ 有 | ✅ 完全免费 |
 | 证书有效期 | 90 天 | 90 天 |
 | 自动续签 | ✅ Caddy 内置 | ✅ Caddy 内置 |
 
-**推荐**：国内部署选择 ZeroSSL（默认），海外可选 Let's Encrypt。
+**推荐**：国内部署选 ZeroSSL（填 `ACME_EMAIL` 即可默认走它），海外优先 Let's Encrypt。
 
-切换证书颁发机构：
+手动指定 CA（覆盖智能默认）：
 
 ```bash
 # 在 .env.docker 中设置
-ACME_CA=https://acme.zerossl.com/v2/DV90          # ZeroSSL（默认）
-ACME_CA=https://acme-v02.api.letsencrypt.org/directory  # Let's Encrypt
+ACME_CA=https://acme.zerossl.com/v2/DV90                # 强制 ZeroSSL（需 ACME_EMAIL）
+ACME_CA=https://acme-v02.api.letsencrypt.org/directory  # 强制 Let's Encrypt
 ```
 
 ---
