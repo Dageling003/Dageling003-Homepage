@@ -31,6 +31,9 @@ export default defineConfig({
           if (id.includes('node_modules/@ant-design/icons-vue')) {
             return 'antd-icons'
           }
+          if (id.includes('node_modules/@ant-design/colors')) {
+            return 'antd-colors'
+          }
           if (id.includes('node_modules/ant-design-vue')) {
             return 'antd'
           }
