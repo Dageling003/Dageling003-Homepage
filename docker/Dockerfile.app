@@ -30,7 +30,8 @@ COPY apps/ apps/
 
 RUN pnpm --filter homepage-backend build && \
     pnpm --filter homepage-frontend build && \
-    pnpm --filter homepage-admin build
+    pnpm --filter homepage-admin build && \
+    ls -la /app/apps/backend/dist/main.js
 
 # Prepare production node_modules in a separate directory
 # (outside workspace context, so overrides from package.json apply directly)
@@ -64,4 +65,4 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
   CMD ["/nodejs/bin/node", "-e", "const h=require('http');const req=h.get('http://localhost:8000/health',r=>{let d='';r.on('data',c=>d+=c);r.on('end',()=>process.exit(r.statusCode===200?0:1))});req.on('error',()=>process.exit(1));req.setTimeout(3000,()=>{req.destroy();process.exit(1)})"]
 
-CMD ["dist/main.js"]
+CMD ["/app/dist/main.js"]
