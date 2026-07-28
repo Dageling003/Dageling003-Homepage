@@ -30,7 +30,7 @@ request.interceptors.response.use(
 
       if (status === 401) {
         const currentPath = window.location.pathname
-        if (!currentPath.includes('/login')) {
+        if (!currentPath.includes('/login') && !currentPath.includes('/setup')) {
           message.error('登录已过期，请重新登录')
           setTimeout(() => {
             window.location.href = '/login'
