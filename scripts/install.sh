@@ -124,41 +124,9 @@ elif need docker && command -v docker-compose >/dev/null 2>&1; then
     ok "Docker $(docker --version | grep -o '[0-9.]*' | head -1)"
     ok "Docker Compose (v1)"
 else
-    info "Docker 未安装，正在自动安装..."
-
-    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    INSTALL_DOCKER_SCRIPT="$SCRIPT_DIR/install-docker.sh"
-
-    if [ -f "$INSTALL_DOCKER_SCRIPT" ]; then
-        if $USE_CN_MODE; then
-            bash "$INSTALL_DOCKER_SCRIPT" --cn
-        else
-            bash "$INSTALL_DOCKER_SCRIPT"
-        fi
-    else
-        # install-docker.sh 不存在（例如通过 curl 单文件执行），走内联安装
-        info "使用内联 Docker 安装..."
-        if command -v apt-get >/dev/null 2>&1; then
-            curl -fsSL https://get.docker.com | sh
-        elif command -v dnf >/dev/null 2>&1 || command -v yum >/dev/null 2>&1; then
-            if $USE_CN_MODE; then
-                curl -fsSL https://get.docker.com | sh -s docker --mirror Aliyun
-            else
-                curl -fsSL https://get.docker.com | sh
-            fi
-        else
-            err "不支持的发行版，请手动安装 Docker: https://docs.docker.com/engine/install/"
-            exit 1
-        fi
-        systemctl enable --now docker
-    fi
-
-    if need docker; then
-        ok "Docker 安装完成"
-    else
-        err "Docker 安装失败，请检查日志后重试"
-        exit 1
-    fi
+    info "Docker 未安装，将在克隆仓库后通过 install-docker.sh 安装"
+    # 先标记需要安装，克隆完成后再执行
+    NEED_DOCKER_INSTALL=true
 fi
 
 # ====== 克隆或更新仓库 ======
@@ -195,6 +163,38 @@ else
     git clone --depth 1 --branch "$BRANCH" "$REPO" "$INSTALL_DIR"
     ok "克隆完成 → $INSTALL_DIR"
     cd "$INSTALL_DIR"
+fi
+
+# ====== 安装 Docker（如果需要） ======
+if "${NEED_DOCKER_INSTALL:-false}"; then
+    echo ""
+    info "通过 install-docker.sh 安装 Docker..."
+    # 确定 install-docker.sh 的路径：优先用项目根目录下的 scripts/
+    INSTALL_DOCKER_SCRIPT=""
+    if "$IN_PROJECT_DIR"; then
+        INSTALL_DOCKER_SCRIPT="$PROJECT_ROOT/scripts/install-docker.sh"
+    elif [ -f "$INSTALL_DIR/scripts/install-docker.sh" ]; then
+        INSTALL_DOCKER_SCRIPT="$INSTALL_DIR/scripts/install-docker.sh"
+    elif [ -f "scripts/install-docker.sh" ]; then
+        INSTALL_DOCKER_SCRIPT="scripts/install-docker.sh"
+    fi
+    if [ -n "$INSTALL_DOCKER_SCRIPT" ] && [ -f "$INSTALL_DOCKER_SCRIPT" ]; then
+        if $USE_CN_MODE; then
+            bash "$INSTALL_DOCKER_SCRIPT" --cn
+        else
+            bash "$INSTALL_DOCKER_SCRIPT"
+        fi
+    else
+        err "install-docker.sh 不存在，请手动安装 Docker: https://docs.docker.com/engine/install/"
+        exit 1
+    fi
+
+    if need docker && docker compose version >/dev/null 2>&1; then
+        ok "Docker 安装完成"
+    else
+        err "Docker 安装失败，请检查日志后重试"
+        exit 1
+    fi
 fi
 
 # ====== 交接给 deploy.sh ======

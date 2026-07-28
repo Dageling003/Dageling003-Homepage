@@ -85,7 +85,7 @@ step "2/6  安装前置依赖"
 if [[ "$PKG_FAMILY" == "debian" ]]; then
   export DEBIAN_FRONTEND=noninteractive
   apt-get update -qq
-  apt-get install -y -qq curl ca-certificates >/dev/null
+  apt-get install -y -qq curl ca-certificates lsb-release gpg >/dev/null
 else
   # RHEL 系 minimal 镜像常缺 curl
   dnf install -y -q curl ca-certificates >/dev/null 2>&1 \
@@ -177,6 +177,47 @@ else
     return $rc
   }
 
+  # Debian/Ubuntu 直接从镜像站 apt 安装（不依赖 get.docker.com）
+  install_debian_from_mirror() {
+    local repo_url="$1"
+    local repo_label="$2"
+    local codename="${VERSION_CODENAME:-}"
+    if [[ -z "$codename" ]]; then
+      codename="$(lsb_release -cs 2>/dev/null || echo "")"
+    fi
+    if [[ -z "$codename" ]]; then
+      warn "$repo_label 无法获取 VERSION_CODENAME，跳过"
+      return 1
+    fi
+
+    cleanup_broken_repo
+    info "尝试 $repo_label：$repo_url"
+
+    # 导入 GPG key
+    mkdir -p /etc/apt/keyrings
+    local gpg_url="${repo_url%/}/gpg"
+    curl -fsSL --retry 3 "$gpg_url" | gpg --dearmor -o /etc/apt/keyrings/docker.asc 2>/dev/null || {
+      warn "$repo_label 导入 GPG key 失败"
+      return 1
+    }
+
+    # 写入 sources.list
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] ${repo_url} ${codename} stable" \
+      > /etc/apt/sources.list.d/docker.list
+
+    apt-get update -qq || {
+      warn "$repo_label apt update 失败"
+      return 1
+    }
+
+    if apt-get install -y -qq docker-ce docker-ce-cli containerd.io \
+         docker-buildx-plugin docker-compose-plugin; then
+      return 0
+    fi
+    warn "$repo_label 安装包失败"
+    return 1
+  }
+
   install_ok=false
 
   if [[ "$PKG_FAMILY" == "rhel" ]]; then
@@ -203,12 +244,24 @@ else
       fi
     done
   else
-    # Debian / Ubuntu 走 get.docker.com（该脚本对 debian/ubuntu 稳定）
-    info "下载 get.docker.com 脚本…"
+    # Debian / Ubuntu 安装策略：get.docker.com + 镜像站 apt 双通道
     if $USE_CN_MIRROR; then
+      # 国内：先试 get.docker.com Aliyun，再试各镜像站 apt，最后官方源
+      DEBIAN_MIRRORS=(
+        "https://mirrors.aliyun.com/docker-ce/linux|Aliyun apt"
+        "https://mirrors.tuna.tsinghua.edu.cn/docker-ce/linux|TUNA apt"
+        "https://mirrors.ustc.edu.cn/docker-ce/linux|USTC apt"
+      )
       install_debian_via_script "Aliyun" && install_ok=true
       if ! $install_ok; then
-        warn "Aliyun 源失败，回退到官方源"
+        for entry in "${DEBIAN_MIRRORS[@]}"; do
+          url="${entry%%|*}"
+          label="${entry##*|}"
+          install_debian_from_mirror "$url" "$label" && install_ok=true && break
+        done
+      fi
+      if ! $install_ok; then
+        warn "所有镜像站失败，回退官方源"
         cleanup_broken_repo
         install_debian_via_script "" && install_ok=true
       fi
