@@ -134,7 +134,7 @@ Public site (`apps/frontend/.env`): `VITE_PWA_ENABLED` / `VITE_AMBIENT_ENABLED` 
 |---------|-------|----------|-------------|
 | `apps/frontend` | Vue 3.5 + Vite 8 + UnoCSS + Pinia | `3000` | `/` |
 | `apps/admin` | Vue 3.5 + Ant Design Vue 4 + ECharts | `3001` | `/admin/*` |
-| `apps/backend` | NestJS 11 + TypeORM + SQLite/MariaDB + JWT | `8000` | `/api/*` |
+| `apps/backend` | NestJS 11 + TypeORM (SQLite/MariaDB), JWT auth | `8000` | `/api/*` |
 
 > Static HTML/JS/CSS is served by Caddy directly — Node only handles API traffic.
 

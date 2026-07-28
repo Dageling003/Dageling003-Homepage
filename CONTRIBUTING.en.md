@@ -29,7 +29,7 @@
 |-------------|------|-------|------|
 | Frontend | `apps/frontend` | Vue 3.5 + Vite 8 + UnoCSS + Pinia | `:3000` |
 | Admin | `apps/admin` | Vue 3.5 + Ant Design Vue 4 + ECharts + Vite 8 | `:3001` |
-| API | `apps/backend` | NestJS 11 + TypeORM + SQLite/MariaDB + JWT | `:8000` |
+| API | `apps/backend` | NestJS 11 + TypeORM (SQLite/MariaDB), JWT auth | `:8000` |
 
 **Deployment**: Docker Compose ships 2 services by default (app + caddy) with SQLite persisted to a named volume; opt into `DB_TYPE=mariadb` and start with `--profile mariadb` to add the mariadb container. Caddy serves static files and terminates HTTPS.
 

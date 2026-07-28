@@ -125,7 +125,7 @@
 |--------|--------|----------|----------|
 | `apps/frontend` | Vue 3.5 + Vite 8 + UnoCSS + Pinia | `3000` | `/` |
 | `apps/admin` | Vue 3.5 + Ant Design Vue 4 + ECharts | `3001` | `/admin/*` |
-| `apps/backend` | NestJS 11 + TypeORM + SQLite/MariaDB + JWT | `8000` | `/api/*` |
+| `apps/backend` | NestJS 11 + TypeORM (SQLite/MariaDB)，JWT 认证 | `8000` | `/api/*` |
 
 > 前后台的 HTML/JS/CSS 由 Caddy 直接 serve，不经过 Node 进程，仅 API 打到后端。图中虚线为可选/条件路径：`DB_TYPE=mariadb` 时才走 MariaDB，`PASSWORD_RESET_ENABLED=true` 时才走 SMTP，Caddy → ACME CA 为证书自动续签。
 
