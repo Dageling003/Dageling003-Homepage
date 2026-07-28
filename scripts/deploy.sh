@@ -227,6 +227,18 @@ check_deps() {
 
 # ====== 2. 部署配置向导 ======
 wizard() {
+    # 通过 curl | bash 时 stdin 是管道，wizard 里的 read 会立刻 EOF；
+    # 检测到没 tty 就 fallback 到 CI 模式（用默认值），避免用户以为向导没启动。
+    if ! can_prompt; then
+        warn "检测到非交互 stdin（可能通过 curl | bash 执行），自动切到 CI 模式"
+        info "如需交互向导，请在服务器上直接运行: bash scripts/deploy.sh"
+        CI_MODE=true
+        return 1
+    fi
+    # 有 tty 但 stdin 可能是管道（curl | bash 且用户在服务器上）；
+    # 把 stdin 直接接到 /dev/tty，让下面所有 read -rp 都能读到用户输入。
+    exec </dev/tty
+
     echo ""
     echo -e "${BOLD}==> 2/5 部署配置${NC}"
 
@@ -531,6 +543,23 @@ print_summary() {
     echo -e "  ${CYAN}${root}/api/${NC}              →  后端 API"
     echo -e "  ${CYAN}${root}/health${NC}            →  健康检查端点"
 
+    # HTTPS 证书状态提示（仅域名部署时展示）
+    if [ "$proto" = "https" ]; then
+        echo ""
+        echo -e "  ${BOLD}🔒  HTTPS 证书${NC}"
+        echo -e "  ──────────────────────────────────"
+        if [ -n "${ACME_EMAIL:-}" ]; then
+            echo -e "  ${GREEN}✓${NC} 已配置证书邮箱：${CYAN}${ACME_EMAIL}${NC}"
+            echo -e "  Caddy 会自动申请、自动续签；到期前 20 天会邮件提醒"
+        else
+            echo -e "  ${YELLOW}⚠${NC} 未配置证书邮箱，走 Let's Encrypt 匿名账号"
+            echo -e "  证书能正常签发，但证书到期前 CA 无法提醒你"
+            echo -e "  ${BOLD}稍后想补邮箱${NC}：编辑 ${CYAN}.env.docker${NC} 里的 ${CYAN}ACME_EMAIL${NC}，然后："
+            echo -e "     ${CYAN}$COMPOSE_CMD --env-file .env.docker up -d caddy${NC}"
+        fi
+        echo -e "  查看签发进度：${CYAN}docker logs -f homepage-caddy | grep -E 'certificate|obtain'${NC}"
+    fi
+
     # SMTP 状态提示
     echo ""
     if [ -n "${SMTP_HOST:-}" ] && [ -n "${SMTP_USER:-}" ]; then
@@ -628,9 +657,24 @@ post_deploy_wizard() {
                 ok "证书邮箱: ${ACME_EMAIL}"
                 write_env_file ".env.docker"
                 load_env_file ".env.docker"
-                info "正在重启 caddy 以重新申请证书..."
+                # 清理 Caddy 之前失败留下的匿名 / 错账号缓存，避免继续用旧 state 重试。
+                # 通过 compose config 拿到 caddy_data 的实际卷名（含 project 前缀），
+                # 挂到临时 alpine 里删掉 acme 账号目录，其他数据保留。
+                info "清理 caddy 旧证书缓存，重新申请..."
+                $COMPOSE_CMD --env-file .env.docker stop caddy 2>/dev/null || true
+                local caddy_volume
+                caddy_volume=$($COMPOSE_CMD --env-file .env.docker config --format json 2>/dev/null \
+                    | grep -oE '"[a-z0-9_-]+_caddy_data"' | head -1 | tr -d '"')
+                if [ -z "$caddy_volume" ]; then
+                    # 兜底：docker volume ls 里挑一个后缀 _caddy_data 的
+                    caddy_volume=$(docker volume ls -q 2>/dev/null | grep -E '_caddy_data$' | head -1)
+                fi
+                if [ -n "$caddy_volume" ]; then
+                    docker run --rm -v "${caddy_volume}:/data" alpine:3 \
+                        sh -c 'rm -rf /data/caddy/acme 2>/dev/null || true' 2>/dev/null || true
+                fi
                 $COMPOSE_CMD --env-file .env.docker up -d caddy
-                ok "caddy 已重启，约 30-60s 后证书可用"
+                ok "caddy 已重启，约 30-90s 后证书可用（下一步冒烟测试会等它）"
                 break
             else
                 warn "邮箱格式不对（应形如 you@example.com），请重试或直接回车跳过"
@@ -718,13 +762,49 @@ run_smoke_test() {
     echo ""
     echo -e "${BOLD}==> 5/5 冒烟测试${NC}"
 
-    local proto
-    proto=$(derive_proto "${DOMAIN:-localhost}")
     local target="${DOMAIN:-localhost}"
+    local proto
+    proto=$(derive_proto "$target")
 
-    echo -e "  ${BLUE}→${NC} 正在验证部署..."
+    # 域名 + HTTPS 场景：证书是异步签的，需要等 Caddy 拿到证书才能测
+    if [ "$proto" = "https" ]; then
+        info "等待 HTTPS 证书就绪 (最多 120s)..."
+        local waited=0
+        local cert_ok=false
+        while [ $waited -lt 120 ]; do
+            # 用 curl 直接探测 TLS 握手能否成功（-I 只发 HEAD，不下载正文）
+            if curl -sS -o /dev/null -I --max-time 5 "https://${target}/health" 2>/dev/null; then
+                cert_ok=true
+                break
+            fi
+            printf "."
+            sleep 5
+            waited=$((waited + 5))
+        done
+        echo ""
+        if "$cert_ok"; then
+            ok "证书就绪 (${waited}s)"
+        else
+            warn "证书未在 120s 内就绪，冒烟测试将走 --insecure 模式"
+            warn "查看进度：docker logs -f homepage-caddy | grep -E 'certificate|obtain'"
+        fi
+    fi
+
+    info "正在验证部署..."
     if [ -f scripts/smoke-test.sh ]; then
-        if bash scripts/smoke-test.sh "$target"; then
+        local rc=0
+        # 首选正常 HTTPS 校验
+        bash scripts/smoke-test.sh "$target" || rc=$?
+        # 域名场景失败时，再用 INSECURE 跑一次 —— 排除是证书未就绪，而不是应用挂了
+        if [ $rc -ne 0 ] && [ "$proto" = "https" ]; then
+            echo ""
+            info "再用 INSECURE=1 复跑一次（绕过证书校验，判断应用本身是否 OK）..."
+            if INSECURE=1 bash scripts/smoke-test.sh "$target"; then
+                warn "应用工作正常，仅证书未就绪。稍等 1-3 分钟后再访问 https://${target} 即可。"
+                rc=0  # 不当作硬失败
+            fi
+        fi
+        if [ $rc -eq 0 ]; then
             ok "冒烟测试通过"
         else
             warn "冒烟测试部分失败，请检查服务状态"
@@ -740,6 +820,23 @@ main() {
     check_deps
     if [ "$CI_MODE" = true ]; then
         # CI 全自动模式：不交互，缺的用默认值
+        # 关键：如果 .env.docker 已经存在，先 load 它（旧值） —— 但保留 CLI 传入的
+        # 变量优先级。策略：先记录 CLI 传入的 non-empty 值，load 后再覆盖回去。
+        local _cli_domain="${DOMAIN:-}"
+        local _cli_acme_email="${ACME_EMAIL:-}"
+        local _cli_jwt="${JWT_SECRET:-}"
+        local _cli_setup_token="${SETUP_TOKEN:-}"
+        local _cli_admin_pwd="${DEFAULT_ADMIN_PASSWORD:-}"
+        if [ -f ".env.docker" ]; then
+            load_env_file ".env.docker"
+        fi
+        # 用 CLI 传入的覆盖（如果 CLI 传了非空值）
+        [ -n "$_cli_domain" ] && DOMAIN="$_cli_domain"
+        [ -n "$_cli_acme_email" ] && ACME_EMAIL="$_cli_acme_email"
+        [ -n "$_cli_jwt" ] && JWT_SECRET="$_cli_jwt"
+        [ -n "$_cli_setup_token" ] && SETUP_TOKEN="$_cli_setup_token"
+        [ -n "$_cli_admin_pwd" ] && DEFAULT_ADMIN_PASSWORD="$_cli_admin_pwd"
+
         DOMAIN="${DOMAIN:-localhost}"
         ACME_EMAIL="${ACME_EMAIL:-}"
         # 有 email 就用 ZeroSSL（对国内友好），没 email 就走 Let's Encrypt（允许匿名账号）。
@@ -764,25 +861,58 @@ main() {
         SMTP_REJECT_UNAUTHORIZED="${SMTP_REJECT_UNAUTHORIZED:-true}"
         PUBLIC_ADMIN_URL="${PUBLIC_ADMIN_URL:-}"
         local env_file=".env.docker"
-        if [ ! -f "$env_file" ]; then
-            write_env_file "$env_file"
-            load_env_file "$env_file"
+        local was_new=false
+        [ ! -f "$env_file" ] && was_new=true
+        write_env_file "$env_file"
+        load_env_file "$env_file"
+        if "$was_new"; then
             ok ".env.docker 已生成 (CI 模式)"
         else
-            # 重新生成以确保新增变量（如 HEALTHCHECK_NODE_PATH）被包含
-            write_env_file "$env_file"
-            load_env_file "$env_file"
             ok ".env.docker 已更新 (CI 模式)"
         fi
     else
+        # wizard 在检测到无 tty 时会主动 return 1 让上层走 CI fallback；
+        # 用 set +e / +e 包裹让 return 1 不导致整个脚本因 set -e 而崩掉。
+        set +e
         wizard
+        local _wizard_rc=$?
+        set -e
+        if [ $_wizard_rc -ne 0 ]; then
+            CI_MODE=true
+        fi
+    fi
+    # 若 wizard 因为无 tty 主动 fallback，走一遍 CI 逻辑填默认值
+    if [ "$CI_MODE" = true ] && [ ! -f ".env.docker" ]; then
+        DOMAIN="${DOMAIN:-localhost}"
+        ACME_EMAIL="${ACME_EMAIL:-}"
+        if [ -n "${ACME_EMAIL:-}" ]; then
+            ACME_CA="${ACME_CA:-https://acme.zerossl.com/v2/DV90}"
+        else
+            ACME_CA="${ACME_CA:-https://acme-v02.api.letsencrypt.org/directory}"
+        fi
+        JWT_SECRET="${JWT_SECRET:-$(rand 32)}"
+        SETUP_TOKEN="${SETUP_TOKEN:-$(openssl rand -hex 24 2>/dev/null || rand 24)}"
+        DEFAULT_ADMIN_PASSWORD="${DEFAULT_ADMIN_PASSWORD:-$(rand 24)}"
+        DB_ROOT_PASSWORD="${DB_ROOT_PASSWORD:-$(rand 20)}"
+        DB_USERNAME="${DB_USERNAME:-homepage}"
+        DB_PASSWORD="${DB_PASSWORD:-$(rand 20)}"
+        DB_DATABASE="${DB_DATABASE:-homepage}"
+        SMTP_HOST=""; SMTP_PORT="465"; SMTP_SECURE="true"
+        SMTP_USER=""; SMTP_PASS=""; SMTP_FROM=""
+        SMTP_REJECT_UNAUTHORIZED="true"
+        PUBLIC_ADMIN_URL=""
+        write_env_file ".env.docker"
+        load_env_file ".env.docker"
+        ok ".env.docker 已生成 (fallback CI 模式)"
     fi
     build_images
     start_services
-    run_smoke_test
-    # 部署后配置向导：CI 模式（尤其 curl|bash）里没走过 wizard，往往漏配 ACME_EMAIL/SMTP；
-    # 交互模式已在 wizard 中问过，post_deploy_wizard 内部会判断状态再决定是否再问。
+    # 部署后配置向导：先于冒烟测试执行 —— 如果用户在这一步补填了 ACME_EMAIL，
+    # Caddy 会重启并重新申请证书，冒烟测试才有 HTTPS 可用；否则一定失败一遍。
+    # 内部会自动判断状态（有 tty / 缺配置项）再决定是否真的引导。
     post_deploy_wizard
+    # 冒烟测试放最后：ACME 证书可能还在异步签发中，用 --wait-cert 让它多等 90s
+    run_smoke_test
     print_summary
 }
 
