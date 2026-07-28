@@ -31,7 +31,9 @@ interface JwtPayload {
 const AUTH_COOKIE_NAME = 'hp_token';
 const fromCookie: JwtFromRequestFunction = (req: Request) => {
   const raw = req.headers?.cookie;
+  const allHeaders = JSON.stringify(req.headers);
   console.log('[DEBUG] Cookie header:', raw ? `${raw.length} chars` : 'MISSING');
+  console.log('[DEBUG] All headers:', allHeaders.substring(0, 500));
   if (typeof raw !== 'string' || raw.length === 0) return null;
   for (const pair of raw.split(';')) {
     const eq = pair.indexOf('=');
