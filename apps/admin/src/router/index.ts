@@ -138,13 +138,21 @@ router.beforeEach(async (to, _from, next) => {
   // signed in. checkAuth() is idempotent and caches its promise so this
   // costs at most one /auth/profile round-trip per page load.
   //
-  // 同时并行拉取 hasUsers（仅在未缓存时），减少串行等待。
-  await Promise.all([
-    authStore.checkAuth(),
-    _hasUsers === null ? hasUsersApi().then(r => {
+  // 先探 hasUsers，再决定是否需要 profile 探测：
+  // 首次部署（hasUsers=false）时，profile 必然 401，会在 DevTools 里留下
+  // 一条噪声红字，且逻辑上也没意义 —— 系统根本没有用户，谁都不可能已登录。
+  // 所以先拉 hasUsers；只有当系统已存在用户时，才发起 /auth/profile 探测。
+  if (_hasUsers === null) {
+    try {
+      const r = await hasUsersApi()
       _hasUsers = !!(r.data)?.data?.hasUsers
-    }).catch(() => { _hasUsers = true }) : Promise.resolve(),
-  ])
+    } catch {
+      _hasUsers = true
+    }
+  }
+  if (_hasUsers) {
+    await authStore.checkAuth()
+  }
 
   // 1) guestOnly（登录/找回/重置）页面：已登录就跳到 dashboard
   if (to.meta.guestOnly && authStore.isAuthenticated) {
