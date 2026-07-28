@@ -39,9 +39,20 @@ export default defineConfig(({ mode }) => {
               },
               workbox: {
                 globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
-                cacheId: 'homepage-v1.3.1',
+                // Bump cacheId when SW scope/denylist changes so older
+                // clients drop their stale caches on next reload.
+                cacheId: 'homepage-v1.3.2',
                 navigateFallback: '/index.html',
-                navigateFallbackDenylist: [/^\/api/],
+                // The frontend SW is registered at scope '/' (see manifest.scope),
+                // which means it intercepts every path on the origin — including
+                // the admin SPA at /admin/* and the API at /api/*. Without an
+                // explicit denylist, admin navigations get served the frontend
+                // /index.html fallback and API calls resolve to `no-response`,
+                // silently breaking login and the setup wizard.
+                //
+                // Deny both /api and /admin so those requests hit the network
+                // (Caddy) directly. Regexes are matched against request URLs.
+                navigateFallbackDenylist: [/^\/api/, /^\/admin/],
                 clientsClaim: true,
                 skipWaiting: true,
                 disableDevLogs: true,
