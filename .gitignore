@@ -7,6 +7,9 @@ node_modules/
 dist/
 build/
 *.tsbuildinfo
+apps/backend/data-source.js
+apps/backend/data-source.js.map
+apps/backend/data-source.d.ts
 
 # Environment files
 .env
