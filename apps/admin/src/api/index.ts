@@ -50,7 +50,10 @@ request.interceptors.response.use(
           if (!currentPath.includes('/login') && !currentPath.includes('/setup')) {
             message.error('登录已过期,请重新登录')
             setTimeout(() => {
-              window.location.href = '/login'
+              // admin bundle 挂载在 /admin/ 前缀下（见 vite.config.ts base）。
+              // 之前写 '/login' 会跳到 frontend 主页并触发 404，用户会误以为
+              // "登录失败" —— 实际上 login 本身 200，只是这里带偏了。
+              window.location.href = '/admin/login'
             }, 800)
           }
         }
@@ -60,7 +63,7 @@ request.interceptors.response.use(
         const currentPath = window.location.pathname
         if (!currentPath.includes('/403') && !currentPath.includes('/login')) {
           message.error('权限不足,无法执行此操作')
-          window.location.href = '/403'
+          window.location.href = '/admin/403'
         }
       }
 
