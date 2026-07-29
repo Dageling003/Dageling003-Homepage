@@ -3,6 +3,10 @@
 # Override base images with build-args for Chinese mirror:
 #   --build-arg BUILDER_IMAGE=docker.1ms.run/library/node:22-slim
 #   --build-arg RUNTIME_IMAGE=docker.1ms.run/library/node:22-slim
+#
+# 单构建源真相：backend / frontend / admin 三个包在 `builder` 一层里一次性
+# 构建完成。Dockerfile.caddy 通过 `--from=homepage-app:builder` 直接复用
+# 这一层的静态产物，避免在 2C2G 小机上二次 pnpm install + build 打爆内存/CPU。
 
 ARG BUILDER_IMAGE=node:22-slim
 ARG RUNTIME_IMAGE=gcr.io/distroless/nodejs22-debian12
@@ -13,21 +17,26 @@ WORKDIR /app
 
 RUN corepack enable && corepack prepare pnpm@11.5.2 --activate
 
+# 2C2G 主机上关键：把 pnpm 并发压到 1，装依赖阶段常见的 tarball 解压 +
+# postinstall 一起跑很容易 OOM / 卡死 SSH。max-old-space-size=1024 也做同样
+# 的兜底，避免 node 单进程把内存吃满。
 ENV PNPM_CONFIG_CHILD_CONCURRENCY=1 \
     PNPM_CONFIG_NETWORK_CONCURRENCY=2 \
     PNPM_CONFIG_REPORTER=append-only \
-    NODE_OPTIONS=--max-old-space-size=2048
+    NODE_OPTIONS=--max-old-space-size=1024
 
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json .npmrc ./
 COPY apps/backend/package.json apps/frontend/package.json apps/admin/package.json ./apps/
 RUN pnpm install --frozen-lockfile
 
 # ====== Stage 2: Build all three projects + prepare prod deps ======
+# 这一层带 tag `builder`，方便 Dockerfile.caddy 直接 `--from=` 复用。
 FROM deps AS builder
 WORKDIR /app
 
 COPY apps/ apps/
 
+# 顺序 build：backend → frontend → admin。三个并发在 2C2G 上会 OOM。
 RUN pnpm --filter homepage-backend build && \
     pnpm --filter homepage-frontend build && \
     pnpm --filter homepage-admin build

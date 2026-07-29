@@ -356,7 +356,9 @@ docker compose logs -f caddy         # Caddy logs
 docker compose restart app           # restart backend
 docker compose down                  # stop + remove containers
 docker compose up -d                 # start again
-docker compose --env-file .env.docker build app --no-cache  # rebuild
+docker compose --env-file .env.docker build app     # rebuild (cached, fast)
+# Force full rebuild (pegs CPU + RAM, avoid on 2C2G hosts):
+#   bash scripts/redeploy.sh --clean
 ```
 
 ---

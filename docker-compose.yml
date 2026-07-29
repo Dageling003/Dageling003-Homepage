@@ -109,8 +109,9 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.caddy
-      args:
-        BUILDER_IMAGE: ${BUILDER_IMAGE:-node:22-slim}
+      # 注意：caddy 镜像 `FROM homepage-app:latest`，因此构建 caddy **必须**
+      # 先有 homepage-app:latest。Compose 的 depends_on 不控 build 顺序，
+      # 请务必 `build app` 后再 `build caddy`（scripts/redeploy.sh 已封装）。
     image: homepage-caddy:latest
     container_name: homepage-caddy
     restart: unless-stopped

@@ -1,36 +1,22 @@
 # homepage — Caddy reverse proxy + static file server
-# Self-contained: does NOT depend on homepage-app image.
 #
-# Uses the same BUILDER_IMAGE as Dockerfile.app for BuildKit layer cache reuse.
-# When both images are built in the same CI run, the deps layer is shared.
+# 关键：**不再自己装依赖 / 自己 build**。frontend + admin 已经在 homepage-app
+# 的 builder 层里构建过一次，这里直接 `--from=homepage-app:latest` 拿产物。
+# 2C2G 主机上这样做能把每次 `docker compose build` 的 CPU/内存峰值几乎减半 —
+# 之前会走两遍 `pnpm install` + 两遍 `vue-tsc + vite build`，SSH 会被卡死。
+#
+# 依赖：homepage-app 镜像必须先构建（compose 里 caddy 已经 `depends_on: app`，
+# 但 build 顺序是 depends_on 不影响的，因此 scripts/update.sh / redeploy.sh
+# 里显式 `build app` 后再 `build caddy`）。
 
-ARG BUILDER_IMAGE=node:22-slim
+FROM homepage-app:latest AS app-artifacts
 
-# ====== Stage 1: Install deps + build frontend/admin ======
-FROM ${BUILDER_IMAGE} AS builder
-WORKDIR /app
-
-RUN corepack enable && corepack prepare pnpm@11.5.2 --activate
-
-ENV PNPM_CONFIG_CHILD_CONCURRENCY=1 \
-    PNPM_CONFIG_NETWORK_CONCURRENCY=2 \
-    PNPM_CONFIG_REPORTER=append-only \
-    NODE_OPTIONS=--max-old-space-size=1024
-
-COPY pnpm-lock.yaml pnpm-workspace.yaml package.json .npmrc ./
-COPY apps/backend/package.json apps/frontend/package.json apps/admin/package.json ./apps/
-RUN pnpm install --frozen-lockfile
-
-COPY apps/ apps/
-
-RUN pnpm --filter homepage-frontend build && \
-    pnpm --filter homepage-admin build
-
-# ====== Stage 2: Caddy runtime ======
 FROM caddy:2-alpine
 
-COPY --from=builder /app/apps/frontend/dist /var/www/frontend
-COPY --from=builder /app/apps/admin/dist /var/www/admin
+# /static/frontend + /static/admin 是 Dockerfile.app 最后一层已经拷好的。
+# 直接搬到 Caddy 期望的 /var/www 下即可，零构建。
+COPY --from=app-artifacts /static/frontend /var/www/frontend
+COPY --from=app-artifacts /static/admin /var/www/admin
 
 COPY caddy/Caddyfile /etc/caddy/Caddyfile
 COPY caddy/entrypoint.sh /usr/local/bin/caddy-entrypoint.sh

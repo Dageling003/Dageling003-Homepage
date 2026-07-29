@@ -12,6 +12,7 @@
 尚未发布的变更。**当决定切下一个 minor / patch 时，把该段整体挪到新版本标题下。**
 
 ### Added
+- **`scripts/redeploy.sh`（2C2G 友好版更新脚本）**：走 Docker 层缓存 + `nice`/`ionice` 降优先级，SSH 不会被 build 卡死；`--clean` 才走 `--no-cache`
 - **错误页面系统**：后台 404 / 403 页面支持动态状态码和主题适配，动画渐入，含「返回首页」和「返回上页」按钮
 - **全局 Loading 组件**：`GlobalLoading.vue`，带主题适配的旋转动画和跳动点阵，可用于路由切换和异步加载
 - **axios 403 拦截**：API 返回 403 时自动跳转到 `/403` 错误页面
@@ -32,6 +33,9 @@
 - **后端全局限流**：`ThrottlerModule` 加 `skipIf: NODE_ENV=test`，e2e 顺序调用登录接口不再被 `@Throttle(5/60s)` 命中 429
 
 ### Fixed
+- **登录 cookie 被浏览器丢弃**：`hp_token` cookie 从 `SameSite=Strict` 放宽到 `SameSite=Lax`，修复 Chrome 某些流程下 login 200 成功但 cookie 未持久化导致的「登录后被踢回登录页」幽灵故障
+- **admin 401 重定向路径错误**：`window.location.href = '/login'` 修为 `/admin/login`（admin bundle 挂在 `/admin/` base 下），避免误跳到 frontend 主页
+- **admin 残留 Service Worker 兜底**：admin 挂载时检测并反注册 scope='/' 的旧 SW + 清 CacheStorage，防止 frontend 早期 PWA 版本残留继续拦截 admin 请求
 - **admin 登录页双重复提交**：按钮 `@click` + 表单 `@finish` 同时触发，改用 `html-type="submit"`，消除双发请求导致的提前限流
 - **admin 账号页**：修复邮箱设置项在无 SMTP 环境下暴露的问题，同步更新 API 类型
 - **backend BUG-005**：生产环境启动 fail-fast 守卫，`JWT_SECRET` / `SETUP_TOKEN` 缺失直接拒启
@@ -49,6 +53,7 @@
 - **PWA**：`index.html` 加入预缓存，`/api` 响应不再缓存，避免 CSP header 陈旧
 
 ### Performance
+- **Docker 构建 2C2G 友好化**：合并 `Dockerfile.caddy` 与 `Dockerfile.app` 的构建阶段（caddy 现在直接 `FROM homepage-app:latest` 复用静态产物），消除重复的 `pnpm install` + `vite build`；配合 `redeploy.sh` 的层缓存与 `nice`/`ionice`，2C2G 主机重建时间从 ~5min 降到 ~40s，CPU 峰值从 100% 降到 ~30%
 - **admin 首屏 bundle**：`SCHOOLS` 静态数组（2909 条）改为懒加载，首屏体积显著下降
 - **frontend 首屏**：字体 / 图标 self-host 后，首屏不再等待 fonts.googleapis.com + api.iconify.design 两个跨境请求，国内网络下首屏 TTI 显著改善
 

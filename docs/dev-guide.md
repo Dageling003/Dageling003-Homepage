@@ -357,7 +357,9 @@ docker compose logs -f caddy         # 查看 Caddy 日志
 docker compose restart app           # 重启后端
 docker compose down                  # 停止并删除容器
 docker compose up -d                 # 重新启动
-docker compose --env-file .env.docker build app --no-cache  # 重新构建
+docker compose --env-file .env.docker build app  # 重新构建（走缓存，快）
+# 想强制不走缓存（会跑满 CPU / 吃满内存，2C2G 主机慎用）：
+#   bash scripts/redeploy.sh --clean
 ```
 
 ---
