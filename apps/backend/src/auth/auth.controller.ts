@@ -47,7 +47,15 @@ interface AuthenticatedRequest {
  * Cookie hardening:
  *   HttpOnly           — invisible to document.cookie / XSS
  *   Secure             — only sent over HTTPS in production
- *   SameSite=Strict    — same-origin only; blocks CSRF from other sites
+ *   SameSite=Lax       — same-site by default (allows top-level GET and
+ *                        same-origin fetch to carry the cookie); blocks
+ *                        cross-site POST which is the actual CSRF vector.
+ *                        `Strict` was too aggressive: some Chrome flows
+ *                        (esp. bookmark / typed-URL first navigation and
+ *                        certain fetch-initiated Set-Cookie scenarios)
+ *                        silently dropped the cookie, leaving the user
+ *                        staring at a "login succeeded but instantly
+ *                        redirected back" ghost failure.
  *   Path=/             — sent to the whole app (needed for /api and /admin)
  *   Max-Age            — mirrors JWT expiry
  */
@@ -58,7 +66,7 @@ function buildCookieAttrs(maxAgeSec: number): string {
   return [
     `Path=/`,
     `HttpOnly`,
-    `SameSite=Strict`,
+    `SameSite=Lax`,
     `Max-Age=${maxAgeSec}`,
     isProd ? 'Secure' : '',
   ]

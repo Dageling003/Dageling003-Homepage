@@ -199,7 +199,7 @@ describe('Auth flow (e2e)', () => {
       const authCookie = cookies.find((c) => c.startsWith('hp_token='));
       expect(authCookie).toBeDefined();
       expect(authCookie).toMatch(/HttpOnly/);
-      expect(authCookie).toMatch(/SameSite=Strict/);
+      expect(authCookie).toMatch(/SameSite=Lax/);
       cookieHeader = (authCookie as string).split(';')[0]; // 'hp_token=xxxxx'
     });
 
