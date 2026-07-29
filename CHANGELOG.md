@@ -53,7 +53,7 @@
 - **PWA**：`index.html` 加入预缓存，`/api` 响应不再缓存，避免 CSP header 陈旧
 
 ### Performance
-- **Docker 构建 2C2G 友好化**：合并 `Dockerfile.caddy` 与 `Dockerfile.app` 的构建阶段（caddy 现在直接 `FROM homepage-app:latest` 复用静态产物），消除重复的 `pnpm install` + `vite build`；配合 `redeploy.sh` 的层缓存与 `nice`/`ionice`，2C2G 主机重建时间从 ~5min 降到 ~40s，CPU 峰值从 100% 降到 ~30%
+- **Docker 构建 2C2G 友好化**：合并成单一 `Dockerfile.app` 双 target（`--target=runtime` 出 app、`--target=caddy` 出 caddy），两次 build 共享同一份 BuildKit 缓存（`deps` + `builder` 层），消除重复的 `pnpm install` + `vite build`；配合 `redeploy.sh` 的层缓存与 `nice`/`ionice`，2C2G 主机重建时间从 ~5min 降到 ~40s，CPU 峰值从 100% 降到 ~30%；同时修复了 GitHub Actions 里 caddy build 找不到 `homepage-app:latest` 的 CI 断链
 - **admin 首屏 bundle**：`SCHOOLS` 静态数组（2909 条）改为懒加载，首屏体积显著下降
 - **frontend 首屏**：字体 / 图标 self-host 后，首屏不再等待 fonts.googleapis.com + api.iconify.design 两个跨境请求，国内网络下首屏 TTI 显著改善
 

@@ -276,7 +276,7 @@ docker compose --env-file .env.docker up -d
 | 镜像 | Dockerfile | 大小 |
 |------|-----------|------|
 | `homepage-app` | `docker/Dockerfile.app`（distroless + 仅生产依赖） | ~120MB |
-| `homepage-caddy` | `docker/Dockerfile.caddy`（Caddy 2 + 内置前端/后台静态） | ~50MB |
+| `homepage-caddy` | `docker/Dockerfile.app`（`--target=caddy`：Caddy 2 + 内置前端/后台静态） | ~50MB |
 
 未发布到 Docker Hub，需自行构建。
 
@@ -333,8 +333,7 @@ bash scripts/smoke-test.sh       # 冒烟测试
 │   ├── admin/               # Vue 3 + Ant Design Vue + ECharts
 │   └── backend/             # NestJS (auth / config / audit / users)
 ├── docker/
-│   ├── Dockerfile.app       # 后端 API 镜像
-│   ├── Dockerfile.caddy     # Caddy + 前后端静态镜像
+│   ├── Dockerfile.app       # 单 Dockerfile 双 target：--target=runtime → app，--target=caddy → caddy
 │   └── .env.example
 ├── caddy/
 │   ├── Caddyfile            # 生产（构建进镜像）

@@ -35,6 +35,7 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.app
+      target: runtime
       args:
         BUILDER_IMAGE: ${BUILDER_IMAGE:-node:22-slim}
         RUNTIME_IMAGE: ${RUNTIME_IMAGE:-gcr.io/distroless/nodejs22-debian12}
@@ -108,10 +109,15 @@ services:
   caddy:
     build:
       context: .
-      dockerfile: docker/Dockerfile.caddy
-      # 注意：caddy 镜像 `FROM homepage-app:latest`，因此构建 caddy **必须**
-      # 先有 homepage-app:latest。Compose 的 depends_on 不控 build 顺序，
-      # 请务必 `build app` 后再 `build caddy`（scripts/redeploy.sh 已封装）。
+      dockerfile: docker/Dockerfile.app
+      target: caddy
+      # 单一 Dockerfile 出两个 target，共享 BuildKit 缓存（deps + builder 层）
+      # 只跑一次 pnpm install / vite build。scripts/redeploy.sh 会先构建
+      # target=runtime（app），再构建 target=caddy（本行），第二次 build
+      # 直接命中缓存，秒级完成。
+      args:
+        BUILDER_IMAGE: ${BUILDER_IMAGE:-node:22-slim}
+        RUNTIME_IMAGE: ${RUNTIME_IMAGE:-gcr.io/distroless/nodejs22-debian12}
     image: homepage-caddy:latest
     container_name: homepage-caddy
     restart: unless-stopped

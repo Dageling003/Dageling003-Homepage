@@ -274,7 +274,7 @@ docker compose --env-file .env.docker up -d
 | Image | Dockerfile | Size |
 |-------|-----------|------|
 | `homepage-app` | `docker/Dockerfile.app` (distroless + prod-only deps) | ~120 MB |
-| `homepage-caddy` | `docker/Dockerfile.caddy` (Caddy 2 + baked-in static files) | ~50 MB |
+| `homepage-caddy` | `docker/Dockerfile.app` (`--target=caddy`: Caddy 2 + baked-in static files) | ~50 MB |
 
 Not published to Docker Hub — build locally.
 
@@ -332,8 +332,7 @@ bash scripts/smoke-test.sh       # smoke tests
 │   ├── admin/               # Vue 3 + Ant Design Vue + ECharts
 │   └── backend/             # NestJS (auth / config / audit / users)
 ├── docker/
-│   ├── Dockerfile.app       # backend API image
-│   ├── Dockerfile.caddy     # Caddy + baked-in frontend/admin
+│   ├── Dockerfile.app       # single Dockerfile, two targets: --target=runtime → app, --target=caddy → caddy
 │   └── .env.example
 ├── caddy/
 │   ├── Caddyfile            # production (baked into image)

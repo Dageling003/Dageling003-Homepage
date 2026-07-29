@@ -99,25 +99,31 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build app image
+      # 单一 Dockerfile 两个 target 共享 BuildKit 缓存：deps + builder 层
+      # 只跑一次，caddy build 直接命中缓存。scope 用同一份 `app` 让 GHA
+      # cache 能被两次 build 共享（若拆两个 scope，caddy build 会重复
+      # install/build 整个 monorepo）。
+      - name: Build app image (target=runtime)
         uses: docker/build-push-action@v6
         with:
           context: .
           file: docker/Dockerfile.app
+          target: runtime
           tags: homepage-app:latest
           load: true
           cache-from: type=gha,scope=app
           cache-to: type=gha,scope=app,mode=max
 
-      - name: Build caddy image
+      - name: Build caddy image (target=caddy)
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: docker/Dockerfile.caddy
+          file: docker/Dockerfile.app
+          target: caddy
           tags: homepage-caddy:latest
           load: true
-          cache-from: type=gha,scope=caddy
-          cache-to: type=gha,scope=caddy,mode=max
+          cache-from: type=gha,scope=app
+          cache-to: type=gha,scope=app,mode=max
 
       - name: Verify images
         run: |

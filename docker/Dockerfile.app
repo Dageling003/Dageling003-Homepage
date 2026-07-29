@@ -1,12 +1,22 @@
-# homepage — Backend API image (production-optimized)
-# Build:  docker compose build app
-# Override base images with build-args for Chinese mirror:
+# homepage — Unified multi-stage Dockerfile
+#
+# 一个 Dockerfile 产出两个镜像：
+#   • target=runtime  → homepage-app:latest    （NestJS backend + static bundles）
+#   • target=caddy    → homepage-caddy:latest  （Caddy 反代 + 静态站点）
+#
+# 这样两次 build **共享同一份 BuildKit 缓存**（deps + builder 两层），2C2G
+# 主机上重建时间从 ~5min 降到 ~40s；GitHub Actions 也不用再让 caddy build
+# 去 registry 拉不存在的 homepage-app:latest。
+#
+# 用法：
+#   docker compose --env-file .env.docker build app caddy   # 两个 target 各拉一次
+#   或：
+#   docker build -f docker/Dockerfile.app --target runtime  -t homepage-app:latest   .
+#   docker build -f docker/Dockerfile.app --target caddy    -t homepage-caddy:latest .
+#
+# Mirror override（国内镜像）：
 #   --build-arg BUILDER_IMAGE=docker.1ms.run/library/node:22-slim
 #   --build-arg RUNTIME_IMAGE=docker.1ms.run/library/node:22-slim
-#
-# 单构建源真相：backend / frontend / admin 三个包在 `builder` 一层里一次性
-# 构建完成。Dockerfile.caddy 通过 `--from=homepage-app:builder` 直接复用
-# 这一层的静态产物，避免在 2C2G 小机上二次 pnpm install + build 打爆内存/CPU。
 
 ARG BUILDER_IMAGE=node:22-slim
 ARG RUNTIME_IMAGE=gcr.io/distroless/nodejs22-debian12
@@ -30,7 +40,6 @@ COPY apps/backend/package.json apps/frontend/package.json apps/admin/package.jso
 RUN pnpm install --frozen-lockfile
 
 # ====== Stage 2: Build all three projects + prepare prod deps ======
-# 这一层带 tag `builder`，方便 Dockerfile.caddy 直接 `--from=` 复用。
 FROM deps AS builder
 WORKDIR /app
 
@@ -49,7 +58,8 @@ RUN pnpm --filter homepage-backend --prod --legacy deploy /prod
 # Create empty dirs for runtime (distroless has no shell, so we copy them)
 RUN mkdir -p /app/public/uploads/avatar /app/data
 
-# ====== Stage 3: Runtime (distroless or slim, production-only) ======
+# ====== Stage 3a: Runtime — Backend API image ======
+# Target: runtime → homepage-app:latest
 FROM ${RUNTIME_IMAGE} AS runtime
 WORKDIR /app
 
@@ -69,3 +79,14 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
   CMD ["/nodejs/bin/node", "-e", "const h=require('http');const req=h.get('http://localhost:8000/health',r=>{let d='';r.on('data',c=>d+=c);r.on('end',()=>process.exit(r.statusCode===200?0:1))});req.on('error',()=>process.exit(1));req.setTimeout(3000,()=>{req.destroy();process.exit(1)})"]
 
 CMD ["/app/dist/main.js"]
+
+# ====== Stage 3b: Runtime — Caddy reverse proxy image ======
+# Target: caddy → homepage-caddy:latest
+# 直接从 builder 层拷已构建好的 static 产物，不再 install/build 一次。
+FROM caddy:2-alpine AS caddy
+COPY --from=builder /app/apps/frontend/dist /var/www/frontend
+COPY --from=builder /app/apps/admin/dist    /var/www/admin
+COPY caddy/Caddyfile /etc/caddy/Caddyfile
+COPY caddy/entrypoint.sh /usr/local/bin/caddy-entrypoint.sh
+RUN chmod +x /usr/local/bin/caddy-entrypoint.sh
+ENTRYPOINT ["/usr/local/bin/caddy-entrypoint.sh"]
