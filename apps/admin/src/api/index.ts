@@ -1,9 +1,19 @@
-import axios, { type AxiosResponse } from 'axios'
+import axios, { type AxiosRequestConfig, type AxiosResponse } from 'axios'
 import { message } from 'ant-design-vue'
 
 export interface ApiResponse<T = unknown> {
   data: T
   message?: string
+}
+
+/**
+ * `_silent`: opt-in flag for auth probe requests. Requests marked silent
+ * suppress the global 401 toast/redirect and are not `console.error`-logged
+ * by callers. Used for the startup /auth/profile probe to avoid a noisy
+ * red line in DevTools on first-boot (no users yet) and on the login page.
+ */
+export interface SilentRequestConfig extends AxiosRequestConfig {
+  _silent?: boolean
 }
 
 const request = axios.create({
@@ -24,33 +34,43 @@ const request = axios.create({
 request.interceptors.response.use(
   (res: AxiosResponse) => res,
   (error: unknown) => {
-    const axiosError = error as { response?: { status: number }; request?: unknown }
+    const axiosError = error as {
+      response?: { status: number }
+      request?: unknown
+      config?: SilentRequestConfig
+    }
+    const silent = axiosError.config?._silent === true
+
     if (axiosError.response) {
       const status = axiosError.response.status
 
       if (status === 401) {
-        const currentPath = window.location.pathname
-        if (!currentPath.includes('/login') && !currentPath.includes('/setup')) {
-          message.error('登录已过期，请重新登录')
-          setTimeout(() => {
-            window.location.href = '/login'
-          }, 800)
+        if (!silent) {
+          const currentPath = window.location.pathname
+          if (!currentPath.includes('/login') && !currentPath.includes('/setup')) {
+            message.error('登录已过期,请重新登录')
+            setTimeout(() => {
+              window.location.href = '/login'
+            }, 800)
+          }
         }
       }
 
       if (status === 403) {
         const currentPath = window.location.pathname
         if (!currentPath.includes('/403') && !currentPath.includes('/login')) {
-          message.error('权限不足，无法执行此操作')
+          message.error('权限不足,无法执行此操作')
           window.location.href = '/403'
         }
       }
 
       if (status === 429) {
-        message.warning('请求过于频繁，请稍后再试')
+        message.warning('请求过于频繁,请稍后再试')
       }
     } else if (axiosError.request) {
-      message.error('网络连接失败，请检查服务器是否运行')
+      if (!silent) {
+        message.error('网络连接失败,请检查服务器是否运行')
+      }
     }
 
     return Promise.reject(error)
@@ -66,8 +86,14 @@ export function logoutApi() {
   return request.post('/auth/logout')
 }
 
-export function getProfileApi() {
-  return request.get<ApiResponse<{ username: string; role?: string; avatarUrl?: string; email?: string | null }>>('/auth/profile')
+export function getProfileApi(options?: { silent?: boolean }) {
+  return request.get<ApiResponse<{ username: string; role?: string; avatarUrl?: string; email?: string | null }>>(
+    '/auth/profile',
+    // Startup probe passes `silent: true` so the global 401 handler skips
+    // the toast + redirect (see interceptor above). Explicit user actions
+    // like AccountView.load() omit it and get default UX.
+    { _silent: options?.silent === true } as SilentRequestConfig,
+  )
 }
 
 // Config API

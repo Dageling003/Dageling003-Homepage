@@ -1,10 +1,8 @@
 <script setup lang="ts">
-import { useAuthStore } from '@/stores/auth'
 import { useAdminThemeStore } from '@/stores/theme'
-import { onMounted, onUnmounted, computed } from 'vue'
+import { onMounted, computed } from 'vue'
 import { ConfigProvider, theme } from 'ant-design-vue'
 
-const authStore = useAuthStore()
 const themeStore = useAdminThemeStore()
 
 /**
@@ -40,18 +38,11 @@ const antdTheme = computed(() => ({
   },
 }))
 
-function handleThemeChange() {
-  // sync handled by the store
-}
-
+// 认证探测统一由 router.beforeEach 处理（避免抢跑 hasUsers 防御导致的
+// 首次部署控制台 401 红字）。theme store 自身在 initTheme() 里绑定 media
+// query，不需要 App.vue 再挂 admin-theme-change 监听器。
 onMounted(() => {
-  authStore.checkAuth()
   themeStore.initTheme()
-  window.addEventListener('admin-theme-change', handleThemeChange)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('admin-theme-change', handleThemeChange)
 })
 </script>
 

@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore, primeHasUsersCache, readHasUsersCache } from '@/stores/auth'
 import { checkInitializedApi, hasUsersApi } from '@/api'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import { isAuditEnabled, isPasswordResetEnabled } from '@/utils/features'
@@ -112,7 +112,7 @@ const routes: RouteRecordRaw[] = [
 ]
 
 // 缓存启动态检查结果，避免每次导航重复请求
-let _hasUsers: boolean | null = null
+// `_hasUsers` 现在由 stores/auth 统一维护，router 只做只读读取 + 首次填充。
 let _initialized: boolean | null = null
 
 const router = createRouter({
@@ -134,23 +134,26 @@ router.beforeEach(async (to, _from, next) => {
   }
 
   // SEC-002: the JWT lives in an HttpOnly cookie now, so we must probe
-  // the backend once at startup to learn whether the browser is already
-  // signed in. checkAuth() is idempotent and caches its promise so this
-  // costs at most one /auth/profile round-trip per page load.
+  // the backend to learn whether the browser is already signed in.
   //
-  // 先探 hasUsers，再决定是否需要 profile 探测：
-  // 首次部署（hasUsers=false）时，profile 必然 401，会在 DevTools 里留下
-  // 一条噪声红字，且逻辑上也没意义 —— 系统根本没有用户，谁都不可能已登录。
-  // 所以先拉 hasUsers；只有当系统已存在用户时，才发起 /auth/profile 探测。
-  if (_hasUsers === null) {
+  // Optimizations that keep DevTools clean and network usage minimal:
+  //   1. hasUsers 探测：只在首次调用时发一次，结果由 store 缓存。
+  //   2. guestOnly 页面（login / forgot / reset / setup）跳过 profile 探测 —
+  //      这些页面本来就是给未登录用户看的，探测 401 会污染控制台。
+  //   3. bootstrap 状态（hasUsers=false）跳过 profile 探测 —
+  //      系统里没用户，谁都不可能已登录。
+  //   4. 需要探测时，checkAuth() 内部会用 silent 标记，401 不弹 toast。
+  if (readHasUsersCache() === null) {
     try {
       const r = await hasUsersApi()
-      _hasUsers = !!(r.data)?.data?.hasUsers
+      primeHasUsersCache(!!r.data?.data?.hasUsers)
     } catch {
-      _hasUsers = true
+      primeHasUsersCache(true)
     }
   }
-  if (_hasUsers) {
+  const hasUsers = readHasUsersCache() === true
+  const isGuestRoute = to.meta.guestOnly === true || to.meta.allowInBootstrap === true
+  if (hasUsers && !isGuestRoute) {
     await authStore.checkAuth()
   }
 
@@ -167,7 +170,7 @@ router.beforeEach(async (to, _from, next) => {
   }
 
   // 3) 已登录用户：跳过 hasUsers 检查（有 session 说明一定有用户）
-  if (!authStore.isAuthenticated && _hasUsers === false) {
+  if (!authStore.isAuthenticated && readHasUsersCache() === false) {
     if (to.name === 'setup') {
       next()
       return
